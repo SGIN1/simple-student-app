@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>بيانات الطلاب</title>
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            text-align: right;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .add-new {
+            display: block;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .add-new a {
+            display: inline-block;
+            padding: 10px 15px;
+            text-decoration: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+        }
+        .search-form {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .search-form input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 300px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .actions a {
+            display: inline-block;
+            margin-left: 5px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .edit-btn {
+            background-color: #ffc107;
+            color: black;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .print-btn {
+            background-color: #007bff;
+            color: white;
+            display: inline-block;
+            margin-left: 5px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .no-results {
+            text-align: center;
+            color: gray;
+            margin-top: 10px;
+        }
+        #certificateContainer {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>بيانات الطلاب</h1>
+        <div class="add-new">
+            <a href="إضافة_طالب.html">إضافة طالب جديد</a>
+        </div>
+
+        <div class="search-form">
+            <input type="text" id="search_residency" placeholder="ابحث برقم الإقامة">
+        </div>
+
+        <table id="students_table">
+            <thead>
+                <tr>
+                    <th>المعرف</th>
+                    <th>الرقم التسلسلي</th>
+                    <th>رقم الإقامة</th>
+                    <th>تاريخ الإضافة</th>
+                    <th>الإجراءات</th>
+                    <th>عرض الشهادة</th>
+                </tr>
+            </thead>
+            <tbody id="students_tbody">
+            </tbody>
+        </table>
+
+        <p id="no_results" class="no-results" style="display:none;">لا يوجد طلاب بهذا الرقم للإقامة.</p>
+        <div id="certificateContainer"></div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('search_residency');
+        const studentsTable = document.getElementById('students_table');
+        const studentsTbody = document.getElementById('students_tbody');
+        const noResultsMessage = document.getElementById('no_results');
+        const certificateContainer = document.getElementById('certificateContainer');
+
+        let allStudents = []; // سيتم تعبئة هذه المصفوفة ببيانات الطلاب من الخادم
+
+        // دالة لجلب بيانات الطلاب من Netlify Function
+        async function fetchStudents() {
+            try {
+                const response = await fetch('/.netlify/functions/getStudents'); // رابط Netlify Function لجلب الطلاب
+                const data = await response.json();
+
+                if (response.ok) {
+                    allStudents = data;
+                    renderStudentsTable(allStudents);
+                } else {
+                    console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
+                    studentsTbody.innerHTML = '<tr><td colspan="6">فشل في تحميل بيانات الطلاب.</td></tr>';
+                }
+            } catch (error) {
+                console.error('خطأ في جلب بيانات الطلاب:', error);
+                studentsTbody.innerHTML = '<tr><td colspan="6">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
+            }
+        }
+
+        // دالة لتحديث جدول الطلاب في المتصفح
+        function renderStudentsTable(students) {
+            studentsTbody.innerHTML = ''; // مسح الجدول الحالي
+
+            if (students.length > 0) {
+                noResultsMessage.style.display = 'none';
+                students.forEach(student => {
+                    const row = studentsTbody.insertRow();
+                    row.insertCell().textContent = student.id;
+                    row.insertCell().textContent = student.serial_number;
+                    row.insertCell().textContent = student.residency_number;
+                    row.insertCell().textContent = student.created_at;
+                    const actionsCell = row.insertCell();
+                    actionsCell.classList.add('actions');
+                    actionsCell.innerHTML = `
+                        <a href="تعديل_الطالب.php?id=${student.id}" class="edit-btn">تعديل</a>
+                        <a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>
+                    `;
+                    const printCell = row.insertCell();
+                    printCell.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
+                });
+            } else {
+                studentsTbody.innerHTML = '<tr><td colspan="6">لا يوجد أي طلاب مسجلين.</td></tr>';
+            }
+        }
+
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.trim();
+            const filteredStudents = allStudents.filter(student => {
+                // التحقق إذا كانت student.residency_number موجودة وهي نص قبل استخدام startsWith
+                return student.residency_number && typeof student.residency_number === 'string' && student.residency_number.startsWith(searchTerm);
+            });
+            renderStudentsTable(filteredStudents);
+            noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
+        });
+
+        function showCertificate(url) {
+            var printFrame = document.getElementById('printFrame');
+            printFrame.src = url;
+            setTimeout(function() {
+                printFrame.contentWindow.print();
+            }, 500); // تأخير بسيط قبل الطباعة
+        }
+
+        // جلب بيانات الطلاب عند تحميل الصفحة
+        fetchStudents();
+    </script>
+    <iframe id="printFrame" style="width:0;height:0;border:0;position:absolute;"></iframe>
+</body>
+</html>
