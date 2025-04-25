@@ -1,4 +1,6 @@
 const { MongoClient, ObjectId } = require('mongodb');
+const path = require('path');
+const fs = require('fs').promises; // استخدام promises عشان async/await
 
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
@@ -26,48 +28,34 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // بناء مسار ملف الصورة
-        const imagePath = path.join(__dirname, '..', '..', 'ppp.jpg');
+        // استخدام رابط URL مباشر لصورة ppp.jpg من GitHub
+        const imageUrl = 'https://github.com/SGIN1/simple-student-app/blob/master/ppp.jpg?raw=true';
 
-        try {
-            const imageBuffer = await fs.readFile(imagePath);
-            const base64Image = imageBuffer.toString('base64');
-            const imageUrl = `data:image/jpeg;base64,${base64Image}`;
+        const htmlCertificateTwo = `
+            <!DOCTYPE html>
+            <html lang="ar">
+            <head>
+                <meta charset="UTF-8">
+                <title>الشهادة الثانية للطالب</title>
+                <style>
+                    body { direction: rtl; text-align: center; background-color: #f0f0f0; }
+                    .certificate-container { margin: 50px auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+                    img { max-width: 100%; height: auto; display: block; }
+                </style>
+            </head>
+            <body>
+                <div class="certificate-container">
+                    <img src="${imageUrl}" alt="الشهادة الثانية">
+                </div>
+            </body>
+            </html>
+        `;
 
-            const htmlCertificateTwo = `
-                <!DOCTYPE html>
-                <html lang="ar">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>الشهادة الثانية للطالب</title>
-                    <style>
-                        body { direction: rtl; text-align: center; background-color: #f0f0f0; }
-                        .certificate-container { margin: 50px auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,.1); }
-                        img { max-width: 100%; height: auto; display: block; }
-                    </style>
-                </head>
-                <body>
-                    <div class="certificate-container">
-                        <img src="${imageUrl}" alt="الشهادة الثانية">
-                    </div>
-                </body>
-                </html>
-            `;
-
-            return {
-                statusCode: 200,
-                body: htmlCertificateTwo,
-                headers: { 'Content-Type': 'text/html; charset=utf-8' },
-            };
-
-        } catch (error) {
-            console.error('خطأ في قراءة ملف الصورة:', error);
-            return {
-                statusCode: 500,
-                body: `<h1>حدث خطأ أثناء عرض الشهادة الثانية</h1><p>فشل في قراءة ملف الصورة.</p><p>${error.message}</p>`,
-                headers: { 'Content-Type': 'text/html; charset=utf-8' },
-            };
-        }
+        return {
+            statusCode: 200,
+            body: htmlCertificateTwo,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        };
 
     } catch (error) {
         console.error('خطأ في وظيفة توليد الشهادة الثانية:', error);
