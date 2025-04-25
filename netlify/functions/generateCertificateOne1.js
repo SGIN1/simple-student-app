@@ -27,7 +27,8 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const certificateTwoUrl = `/.netlify/functions/generateCertificateTwo2?id=${student._id}`;
+        // استخدام رابط URL كامل للشهادة الثانية
+        const certificateTwoUrl = `https://spiffy-meerkat-be5bc1.netlify.app/.netlify/functions/generateCertificateTwo2?id=${student._id}`;
         let qrCodeDataUri;
 
         try {
