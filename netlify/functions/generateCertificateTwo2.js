@@ -5,8 +5,8 @@ const path = require('path');
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
-const certificateTemplatePath = 'https://github.com/SGIN1/simple-student-app/blob/master/ppp.jpg?raw=true'; // رابط مباشر لقالب الشهادة
-const fontPath = 'https://github.com/SGIN1/simple-student-app/blob/master/netlify/functions/arial.ttf?raw=true'; // رابط مباشر لملف الخط
+const certificateTemplatePath = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/master/ppp.jpg'; // رابط مباشر لقالب الشهادة (تم التعديل)
+const fontPath = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/master/netlify/functions/arial.ttf'; // رابط مباشر لملف الخط (تم التعديل)
 
 console.log('مسار قالب الشهادة (رابط):', certificateTemplatePath);
 console.log('مسار الخط (رابط):', fontPath);
