@@ -62,7 +62,7 @@ exports.handler = async (event, context) => {
             // const fontBuffer = await fontResponse.arrayBuffer();
 
             imageBuffer = await sharp(Buffer.from(templateBuffer))
-                // .composite([ // تعليق إضافة النصوص مؤقتاً
+                // .composite([ // تعليق إضافة أي نصوص مؤقتاً
                 //     {
                 //         text: {
                 //             text: student.serial_number,
