@@ -216,8 +216,8 @@
                 const response = await fetch(url);
                 const data = await response.json();
                 if (response.ok && data.image) {
-                    const newWindow = window.open();
-                    newWindow.document.write(`<img src="data:image/jpeg;base64,${data.image}" style="max-width: 100%; height: auto;">`);
+                    const certificateContainer = document.getElementById('certificateContainer');
+                    certificateContainer.innerHTML = `<img src="data:image/jpeg;base64,${data.image}" style="max-width: 100%; height: auto;">`;
                 } else {
                     alert('فشل في عرض الشهادة الثانية.');
                     console.error('فشل في جلب الشهادة الثانية:', data.error || 'حدث خطأ غير معروف');
