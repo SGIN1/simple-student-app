@@ -5,8 +5,8 @@ const path = require('path');
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
-const certificateTemplatePath = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/1c3610d4e38df2d71c6e70d88399c74ec02eea9e/images/ppp.jpg'; // رابط مباشر لقالب الشهادة (تم التعديل)
-const fontPath = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/master/netlify/functions/arial.ttf'; // رابط مباشر لملف الخط (مثل ما كان)
+const certificateTemplatePath = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/1c3610d4e38df2d71c6e70d88399c74ec02eea9e/images/ppp.jpg'; // رابط مباشر لقالب الشهادة
+const fontPath = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/master/netlify/functions/arial.ttf'; // رابط مباشر لملف الخط (معلق)
 
 console.log('مسار قالب الشهادة (رابط):', certificateTemplatePath);
 console.log('مسار الخط (رابط):', fontPath);
@@ -53,38 +53,46 @@ exports.handler = async (event, context) => {
             }
             const templateBuffer = await templateResponse.arrayBuffer();
 
-            console.log('محاولة تحميل الخط من:', fontPath);
-            const fontResponse = await fetch(fontPath);
-            if (!fontResponse.ok) {
-                throw new Error(`فشل في تحميل الخط: ${fontResponse.status} - ${fontResponse.statusText}`);
+            // تعليق تحميل الخط مؤقتاً
+            // console.log('محاولة تحميل الخط من:', fontPath);
+            // const fontResponse = await fetch(fontPath);
+            // if (!fontResponse.ok) {
+            //     throw new Error(`فشل في تحميل الخط: ${fontResponse.status} - ${fontResponse.statusText}`);
+            // }
+            // const fontBuffer = await fontResponse.arrayBuffer();
+            const fontBuffer = null; // تعطيل استخدام الخط مؤقتاً
+
+            const compositeOptions = [];
+            if (student.serial_number) {
+                compositeOptions.push({
+                    text: {
+                        text: student.serial_number,
+                        x: serialNumberX,
+                        y: serialNumberY,
+                        font: fontBuffer ? Buffer.from(fontBuffer) : 'Arial', // استخدام Arial كبديل إذا كان الخط غير محمل
+                        size: fontSize,
+                        color: textColor,
+                        align: 'left',
+                    },
+                });
             }
-            const fontBuffer = await fontResponse.arrayBuffer();
+
+            if (student.residency_number) {
+                compositeOptions.push({
+                    text: {
+                        text: student.residency_number,
+                        x: residencyNumberX,
+                        y: residencyNumberY,
+                        font: fontBuffer ? Buffer.from(fontBuffer) : 'Arial', // استخدام Arial كبديل إذا كان الخط غير محمل
+                        size: fontSize,
+                        color: textColor,
+                        align: 'left',
+                    },
+                });
+            }
 
             imageBuffer = await sharp(Buffer.from(templateBuffer))
-                .composite([
-                    {
-                        text: {
-                            text: student.serial_number,
-                            x: serialNumberX,
-                            y: serialNumberY,
-                            font: Buffer.from(fontBuffer),
-                            size: fontSize,
-                            color: textColor,
-                            align: 'left',
-                        },
-                    },
-                    {
-                        text: {
-                            text: student.residency_number,
-                            x: residencyNumberX,
-                            y: residencyNumberY,
-                            font: Buffer.from(fontBuffer),
-                            size: fontSize,
-                            color: textColor,
-                            align: 'left',
-                        },
-                    },
-                ])
+                .composite(compositeOptions)
                 .jpeg({ quality: 90 })
                 .toBuffer();
 
