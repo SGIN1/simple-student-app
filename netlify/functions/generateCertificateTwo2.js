@@ -37,12 +37,12 @@ exports.handler = async (event, context) => {
         console.log('الرقم التسلسلي:', student.serial_number);
         console.log('رقم الإقامة:', student.residency_number);
 
-        const fontSize = 48;
-        const textColor = '#000000'; // أسود
-        const serialNumberX = 300;
-        const serialNumberY = 400;
-        const residencyNumberX = 300;
-        const residencyNumberY = 500;
+        // const fontSize = 48;
+        // const textColor = '#000000'; // أسود
+        // const serialNumberX = 300;
+        // const serialNumberY = 400;
+        // const residencyNumberX = 300;
+        // const residencyNumberY = 500;
 
         let imageBuffer;
         try {
@@ -53,46 +53,39 @@ exports.handler = async (event, context) => {
             }
             const templateBuffer = await templateResponse.arrayBuffer();
 
-            // تعليق تحميل الخط مؤقتاً
+            // تعليق تحميل الخط واستخدامه مؤقتاً
             // console.log('محاولة تحميل الخط من:', fontPath);
             // const fontResponse = await fetch(fontPath);
             // if (!fontResponse.ok) {
             //     throw new Error(`فشل في تحميل الخط: ${fontResponse.status} - ${fontResponse.statusText}`);
             // }
             // const fontBuffer = await fontResponse.arrayBuffer();
-            const fontBuffer = null; // تعطيل استخدام الخط مؤقتاً
-
-            const compositeOptions = [];
-            if (student.serial_number) {
-                compositeOptions.push({
-                    text: {
-                        text: student.serial_number,
-                        x: serialNumberX,
-                        y: serialNumberY,
-                        font: fontBuffer ? Buffer.from(fontBuffer) : 'Arial', // استخدام Arial كبديل إذا كان الخط غير محمل
-                        size: fontSize,
-                        color: textColor,
-                        align: 'left',
-                    },
-                });
-            }
-
-            if (student.residency_number) {
-                compositeOptions.push({
-                    text: {
-                        text: student.residency_number,
-                        x: residencyNumberX,
-                        y: residencyNumberY,
-                        font: fontBuffer ? Buffer.from(fontBuffer) : 'Arial', // استخدام Arial كبديل إذا كان الخط غير محمل
-                        size: fontSize,
-                        color: textColor,
-                        align: 'left',
-                    },
-                });
-            }
 
             imageBuffer = await sharp(Buffer.from(templateBuffer))
-                .composite(compositeOptions)
+                // .composite([ // تعليق إضافة النصوص مؤقتاً
+                //     {
+                //         text: {
+                //             text: student.serial_number,
+                //             x: serialNumberX,
+                //             y: serialNumberY,
+                //             font: fontBuffer ? Buffer.from(fontBuffer) : 'Arial',
+                //             size: fontSize,
+                //             color: textColor,
+                //             align: 'left',
+                //         },
+                //     },
+                //     {
+                //         text: {
+                //             text: student.residency_number,
+                //             x: residencyNumberX,
+                //             y: residencyNumberY,
+                //             font: fontBuffer ? Buffer.from(fontBuffer) : 'Arial',
+                //             size: fontSize,
+                //             color: textColor,
+                //             align: 'left',
+                //         },
+                //     },
+                // ])
                 .jpeg({ quality: 90 })
                 .toBuffer();
 
