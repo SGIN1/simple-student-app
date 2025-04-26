@@ -85,6 +85,17 @@
             cursor: pointer;
             font-size: 12px;
         }
+        .print-btn-two { /* ستايل خاص بزر الشهادة الثانية */
+            background-color: #6c757d;
+            color: white;
+            display: inline-block;
+            margin-left: 5px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
         .no-results {
             text-align: center;
             color: gray;
@@ -173,7 +184,10 @@
                         <a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>
                     `;
                     const printCell = row.insertCell();
-                    printCell.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
+                    printCell.innerHTML = `
+                        <button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>
+                        <button class="print-btn-two" onclick="showCertificateTwo('/.netlify/functions/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>
+                    `;
                 });
             } else {
                 studentsTbody.innerHTML = '<tr><td colspan="6">لا يوجد أي طلاب مسجلين.</td></tr>';
@@ -183,7 +197,6 @@
         searchInput.addEventListener('keyup', function() {
             const searchTerm = this.value.trim();
             const filteredStudents = allStudents.filter(student => {
-                // التحقق إذا كانت student.residency_number موجودة وهي نص قبل استخدام startsWith
                 return student.residency_number && typeof student.residency_number === 'string' && student.residency_number.startsWith(searchTerm);
             });
             renderStudentsTable(filteredStudents);
@@ -196,6 +209,23 @@
             setTimeout(function() {
                 printFrame.contentWindow.print();
             }, 500); // تأخير بسيط قبل الطباعة
+        }
+
+        async function showCertificateTwo(url) {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (response.ok && data.image) {
+                    const newWindow = window.open();
+                    newWindow.document.write(`<img src="data:image/jpeg;base64,${data.image}" style="max-width: 100%; height: auto;">`);
+                } else {
+                    alert('فشل في عرض الشهادة الثانية.');
+                    console.error('فشل في جلب الشهادة الثانية:', data.error || 'حدث خطأ غير معروف');
+                }
+            } catch (error) {
+                alert('حدث خطأ أثناء محاولة عرض الشهادة الثانية.');
+                console.error('خطأ أثناء جلب الشهادة الثانية:', error);
+            }
         }
 
         // جلب بيانات الطلاب عند تحميل الصفحة

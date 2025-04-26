@@ -44,52 +44,61 @@ exports.handler = async (event, context) => {
         const residencyNumberX = 300;
         const residencyNumberY = 500;
 
-        const imageBuffer = await sharp(certificateTemplatePath)
-            .composite([
-                {
-                    text: {
-                        text: student.serial_number,
-                        x: serialNumberX,
-                        y: serialNumberY,
-                        font: fontPath,
-                        size: fontSize,
-                        color: textColor,
-                        align: 'left',
+        let imageBuffer;
+        try {
+            console.log('محاولة تحميل قالب الشهادة من:', certificateTemplatePath);
+            const templateResponse = await fetch(certificateTemplatePath);
+            if (!templateResponse.ok) {
+                throw new Error(`فشل في تحميل قالب الشهادة: ${templateResponse.status} - ${templateResponse.statusText}`);
+            }
+            const templateBuffer = await templateResponse.arrayBuffer();
+            imageBuffer = await sharp(Buffer.from(templateBuffer))
+                .composite([
+                    {
+                        text: {
+                            text: student.serial_number,
+                            x: serialNumberX,
+                            y: serialNumberY,
+                            font: fontPath,
+                            size: fontSize,
+                            color: textColor,
+                            align: 'left',
+                        },
                     },
-                },
-                {
-                    text: {
-                        text: student.residency_number,
-                        x: residencyNumberX,
-                        y: residencyNumberY,
-                        font: fontPath,
-                        size: fontSize,
-                        color: textColor,
-                        align: 'left',
+                    {
+                        text: {
+                            text: student.residency_number,
+                            x: residencyNumberX,
+                            y: residencyNumberY,
+                            font: fontPath,
+                            size: fontSize,
+                            color: textColor,
+                            align: 'left',
+                        },
                     },
+                ])
+                .jpeg({ quality: 90 })
+                .toBuffer();
+
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ image: imageBuffer.toString('base64') }),
+                headers: {
+                    'Content-Type': 'application/json',
                 },
-            ])
-            .jpeg({ quality: 90 })
-            .toBuffer();
+            };
 
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ image: imageBuffer.toString('base64') }),
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        };
-
-    } catch (error) {
-        console.error('خطأ في وظيفة توليد الشهادة الثانية:', error);
-        return {
-            statusCode: 500,
-            body: `<h1>حدث خطأ أثناء توليد الشهادة الثانية</h1><p>${error.message}</p>`,
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        };
-    } finally {
-        if (client) {
-            await client.close();
+        } catch (error) {
+            console.error('خطأ في وظيفة توليد الشهادة الثانية:', error);
+            return {
+                statusCode: 500,
+                body: `<h1>حدث خطأ أثناء توليد الشهادة الثانية</h1><p>${error.message}</p>`,
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            };
+        } finally {
+            if (client) {
+                await client.close();
+            }
         }
     }
 };
