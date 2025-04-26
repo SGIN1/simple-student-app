@@ -5,8 +5,8 @@ const path = require('path');
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
-const certificateTemplatePath = path.resolve('./www_student.jpg'); // تأكد من المسار!
-const fontPath = path.resolve('./arial.ttf'); // تأكد من مسار الخط!
+const certificateTemplatePath = 'www_student.jpg'; // استخدام اسم الملف مباشرة
+const fontPath = 'arial.ttf'; // استخدام اسم الملف مباشرة
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
