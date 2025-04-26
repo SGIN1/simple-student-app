@@ -173,7 +173,10 @@
                         <a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>
                     `;
                     const printCell = row.insertCell();
-                    printCell.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
+                    printCell.innerHTML = `
+                        <button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>
+                        <button class="print-btn" style="margin-right: 5px;" onclick="showCertificateTwo('${student.id}')">عرض الثانية</button>
+                    `;
                 });
             } else {
                 studentsTbody.innerHTML = '<tr><td colspan="6">لا يوجد أي طلاب مسجلين.</td></tr>';
@@ -183,7 +186,6 @@
         searchInput.addEventListener('keyup', function() {
             const searchTerm = this.value.trim();
             const filteredStudents = allStudents.filter(student => {
-                // التحقق إذا كانت student.residency_number موجودة وهي نص قبل استخدام startsWith
                 return student.residency_number && typeof student.residency_number === 'string' && student.residency_number.startsWith(searchTerm);
             });
             renderStudentsTable(filteredStudents);
@@ -196,6 +198,25 @@
             setTimeout(function() {
                 printFrame.contentWindow.print();
             }, 500); // تأخير بسيط قبل الطباعة
+        }
+
+        async function showCertificateTwo(studentId) {
+            const response = await fetch(`/.netlify/functions/generateCertificateTwo2?id=${studentId}`);
+            if (!response.ok) {
+                alert('فيه مشكلة في جلب الشهادة الثانية.');
+                return;
+            }
+
+            const data = await response.json();
+
+            if (data.error) {
+                alert(`فيه مشكلة في توليد الشهادة الثانية: ${data.error}`);
+                return;
+            }
+
+            // افتح نافذة جديدة لعرض الصورة
+            const imageWindow = window.open('', '_blank');
+            imageWindow.document.write(`<img src="data:image/jpeg;base64,${data.image}" style="max-width: 100%;">`);
         }
 
         // جلب بيانات الطلاب عند تحميل الصفحة
