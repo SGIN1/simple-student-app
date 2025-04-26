@@ -30,6 +30,12 @@ exports.handler = async (event, context) => {
             };
         }
 
+        // إضافة هذه الـ console.log عشان نشوف البيانات
+        console.log('بيانات الطالب المسترجعة:', student);
+        console.log('الرقم التسلسلي:', student.serial_number);
+        console.log('رقم الإقامة:', student.residency_number);
+        console.log('تاريخ الإضافة:', student.created_at);
+
         // حجم وموقع النصوص على الشهادة - تحتاج لتعديل هذه القيم!
         const fontSize = 48;
         const textColor = '#000000'; // أسود
