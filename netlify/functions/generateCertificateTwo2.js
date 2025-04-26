@@ -5,7 +5,7 @@ const path = require('path');
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
-const certificateTemplatePath = 'https://github.com/SGIN1/simple-student-app/blob/master/ppp.jpg?raw=true'; // رابط مباشر لقالب الشهادة
+const certificateTemplatePath = 'https://github.com/SGIN1/simple-student-app/blob/master/ppp.jpg?raw=true'; // رابط مباشر لقالب الشهادة (حسب تأكيدك)
 const fontPath = 'arial.ttf'; // تأكد من وجود هذا الخط في نفس مجلد الوظيفة أو مسار صحيح
 
 console.log('مسار قالب الشهادة (رابط):', certificateTemplatePath);
