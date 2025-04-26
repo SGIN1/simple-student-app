@@ -1,6 +1,4 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const path = require('path');
-const fs = require('fs').promises; // استخدام promises عشان async/await
 
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
@@ -28,7 +26,7 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // استخدام رابط URL مباشر لصورة ppp.jpg من GitHub
+        // استخدام رابط URL مباشر لصورة ppp.jpg من GitHub (تأكد من الرابط)
         const imageUrl = 'https://github.com/SGIN1/simple-student-app/blob/master/ppp.jpg?raw=true';
 
         const htmlCertificateTwo = `
@@ -39,14 +37,20 @@ exports.handler = async (event, context) => {
                 <title>الشهادة الثانية للطالب</title>
                 <style>
                     body { direction: rtl; text-align: center; background-color: #f0f0f0; }
-                    .certificate-container { margin: 50px auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,.1); }
-                    img { max-width: 100%; height: auto; display: block; }
+                    .certificate-container { margin: 50px auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,.1); padding: 20px; }
+                    img { max-width: 100%; height: auto; display: block; margin-bottom: 20px; }
+                    .student-info { text-align: right; margin-bottom: 10px; }
+                    .student-info span { font-weight: bold; }
                 </style>
             </head>
             <body>
                 <div class="certificate-container">
                     <img src="${imageUrl}" alt="الشهادة الثانية">
-                </div>
+                    <div class="student-info"><span>المعرف:</span> ${student.id}</div>
+                    <div class="student-info"><span>الرقم التسلسلي:</span> ${student.serial_number}</div>
+                    <div class="student-info"><span>رقم الإقامة:</span> ${student.residency_number}</div>
+                    <div class="student-info"><span>تاريخ الإضافة:</span> ${student.created_at}</div>
+                    </div>
             </body>
             </html>
         `;
