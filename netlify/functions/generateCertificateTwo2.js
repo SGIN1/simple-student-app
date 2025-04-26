@@ -5,8 +5,11 @@ const path = require('path');
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
-const certificateTemplatePath = 'www_student.jpg'; // استخدام اسم الملف مباشرة
-const fontPath = 'arial.ttf'; // استخدام اسم الملف مباشرة
+const certificateTemplatePath = 'https://github.com/SGIN1/simple-student-app/blob/master/ppp.jpg?raw=true'; // رابط مباشر لقالب الشهادة
+const fontPath = 'arial.ttf'; // تأكد من وجود هذا الخط في نفس مجلد الوظيفة أو مسار صحيح
+
+console.log('مسار قالب الشهادة (رابط):', certificateTemplatePath);
+console.log('مسار الخط:', fontPath);
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
@@ -30,23 +33,16 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // إضافة هذه الـ console.log عشان نشوف البيانات
         console.log('بيانات الطالب المسترجعة:', student);
         console.log('الرقم التسلسلي:', student.serial_number);
         console.log('رقم الإقامة:', student.residency_number);
-        console.log('تاريخ الإضافة:', student.created_at);
 
-        // حجم وموقع النصوص على الشهادة - تحتاج لتعديل هذه القيم!
         const fontSize = 48;
         const textColor = '#000000'; // أسود
         const serialNumberX = 300;
         const serialNumberY = 400;
         const residencyNumberX = 300;
         const residencyNumberY = 500;
-        const enrollmentDateX = 300;
-        const enrollmentDateY = 600;
-        const studentIdX = 100;
-        const studentIdY = 100;
 
         const imageBuffer = await sharp(certificateTemplatePath)
             .composite([
@@ -72,30 +68,8 @@ exports.handler = async (event, context) => {
                         align: 'left',
                     },
                 },
-                {
-                    text: {
-                        text: student.created_at ? student.created_at.substring(0, 10) : '', // عرض أول 10 حروف من تاريخ الإضافة
-                        x: enrollmentDateX,
-                        y: enrollmentDateY,
-                        font: fontPath,
-                        size: fontSize - 10,
-                        color: textColor,
-                        align: 'left',
-                    },
-                },
-                {
-                    text: {
-                        text: student._id.toString(),
-                        x: studentIdX,
-                        y: studentIdY,
-                        font: fontPath,
-                        size: fontSize - 20,
-                        color: '#888888',
-                        align: 'left',
-                    },
-                },
             ])
-            .jpeg({ quality: 90 }) // يمكنك تغيير الفورمات والجودة حسب الحاجة
+            .jpeg({ quality: 90 })
             .toBuffer();
 
         return {
