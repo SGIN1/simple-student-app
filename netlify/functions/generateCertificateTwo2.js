@@ -5,11 +5,11 @@ const path = require('path');
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
-const certificateTemplatePath = 'https://github.com/SGIN1/simple-student-app/blob/master/ppp.jpg?raw=true'; // رابط مباشر لقالب الشهادة (حسب تأكيدك)
-const fontPath = 'arial.ttf'; // تأكد من وجود هذا الخط في نفس مجلد الوظيفة أو مسار صحيح
+const certificateTemplatePath = 'https://github.com/SGIN1/simple-student-app/blob/master/ppp.jpg?raw=true'; // رابط مباشر لقالب الشهادة
+const fontPath = 'https://github.com/SGIN1/simple-student-app/blob/master/netlify/functions/arial.ttf?raw=true'; // رابط مباشر لملف الخط
 
 console.log('مسار قالب الشهادة (رابط):', certificateTemplatePath);
-console.log('مسار الخط:', fontPath);
+console.log('مسار الخط (رابط):', fontPath);
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
@@ -52,6 +52,14 @@ exports.handler = async (event, context) => {
                 throw new Error(`فشل في تحميل قالب الشهادة: ${templateResponse.status} - ${templateResponse.statusText}`);
             }
             const templateBuffer = await templateResponse.arrayBuffer();
+
+            console.log('محاولة تحميل الخط من:', fontPath);
+            const fontResponse = await fetch(fontPath);
+            if (!fontResponse.ok) {
+                throw new Error(`فشل في تحميل الخط: ${fontResponse.status} - ${fontResponse.statusText}`);
+            }
+            const fontBuffer = await fontResponse.arrayBuffer();
+
             imageBuffer = await sharp(Buffer.from(templateBuffer))
                 .composite([
                     {
@@ -59,7 +67,7 @@ exports.handler = async (event, context) => {
                             text: student.serial_number,
                             x: serialNumberX,
                             y: serialNumberY,
-                            font: fontPath,
+                            font: Buffer.from(fontBuffer),
                             size: fontSize,
                             color: textColor,
                             align: 'left',
@@ -70,7 +78,7 @@ exports.handler = async (event, context) => {
                             text: student.residency_number,
                             x: residencyNumberX,
                             y: residencyNumberY,
-                            font: fontPath,
+                            font: Buffer.from(fontBuffer),
                             size: fontSize,
                             color: textColor,
                             align: 'left',
@@ -89,10 +97,10 @@ exports.handler = async (event, context) => {
             };
 
         } catch (error) {
-            console.error('خطأ أثناء معالجة الصورة:', error);
+            console.error('خطأ أثناء معالجة الصورة أو الخط:', error);
             return {
                 statusCode: 500,
-                body: `<h1>حدث خطأ أثناء معالجة الصورة</h1><p>${error.message}</p>`,
+                body: `<h1>حدث خطأ أثناء معالجة الصورة أو الخط</h1><p>${error.message}</p>`,
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         } finally {
