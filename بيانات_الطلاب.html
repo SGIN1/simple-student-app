@@ -5,102 +5,7 @@
     <title>بيانات الطلاب</title>
     <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            direction: rtl;
-            text-align: right;
-        }
-        .container {
-            width: 80%;
-            margin: 20px auto;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .add-new {
-            display: block;
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        .add-new a {
-            display: inline-block;
-            padding: 10px 15px;
-            text-decoration: none;
-            background-color: #28a745;
-            color: white;
-            border-radius: 5px;
-        }
-        .search-form {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .search-form input[type="text"] {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            width: 300px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: right;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        .actions a {
-            display: inline-block;
-            margin-left: 5px;
-            text-decoration: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .edit-btn {
-            background-color: #ffc107;
-            color: black;
-        }
-        .delete-btn {
-            background-color: #dc3545;
-            color: white;
-        }
-        .print-btn {
-            background-color: #007bff;
-            color: white;
-            display: inline-block;
-            margin-left: 5px;
-            text-decoration: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .no-results {
-            text-align: center;
-            color: gray;
-            margin-top: 10px;
-        }
-        #certificateContainer {
-            margin-top: 20px;
-            text-align: center;
-        }
-        .qrcode-container {
-            text-align: center;
-            margin-top: 20px;
-        }
-        #qrcodeCanvas {
-            display: inline-block;
-        }
+        /* ... أنماط CSS ... */
     </style>
 </head>
 <body>
@@ -191,6 +96,8 @@
                     `;
                     const printCell = row.insertCell();
                     printCell.innerHTML = `<button class="print-btn" onclick="generateAndShowQRCode('${student._id}')">عرض الأولى</button>`;
+                    // كونسول للتأكد من قيمة student._id
+                    console.log('Student ID:', student._id);
                 });
             } else {
                 studentsTbody.innerHTML = '<tr><td colspan="6">لا يوجد أي طلاب مسجلين.</td></tr>';
