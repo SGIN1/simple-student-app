@@ -11,13 +11,16 @@ const CERTIFICATE_TWO_IMAGE_URL = 'https://raw.githubusercontent.com/SGIN1/simpl
 
 // إعدادات النص الذي سيتم إضافته (يمكن تعديلها)
 const TEXT_OPTIONS = {
-    text: '<p><span style="font-size: 48px; font-weight: bold; fill: black;">%TEXT%</span></p>',
-    x: 500, // إحداثي X لبداية النص
-    y: 650, // إحداثي Y لبداية النص
     font: 'Arial',
-    width: 400, // أقصى عرض للنص
-    height: 100,
+    width: 180, // عرض أقل من عرض الصورة
+    height: 50, // ارتفاع مناسب للنص
     align: 'center',
+    // تقديرات أولية للموقع بناءً على الأبعاد الصغيرة
+    x: 15,
+    y: 150,
+    fontSize: 24, // حجم خط أصغر
+    fill: 'black',
+    fontWeight: 'bold',
 };
 
 exports.handler = async (event, context) => {
@@ -43,7 +46,6 @@ exports.handler = async (event, context) => {
         }
 
         const serialNumber = student.serial_number;
-        const textToAdd = TEXT_OPTIONS.text.replace('%TEXT%', serialNumber);
 
         // جلب صورة الشهادة باستخدام node-fetch
         const imageResponse = await fetch(CERTIFICATE_TWO_IMAGE_URL);
@@ -59,9 +61,9 @@ exports.handler = async (event, context) => {
 
         // إنشاء SVG يحتوي على النص
         const svgText = `
-            <svg width="${1200}" height="${800}">
+            <svg width="${207}" height="${230}">
                 <style>
-                    .serial-number { font-size: 60px; font-weight: bold; fill: black; text-anchor: middle; }
+                    .serial-number { font-size: ${TEXT_OPTIONS.fontSize}px; font-weight: ${TEXT_OPTIONS.fontWeight}; fill: ${TEXT_OPTIONS.fill}; text-anchor: middle; }
                 </style>
                 <text x="${TEXT_OPTIONS.x + TEXT_OPTIONS.width / 2}" y="${TEXT_OPTIONS.y + TEXT_OPTIONS.height / 2}" class="serial-number">${serialNumber}</text>
             </svg>
