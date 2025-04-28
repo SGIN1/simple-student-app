@@ -5,9 +5,6 @@ const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
-// قم بتغيير هذا الرابط إلى رابط موقعك الفعلي على Netlify
-const NETLIFY_SITE_URL = 'https://680995a3319a79e6dfaa3f7e--spiffy-meerkat-be5bc1.netlify.app';
-
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
     console.log('ID المستلم في وظيفة generateCertificateOne1:', studentId);
@@ -30,8 +27,8 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // إنشاء رابط لـ generateCertificateTwo2 لتوليد الشهادة الثانية مع دمج الرقم التسلسلي
-        const certificateTwoUrl = `${NETLIFY_SITE_URL}/.netlify/functions/generateCertificateTwo2?id=${student._id}`;
+        // استبدل هذا الرابط بعنوان موقعك على Netlify
+        const certificateTwoUrl = `https://680995a3319a79e6dfaa3f7e--spiffy-meerkat-be5bc1.netlify.app/.netlify/functions/generateCertificateTwo2?id=${student._id}`;
         let qrCodeDataUri;
 
         try {
@@ -56,28 +53,23 @@ exports.handler = async (event, context) => {
                     .residency { font-size: 1.2em; font-weight: bold; }
                     .qrcode { margin-top: 20px; }
                     .qrcode img { max-width: 150px; }
-                    .print-button {
-                        margin-top: 20px;
-                        padding: 10px 20px;
-                        background-color: #007bff;
-                        color: white;
-                        border: none;
-                        border-radius: 5px;
-                        cursor: pointer;
-                        font-size: 16px;
-                    }
                 </style>
             </head>
             <body>
                 <div class="certificate-container">
                     <img src="/www.jpg" alt="قالب الشهادة" class="template">
                     <div class="data">
-                        <p class="serial">الرقم التسلسلي: ${student.serial_number}</p>
-                        <p class="residency">رقم الإقامة: ${student.residency_number}</p>
+                        <p class="serial">${student.serial_number}</p>
+                        <p class="residency">${student.residency_number}</p>
                     </div>
-                    ${qrCodeDataUri ? `<div class="qrcode"><img src="${qrCodeDataUri}" alt="QR Code للشهادة الثانية"></div><p>امسح رمز QR لعرض الشهادة الثانية</p>` : ''}
-                    <button class="print-button" onclick="window.print()">طباعة هذه الشهادة</button>
+                    ${qrCodeDataUri ? `<div class="qrcode"><img src="${qrCodeDataUri}" alt="QR Code للشهادة الثانية"></div>` : ''}
                 </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(function() { window.close(); }, 100);
+                    };
+                </script>
             </body>
             </html>
         `;
