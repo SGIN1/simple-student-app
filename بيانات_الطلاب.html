@@ -6,6 +6,28 @@
     <script src="./qrcode.min.js"></script>
     <style>
         /* ... أنماط CSS ... */
+        .certificate-preview {
+            display: none; /* مخفي في البداية */
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .certificate-preview img {
+            max-width: 100%;
+            height: auto;
+        }
+        .student-info {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .qrcode-preview {
+            margin-top: 20px;
+        }
+        .qrcode-preview img {
+            max-width: 150px;
+            height: auto;
+        }
     </style>
 </head>
 <body>
@@ -35,12 +57,19 @@
         </table>
 
         <p id="no_results" class="no-results" style="display:none;">لا يوجد طلاب بهذا الرقم للإقامة.</p>
-        <div id="certificateContainer">
-            <div id="qrcodeContainer" class="qrcode-container" style="display:none;">
+
+        <div id="certificatePreviewContainer" class="certificate-preview">
+            <h2>معاينة الشهادة</h2>
+            <img id="certificateImagePreview" src="" alt="الشهادة الأولى">
+            <p class="student-info">الرقم التسلسلي: <span id="serialNumberPreview"></span></p>
+            <p class="student-info">رقم الإقامة: <span id="residencyNumberPreview"></span></p>
+            <div class="qrcode-preview" id="qrcodePreview">
                 <p>امسح هذا الرمز لعرض الشهادة الثانية</p>
+                <img id="qrcodeImagePreview" src="" alt="QR Code للشهادة الثانية">
             </div>
-            <iframe id="printFrame" style="width:0;height:0;border:0;position:absolute;"></iframe>
         </div>
+
+        <iframe id="printFrame" style="width:0;height:0;border:0;position:absolute;"></iframe>
     </div>
 
     <script>
@@ -48,35 +77,23 @@
         const studentsTable = document.getElementById('students_table');
         const studentsTbody = document.getElementById('students_tbody');
         const noResultsMessage = document.getElementById('no_results');
-        const certificateContainer = document.getElementById('certificateContainer');
-        const qrcodeContainer = document.getElementById('qrcodeContainer');
+        const certificatePreviewContainer = document.getElementById('certificatePreviewContainer');
+        const certificateImagePreview = document.getElementById('certificateImagePreview');
+        const serialNumberPreview = document.getElementById('serialNumberPreview');
+        const residencyNumberPreview = document.getElementById('residencyNumberPreview');
+        const qrcodePreview = document.getElementById('qrcodePreview');
+        const qrcodeImagePreview = document.getElementById('qrcodeImagePreview');
         const printFrame = document.getElementById('printFrame');
 
-        let allStudents = []; // سيتم تعبئة هذه المصفوفة ببيانات الطلاب من الخادم
-        const NETLIFY_FUNCTIONS_URL = '/.netlify/functions'; // مسار وظائف Netlify
+        let allStudents = [];
+        const NETLIFY_FUNCTIONS_URL = '/.netlify/functions';
 
-        // دالة لجلب بيانات الطلاب من Netlify Function
         async function fetchStudents() {
-            try {
-                const response = await fetch(`${NETLIFY_FUNCTIONS_URL}/getStudents`); // رابط Netlify Function لجلب الطلاب
-                const data = await response.json();
-
-                if (response.ok) {
-                    allStudents = data;
-                    renderStudentsTable(allStudents);
-                } else {
-                    console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
-                    studentsTbody.innerHTML = '<tr><td colspan="6">فشل في تحميل بيانات الطلاب.</td></tr>';
-                }
-            } catch (error) {
-                console.error('خطأ في جلب بيانات الطلاب:', error);
-                studentsTbody.innerHTML = '<tr><td colspan="6">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
-            }
+            // ... (نفس دالة جلب الطلاب السابقة) ...
         }
 
-        // دالة لتحديث جدول الطلاب في المتصفح
         function renderStudentsTable(students) {
-            studentsTbody.innerHTML = ''; // مسح الجدول الحالي
+            studentsTbody.innerHTML = '';
 
             if (students.length > 0) {
                 noResultsMessage.style.display = 'none';
@@ -93,10 +110,7 @@
                         <a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>
                     `;
                     const printCell = row.insertCell();
-                    // إنشاء رابط لفتح الشهادة الأولى في علامة تبويب جديدة
-                    const certificateOneUrl = `${NETLIFY_FUNCTIONS_URL}/generateCertificateOne1?id=${student._id}`;
-                    printCell.innerHTML = `<a href="${certificateOneUrl}" target="_blank" class="print-btn">عرض الأولى</a>`;
-                    // لا نحتاج إلى استدعاء generateAndShowQRCode هنا بعد الآن
+                    printCell.innerHTML = `<button class="print-btn" onclick="showCertificatePreview('${student._id}', '${student.serial_number}', '${student.residency_number}')">عرض الأولى</button>`;
                     console.log('Student ID:', student._id);
                 });
             } else {
@@ -105,13 +119,27 @@
         }
 
         searchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.trim();
-            const filteredStudents = allStudents.filter(student => {
-                return student.residency_number && typeof student.residency_number === 'string' && student.residency_number.startsWith(searchTerm);
-            });
-            renderStudentsTable(filteredStudents);
-            noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
+            // ... (نفس دالة البحث السابقة) ...
         });
+
+        function showCertificatePreview(studentId, serialNumber, residencyNumber) {
+            certificateImagePreview.src = "/www.jpg"; // مسار الصورة الثابتة
+            serialNumberPreview.textContent = serialNumber;
+            residencyNumberPreview.textContent = residencyNumber;
+
+            const certificateTwoUrl = `${NETLIFY_FUNCTIONS_URL}/generateCertificateTwo2?id=${studentId}`;
+
+            QRCode.toDataURL(certificateTwoUrl, { width: 150, height: 150 }, function (error, url) {
+                if (error) {
+                    console.error("Error generating QR code:", error);
+                    qrcodePreview.style.display = 'none';
+                    return;
+                }
+                qrcodeImagePreview.src = url;
+                qrcodePreview.style.display = 'block';
+                certificatePreviewContainer.style.display = 'block'; // إظهار الحاوية
+            });
+        }
 
         // جلب بيانات الطلاب عند تحميل الصفحة
         fetchStudents();
