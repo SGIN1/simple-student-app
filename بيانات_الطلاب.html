@@ -3,30 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <title>بيانات الطلاب</title>
-    <script src="./qrcode.min.js"></script>
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
     <style>
-        /* ... أنماط CSS ... */
-        .certificate-preview {
-            display: none; /* مخفي في البداية */
-            border: 1px solid #ccc;
+        body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            text-align: right;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
             padding: 20px;
-            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .add-new {
+            display: block;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .add-new a {
+            display: inline-block;
+            padding: 10px 15px;
+            text-decoration: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+        }
+        .search-form {
+            margin-bottom: 20px;
             text-align: center;
         }
-        .certificate-preview img {
-            max-width: 100%;
-            height: auto;
+        .search-form input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 300px;
         }
-        .student-info {
-            margin-top: 10px;
-            font-weight: bold;
-        }
-        .qrcode-preview {
+        table {
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 20px;
         }
-        .qrcode-preview img {
-            max-width: 150px;
-            height: auto;
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .actions a {
+            display: inline-block;
+            margin-left: 5px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .edit-btn {
+            background-color: #ffc107;
+            color: black;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .print-btn {
+            background-color: #007bff;
+            color: white;
+            display: inline-block;
+            margin-left: 5px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .print-btn-two { /* ستايل خاص بزر الشهادة الثانية */
+            background-color: #6c757d;
+            color: white;
+            display: inline-block;
+            margin-left: 5px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .no-results {
+            text-align: center;
+            color: gray;
+            margin-top: 10px;
+        }
+        #certificateContainer {
+            margin-top: 20px;
+            text-align: center;
         }
     </style>
 </head>
@@ -57,19 +134,7 @@
         </table>
 
         <p id="no_results" class="no-results" style="display:none;">لا يوجد طلاب بهذا الرقم للإقامة.</p>
-
-        <div id="certificatePreviewContainer" class="certificate-preview">
-            <h2>معاينة الشهادة</h2>
-            <img id="certificateImagePreview" src="" alt="الشهادة الأولى">
-            <p class="student-info">الرقم التسلسلي: <span id="serialNumberPreview"></span></p>
-            <p class="student-info">رقم الإقامة: <span id="residencyNumberPreview"></span></p>
-            <div class="qrcode-preview" id="qrcodePreview">
-                <p>امسح هذا الرمز لعرض الشهادة الثانية</p>
-                <img id="qrcodeImagePreview" src="" alt="QR Code للشهادة الثانية">
-            </div>
-        </div>
-
-        <iframe id="printFrame" style="width:0;height:0;border:0;position:absolute;"></iframe>
+        <div id="certificateContainer"></div>
     </div>
 
     <script>
@@ -77,23 +142,32 @@
         const studentsTable = document.getElementById('students_table');
         const studentsTbody = document.getElementById('students_tbody');
         const noResultsMessage = document.getElementById('no_results');
-        const certificatePreviewContainer = document.getElementById('certificatePreviewContainer');
-        const certificateImagePreview = document.getElementById('certificateImagePreview');
-        const serialNumberPreview = document.getElementById('serialNumberPreview');
-        const residencyNumberPreview = document.getElementById('residencyNumberPreview');
-        const qrcodePreview = document.getElementById('qrcodePreview');
-        const qrcodeImagePreview = document.getElementById('qrcodeImagePreview');
-        const printFrame = document.getElementById('printFrame');
+        const certificateContainer = document.getElementById('certificateContainer');
 
-        let allStudents = [];
-        const NETLIFY_FUNCTIONS_URL = '/.netlify/functions';
+        let allStudents = []; // سيتم تعبئة هذه المصفوفة ببيانات الطلاب من الخادم
 
+        // دالة لجلب بيانات الطلاب من Netlify Function
         async function fetchStudents() {
-            // ... (نفس دالة جلب الطلاب السابقة) ...
+            try {
+                const response = await fetch('/.netlify/functions/getStudents'); // رابط Netlify Function لجلب الطلاب
+                const data = await response.json();
+
+                if (response.ok) {
+                    allStudents = data;
+                    renderStudentsTable(allStudents);
+                } else {
+                    console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
+                    studentsTbody.innerHTML = '<tr><td colspan="6">فشل في تحميل بيانات الطلاب.</td></tr>';
+                }
+            } catch (error) {
+                console.error('خطأ في جلب بيانات الطلاب:', error);
+                studentsTbody.innerHTML = '<tr><td colspan="6">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
+            }
         }
 
+        // دالة لتحديث جدول الطلاب في المتصفح
         function renderStudentsTable(students) {
-            studentsTbody.innerHTML = '';
+            studentsTbody.innerHTML = ''; // مسح الجدول الحالي
 
             if (students.length > 0) {
                 noResultsMessage.style.display = 'none';
@@ -110,8 +184,10 @@
                         <a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>
                     `;
                     const printCell = row.insertCell();
-                    printCell.innerHTML = `<button class="print-btn" onclick="showCertificatePreview('${student._id}', '${student.serial_number}', '${student.residency_number}')">عرض الأولى</button>`;
-                    console.log('Student ID:', student._id);
+                    printCell.innerHTML = `
+                        <button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>
+                        <button class="print-btn-two" onclick="showCertificateTwo('/.netlify/functions/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>
+                    `;
                 });
             } else {
                 studentsTbody.innerHTML = '<tr><td colspan="6">لا يوجد أي طلاب مسجلين.</td></tr>';
@@ -119,30 +195,53 @@
         }
 
         searchInput.addEventListener('keyup', function() {
-            // ... (نفس دالة البحث السابقة) ...
+            const searchTerm = this.value.trim();
+            const filteredStudents = allStudents.filter(student => {
+                return student.residency_number && typeof student.residency_number === 'string' && student.residency_number.startsWith(searchTerm);
+            });
+            renderStudentsTable(filteredStudents);
+            noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
-        function showCertificatePreview(studentId, serialNumber, residencyNumber) {
-            certificateImagePreview.src = "/www.jpg"; // مسار الصورة الثابتة
-            serialNumberPreview.textContent = serialNumber;
-            residencyNumberPreview.textContent = residencyNumber;
+        function showCertificate(url) {
+            var printFrame = document.getElementById('printFrame');
+            printFrame.src = url;
+            setTimeout(function() {
+                printFrame.contentWindow.print();
+            }, 500); // تأخير بسيط قبل الطباعة
+        }
 
-            const certificateTwoUrl = `${NETLIFY_FUNCTIONS_URL}/generateCertificateTwo2?id=${studentId}`;
+        async function showCertificateTwo(url) {
+            try {
+                // استخلاص ID الطالب من URL الفانكشن
+                const studentId = url.split('id=')[1];
 
-            QRCode.toDataURL(certificateTwoUrl, { width: 150, height: 150 }, function (error, url) {
-                if (error) {
-                    console.error("Error generating QR code:", error);
-                    qrcodePreview.style.display = 'none';
-                    return;
+                // جلب بيانات الطالب باستخدام ID
+                const response = await fetch('/.netlify/functions/getStudentById?id=' + studentId);
+                const data = await response.json();
+
+                if (response.ok && data) {
+                    const certificateContainer = document.getElementById('certificateContainer');
+                    certificateContainer.innerHTML = `
+                        <div style="position: relative; width: 800px; height: 600px; background-image: url('https://raw.githubusercontent.com/SGIN1/simple-student-app/1c3610d4e38df2d71c6e70d88399c74ec02eea9e/images/ppp.jpg'); background-size: cover; background-repeat: no-repeat; display: flex; justify-content: center; align-items: center;">
+                            <div style="position: absolute; top: 180px; left: 50px; font-size: 28px; font-weight: bold; color: black; text-align: center; width: 180px;">
+                                ${data.serial_number}
+                            </div>
+                            </div>
+                    `;
+                } else {
+                    alert('فشل في عرض الشهادة الثانية.');
+                    console.error('فشل في جلب بيانات الطالب للشهادة الثانية:', data.error || 'حدث خطأ غير معروف');
                 }
-                qrcodeImagePreview.src = url;
-                qrcodePreview.style.display = 'block';
-                certificatePreviewContainer.style.display = 'block'; // إظهار الحاوية
-            });
+            } catch (error) {
+                alert('حدث خطأ أثناء محاولة عرض الشهادة الثانية.');
+                console.error('خطأ أثناء جلب بيانات الطالب للشهادة الثانية:', error);
+            }
         }
 
         // جلب بيانات الطلاب عند تحميل الصفحة
         fetchStudents();
     </script>
+    <iframe id="printFrame" style="width:0;height:0;border:0;position:absolute;"></iframe>
 </body>
 </html>

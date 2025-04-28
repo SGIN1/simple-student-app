@@ -1,120 +1,89 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <title>بيانات الطلاب</title>
-    <script src="./qrcode.min.js"></script>
-    <style>
-        /* ... أنماط CSS ... */
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>بيانات الطلاب</h1>
-        <div class="add-new">
-            <a href="إضافة_طالب.html">إضافة طالب جديد</a>
-        </div>
+const { MongoClient, ObjectId } = require('mongodb');
+const QRCode = require('qrcode');
 
-        <div class="search-form">
-            <input type="text" id="search_residency" placeholder="ابحث برقم الإقامة">
-        </div>
+const uri = process.env.MONGODB_URI;
+const dbName = "Cluster0";
+const collectionName = 'enrolled_students_tbl';
 
-        <table id="students_table">
-            <thead>
-                <tr>
-                    <th>المعرف</th>
-                    <th>الرقم التسلسلي</th>
-                    <th>رقم الإقامة</th>
-                    <th>تاريخ الإضافة</th>
-                    <th>الإجراءات</th>
-                    <th>عرض الشهادة</th>
-                </tr>
-            </thead>
-            <tbody id="students_tbody">
-            </tbody>
-        </table>
+exports.handler = async (event, context) => {
+    const studentId = event.queryStringParameters.id;
 
-        <p id="no_results" class="no-results" style="display:none;">لا يوجد طلاب بهذا الرقم للإقامة.</p>
-        <div id="certificateContainer">
-            <div id="qrcodeContainer" class="qrcode-container" style="display:none;">
-                <p>امسح هذا الرمز لعرض الشهادة الثانية</p>
-            </div>
-            <iframe id="printFrame" style="width:0;height:0;border:0;position:absolute;"></iframe>
-        </div>
-    </div>
+    let client;
 
-    <script>
-        const searchInput = document.getElementById('search_residency');
-        const studentsTable = document.getElementById('students_table');
-        const studentsTbody = document.getElementById('students_tbody');
-        const noResultsMessage = document.getElementById('no_results');
-        const certificateContainer = document.getElementById('certificateContainer');
-        const qrcodeContainer = document.getElementById('qrcodeContainer');
-        const printFrame = document.getElementById('printFrame');
+    try {
+        client = new MongoClient(uri);
+        await client.connect();
+        const database = client.db(dbName);
+        const studentsCollection = database.collection(collectionName);
 
-        let allStudents = []; // سيتم تعبئة هذه المصفوفة ببيانات الطلاب من الخادم
-        const NETLIFY_FUNCTIONS_URL = '/.netlify/functions'; // مسار وظائف Netlify
+        const student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
 
-        // دالة لجلب بيانات الطلاب من Netlify Function
-        async function fetchStudents() {
-            try {
-                const response = await fetch(`${NETLIFY_FUNCTIONS_URL}/getStudents`); // رابط Netlify Function لجلب الطلاب
-                const data = await response.json();
-
-                if (response.ok) {
-                    allStudents = data;
-                    renderStudentsTable(allStudents);
-                } else {
-                    console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
-                    studentsTbody.innerHTML = '<tr><td colspan="6">فشل في تحميل بيانات الطلاب.</td></tr>';
-                }
-            } catch (error) {
-                console.error('خطأ في جلب بيانات الطلاب:', error);
-                studentsTbody.innerHTML = '<tr><td colspan="6">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
-            }
+        if (!student) {
+            return {
+                statusCode: 404,
+                body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`,
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            };
         }
 
-        // دالة لتحديث جدول الطلاب في المتصفح
-        function renderStudentsTable(students) {
-            studentsTbody.innerHTML = ''; // مسح الجدول الحالي
+        // إنشاء بيانات الباركود (يمكن أن يكون رابط للشهادة الثانية أو معرف الطالب)
+        const qrCodeData = `/certificate2?id=${student._id}`; // رابط لصفحة الشهادة الثانية
 
-            if (students.length > 0) {
-                noResultsMessage.style.display = 'none';
-                students.forEach(student => {
-                    const row = studentsTbody.insertRow();
-                    row.insertCell().textContent = student.id;
-                    row.insertCell().textContent = student.serial_number;
-                    row.insertCell().textContent = student.residency_number;
-                    row.insertCell().textContent = student.created_at;
-                    const actionsCell = row.insertCell();
-                    actionsCell.classList.add('actions');
-                    actionsCell.innerHTML = `
-                        <a href="تعديل_الطالب.php?id=${student.id}" class="edit-btn">تعديل</a>
-                        <a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>
-                    `;
-                    const printCell = row.insertCell();
-                    // إنشاء رابط لفتح الشهادة الأولى في علامة تبويب جديدة
-                    const certificateOneUrl = `${NETLIFY_FUNCTIONS_URL}/generateCertificateOne1?id=${student._id}`;
-                    printCell.innerHTML = `<a href="${certificateOneUrl}" target="_blank" class="print-btn">عرض الأولى</a>`;
-                    // لا نحتاج إلى استدعاء generateAndShowQRCode هنا بعد الآن
-                    console.log('Student ID:', student._id);
-                });
-            } else {
-                studentsTbody.innerHTML = '<tr><td colspan="6">لا يوجد أي طلاب مسجلين.</td></tr>';
-            }
+        // تحويل بيانات الباركود إلى SVG
+        const qrCodeSVG = await QRCode.toString(qrCodeData, { type: 'svg' });
+
+        return {
+            statusCode: 200,
+            body: `
+                <!DOCTYPE html>
+                <html lang="ar" dir="rtl">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>شهادة تقدير</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                        .certificate { border: 5px solid #000; padding: 50px; position: relative; }
+                        h1 { font-size: 2em; margin-bottom: 20px; }
+                        p { font-size: 1.2em; line-height: 1.6; }
+                        .barcode {
+                            position: absolute;
+                            bottom: 20px;
+                            left: 20px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="certificate">
+                        <h1>شهادة تقدير</h1>
+                        <p>يشهد بأن الطالب:</p>
+                        <p><b>الرقم التسلسلي: ${student.serial_number}</b></p>
+                        <p><b>رقم الإقامة: ${student.residency_number}</b></p>
+                        <p>قد أتم بنجاح...</p>
+                        <p>نتمنى له التوفيق!</p>
+                        <div class="barcode">
+                            ${qrCodeSVG}
+                        </div>
+                    </div>
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                        }
+                    </script>
+                </body>
+                </html>
+            `,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        };
+    } catch (error) {
+        console.error('Error generating certificate one:', error);
+        return {
+            statusCode: 500,
+            body: `<h1>حدث خطأ أثناء إنشاء الشهادة الأولى</h1><p>${error.message}</p>`,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        };
+    } finally {
+        if (client) {
+            await client.close();
         }
-
-        searchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.trim();
-            const filteredStudents = allStudents.filter(student => {
-                return student.residency_number && typeof student.residency_number === 'string' && student.residency_number.startsWith(searchTerm);
-            });
-            renderStudentsTable(filteredStudents);
-            noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
-        });
-
-        // جلب بيانات الطلاب عند تحميل الصفحة
-        fetchStudents();
-    </script>
-</body>
-</html>
+    }
+};
