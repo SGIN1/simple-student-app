@@ -6,21 +6,6 @@
     <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
     <style>
         /* ... أنماط CSS ... */
-        body { font-family: Arial, sans-serif; direction: rtl; }
-        .container { width: 90%; margin: 20px auto; }
-        h1 { text-align: center; }
-        .add-new { margin-bottom: 10px; text-align: left; }
-        .search-form { margin-bottom: 15px; }
-        #students_table { width: 100%; border-collapse: collapse; }
-        #students_table th, #students_table td { border: 1px solid #ddd; padding: 8px; text-align: right; }
-        #students_table th { background-color: #f2f2f2; }
-        .actions a { margin-left: 5px; text-decoration: none; padding: 5px 10px; border-radius: 5px; }
-        .edit-btn { background-color: #007bff; color: white; }
-        .delete-btn { background-color: #dc3545; color: white; }
-        .view-btn { background-color: #28a745; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; }
-        .no-results { text-align: center; color: gray; }
-        .qrcode-container { margin-top: 20px; text-align: center; display: none; }
-        .qrcode-container img { max-width: 150px; height: auto; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -51,11 +36,9 @@
 
         <p id="no_results" class="no-results" style="display:none;">لا يوجد طلاب بهذا الرقم للإقامة.</p>
         <div id="certificateContainer">
-            <div id="qrcodeLinkContainer" class="qrcode-container" style="display:none;">
-                <a id="qrcodeLink" href="#" target="_blank">
-                    <img id="qrcodeImage" src="" alt="QR Code للشهادة الثانية">
-                </a>
-                <p>امسح رمز QR أو انقر لفتح الشهادة الثانية</p>
+            <div id="qrcodeContainer" class="qrcode-container" style="display:none;">
+                <canvas id="qrcodeCanvas"></canvas>
+                <p>امسح هذا الرمز لعرض الشهادة الثانية</p>
             </div>
             <iframe id="printFrame" style="width:0;height:0;border:0;position:absolute;"></iframe>
         </div>
@@ -67,9 +50,8 @@
         const studentsTbody = document.getElementById('students_tbody');
         const noResultsMessage = document.getElementById('no_results');
         const certificateContainer = document.getElementById('certificateContainer');
-        const qrcodeLinkContainer = document.getElementById('qrcodeLinkContainer');
-        const qrcodeImage = document.getElementById('qrcodeImage');
-        const qrcodeLink = document.getElementById('qrcodeLink');
+        const qrcodeContainer = document.getElementById('qrcodeContainer');
+        const qrcodeCanvas = document.getElementById('qrcodeCanvas');
         const printFrame = document.getElementById('printFrame');
 
         let allStudents = []; // سيتم تعبئة هذه المصفوفة ببيانات الطلاب من الخادم
@@ -113,7 +95,7 @@
                         <a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>
                     `;
                     const printCell = row.insertCell();
-                    printCell.innerHTML = `<button class="view-btn" onclick="generateAndShowQRCode('${student._id}')">عرض الأولى</button>`;
+                    printCell.innerHTML = `<button class="print-btn" onclick="generateAndShowQRCode('${student._id}')">عرض الأولى</button>`;
                     // كونسول للتأكد من قيمة student._id
                     console.log('Student ID:', student._id);
                 });
@@ -134,17 +116,15 @@
         function generateAndShowQRCode(studentId) {
             const certificateTwoUrl = `${NETLIFY_FUNCTIONS_URL}/generateCertificateTwo2?id=${studentId}`;
 
-            QRCode.toDataURL(certificateTwoUrl, { width: 256, height: 256 }, function (error, url) {
+            QRCode.toCanvas(qrcodeCanvas, certificateTwoUrl, { width: 256, height: 256 }, function (error) {
                 if (error) {
                     console.error("Error generating QR code:", error);
-                    qrcodeLinkContainer.style.display = 'none';
+                    qrcodeContainer.style.display = 'none';
                     alert('حدث خطأ في إنشاء رمز QR.');
                     return;
                 }
-                qrcodeImage.src = url;
-                qrcodeLink.href = certificateTwoUrl;
-                qrcodeLinkContainer.style.display = 'block';
-                // لا نقوم بالطباعة التلقائية هنا، المستخدم سيمسح الرمز أو ينقر
+                qrcodeContainer.style.display = 'block';
+                // لا نقوم بالطباعة التلقائية هنا، المستخدم سيمسح الرمز
             });
         }
 
