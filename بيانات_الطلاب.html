@@ -37,7 +37,6 @@
         <p id="no_results" class="no-results" style="display:none;">لا يوجد طلاب بهذا الرقم للإقامة.</p>
         <div id="certificateContainer">
             <div id="qrcodeContainer" class="qrcode-container" style="display:none;">
-                <canvas id="qrcodeCanvas"></canvas>
                 <p>امسح هذا الرمز لعرض الشهادة الثانية</p>
             </div>
             <iframe id="printFrame" style="width:0;height:0;border:0;position:absolute;"></iframe>
@@ -51,7 +50,6 @@
         const noResultsMessage = document.getElementById('no_results');
         const certificateContainer = document.getElementById('certificateContainer');
         const qrcodeContainer = document.getElementById('qrcodeContainer');
-        const qrcodeCanvas = document.getElementById('qrcodeCanvas');
         const printFrame = document.getElementById('printFrame');
 
         let allStudents = []; // سيتم تعبئة هذه المصفوفة ببيانات الطلاب من الخادم
@@ -116,15 +114,24 @@
         function generateAndShowQRCode(studentId) {
             const certificateTwoUrl = `${NETLIFY_FUNCTIONS_URL}/generateCertificateTwo2?id=${studentId}`;
 
-            QRCode.toCanvas(qrcodeCanvas, certificateTwoUrl, { width: 256, height: 256 }, function (error) {
+            // قم بإنشاء عنصر img لعرض رمز QR كصورة
+            const qrcodeImage = document.createElement('img');
+            qrcodeImage.id = 'qrcodeImage'; // يمكنك إضافة ID إذا كنت بحاجة إلى التعديل لاحقًا
+
+            QRCode.toDataURL(certificateTwoUrl, { width: 256, height: 256 }, function (error, url) {
                 if (error) {
                     console.error("Error generating QR code:", error);
                     qrcodeContainer.style.display = 'none';
                     alert('حدث خطأ في إنشاء رمز QR.');
                     return;
                 }
+                qrcodeImage.src = url; // تعيين مصدر الصورة إلى بيانات URL لرمز QR
+                qrcodeContainer.innerHTML = '<p>امسح هذا الرمز لعرض الشهادة الثانية</p>'; // مسح أي محتوى سابق وإضافة النص
+                qrcodeContainer.appendChild(qrcodeImage); // إضافة الصورة إلى الحاوية
+                const qrCodeLink = document.createElement('p');
+                qrCodeLink.textContent = `أو امسح هذا الرابط: ${certificateTwoUrl}`;
+                qrcodeContainer.appendChild(qrCodeLink);
                 qrcodeContainer.style.display = 'block';
-                // لا نقوم بالطباعة التلقائية هنا، المستخدم سيمسح الرمز
             });
         }
 
