@@ -5,7 +5,106 @@
     <title>بيانات الطلاب</title>
     <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
     <style>
-        /* ... أنماط CSS ... */
+        body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            text-align: right;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .add-new {
+            display: block;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .add-new a {
+            display: inline-block;
+            padding: 10px 15px;
+            text-decoration: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+        }
+        .search-form {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .search-form input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 300px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .actions a {
+            display: inline-block;
+            margin-left: 5px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .edit-btn {
+            background-color: #ffc107;
+            color: black;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .print-btn {
+            background-color: #007bff;
+            color: white;
+            display: inline-block;
+            margin-left: 5px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .print-btn-two { /* ستايل خاص بزر الشهادة الثانية */
+            background-color: #6c757d;
+            color: white;
+            display: inline-block;
+            margin-left: 5px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .no-results {
+            text-align: center;
+            color: gray;
+            margin-top: 10px;
+        }
+        #certificateContainer {
+            margin-top: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -35,13 +134,7 @@
         </table>
 
         <p id="no_results" class="no-results" style="display:none;">لا يوجد طلاب بهذا الرقم للإقامة.</p>
-        <div id="certificateContainer">
-            <div id="qrcodeContainer" class="qrcode-container" style="display:none;">
-                <canvas id="qrcodeCanvas"></canvas>
-                <p>امسح هذا الرمز لعرض الشهادة الثانية</p>
-            </div>
-            <iframe id="printFrame" style="width:0;height:0;border:0;position:absolute;"></iframe>
-        </div>
+        <div id="certificateContainer"></div>
     </div>
 
     <script>
@@ -50,17 +143,13 @@
         const studentsTbody = document.getElementById('students_tbody');
         const noResultsMessage = document.getElementById('no_results');
         const certificateContainer = document.getElementById('certificateContainer');
-        const qrcodeContainer = document.getElementById('qrcodeContainer');
-        const qrcodeCanvas = document.getElementById('qrcodeCanvas');
-        const printFrame = document.getElementById('printFrame');
 
         let allStudents = []; // سيتم تعبئة هذه المصفوفة ببيانات الطلاب من الخادم
-        const NETLIFY_FUNCTIONS_URL = '/.netlify/functions'; // مسار وظائف Netlify
 
         // دالة لجلب بيانات الطلاب من Netlify Function
         async function fetchStudents() {
             try {
-                const response = await fetch(`${NETLIFY_FUNCTIONS_URL}/getStudents`); // رابط Netlify Function لجلب الطلاب
+                const response = await fetch('/.netlify/functions/getStudents'); // رابط Netlify Function لجلب الطلاب
                 const data = await response.json();
 
                 if (response.ok) {
@@ -95,9 +184,10 @@
                         <a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>
                     `;
                     const printCell = row.insertCell();
-                    printCell.innerHTML = `<button class="print-btn" onclick="generateAndShowQRCode('${student._id}')">عرض الأولى</button>`;
-                    // كونسول للتأكد من قيمة student._id
-                    console.log('Student ID:', student._id);
+                    printCell.innerHTML = `
+                        <button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>
+                        <button class="print-btn-two" onclick="showCertificateTwo('/.netlify/functions/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>
+                    `;
                 });
             } else {
                 studentsTbody.innerHTML = '<tr><td colspan="6">لا يوجد أي طلاب مسجلين.</td></tr>';
@@ -113,23 +203,34 @@
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
-        function generateAndShowQRCode(studentId) {
-            const certificateTwoUrl = `${NETLIFY_FUNCTIONS_URL}/generateCertificateTwo2?id=${studentId}`;
+        function showCertificate(url) {
+            var printFrame = document.getElementById('printFrame');
+            printFrame.src = url;
+            setTimeout(function() {
+                printFrame.contentWindow.print();
+            }, 500); // تأخير بسيط قبل الطباعة
+        }
 
-            QRCode.toCanvas(qrcodeCanvas, certificateTwoUrl, { width: 256, height: 256 }, function (error) {
-                if (error) {
-                    console.error("Error generating QR code:", error);
-                    qrcodeContainer.style.display = 'none';
-                    alert('حدث خطأ في إنشاء رمز QR.');
-                    return;
+        async function showCertificateTwo(url) {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (response.ok && data.image) {
+                    const certificateContainer = document.getElementById('certificateContainer');
+                    certificateContainer.innerHTML = `<img src="data:image/jpeg;base64,${data.image}" style="max-width: 100%; height: auto;">`;
+                } else {
+                    alert('فشل في عرض الشهادة الثانية.');
+                    console.error('فشل في جلب الشهادة الثانية:', data.error || 'حدث خطأ غير معروف');
                 }
-                qrcodeContainer.style.display = 'block';
-                // لا نقوم بالطباعة التلقائية هنا، المستخدم سيمسح الرمز
-            });
+            } catch (error) {
+                alert('حدث خطأ أثناء محاولة عرض الشهادة الثانية.');
+                console.error('خطأ أثناء جلب الشهادة الثانية:', error);
+            }
         }
 
         // جلب بيانات الطلاب عند تحميل الصفحة
         fetchStudents();
     </script>
+    <iframe id="printFrame" style="width:0;height:0;border:0;position:absolute;"></iframe>
 </body>
 </html>
