@@ -7,8 +7,8 @@ const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
-// مسار قالب الشهادة الثانية (موجود الآن داخل مجلد images في نفس وظيفة Netlify)
-const CERTIFICATE_TEMPLATE_URL = path.join(__dirname, 'images', 'ppp.jpg');
+// مسار قالب الشهادة الثانية (سيتم تضمينه في نفس مستوى ملف الوظيفة تقريبًا بعد النشر)
+const CERTIFICATE_TEMPLATE_URL = path.join(__dirname, 'ppp.jpg'); // تم التعديل بناءً على الهيكل الجديد
 
 // --- خيارات تعديل حجم الشهادة والنص ---
 const OUTPUT_QUALITY = 85;
@@ -55,7 +55,7 @@ exports.handler = async (event, context) => {
         const testText = 'مرحباً بكم على مكتبة path'; // نص توضيحي
 
         try {
-            // استخدام sharp مباشرة مع مسار الصورة المحلي
+            // استخدام sharp مباشرة مع مسار الصورة المحلية (في بيئة Netlify)
             const imageWithText = await sharp(CERTIFICATE_TEMPLATE_URL)
                 .composite([
                     {
