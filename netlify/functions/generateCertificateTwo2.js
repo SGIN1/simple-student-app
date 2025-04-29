@@ -6,8 +6,8 @@ const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
-// مسار قالب الشهادة الثانية (يوجد في مجلد 'images' داخل مجلد الوظيفة)
-const CERTIFICATE_TEMPLATE_PATH = path.join(__dirname, 'images', 'ppp.jpg');
+// مسار قالب الشهادة الثانية (يوجد في مجلد 'images' في المستوى الأعلى)
+const CERTIFICATE_TEMPLATE_PATH = path.join(__dirname, '..', 'images', 'ppp.jpg');
 
 // --- خيارات النص ---
 const SERIAL_TEXT_X = 550;
