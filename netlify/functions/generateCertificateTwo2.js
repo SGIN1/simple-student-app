@@ -1,33 +1,18 @@
 const { MongoClient, ObjectId } = require('mongodb');
 const sharp = require('sharp');
 const path = require('path');
-const fs = require('fs').promises;
+const fs = require('fs').promises; // قد لا نحتاجها بشكل مباشر الآن
 
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
-// مسار قالب الشهادة الثانية (بافتراض وجود مجلد images داخل مجلد الوظيفة)
-const CERTIFICATE_TEMPLATE_URL = 'images/ppp.jpg';
+// رابط URL الخام لقالب الشهادة الثانية من GitHub
+const CERTIFICATE_TEMPLATE_URL = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/refs/heads/master/netlify/functions/images/ppp.jpg';
 
 // --- خيارات تعديل حجم الشهادة والنص ---
 const OUTPUT_QUALITY = 85;
-
-// خيارات النص للرقم التسلسلي
-const SERIAL_TEXT_X = 550;
-const SERIAL_TEXT_Y = 350;
-const SERIAL_FONT_SIZE = 52;
-const SERIAL_FONT_COLOR = '#000000';
-const SERIAL_TEXT_ALIGN = 'center';
-const SERIAL_TEXT_WIDTH = 450;
-const SERIAL_TEXT_HEIGHT = 120;
-
-// خيارات النص التوضيحي
-const TEST_TEXT_X = 150;
-const TEST_TEXT_Y = 100;
-const TEST_FONT_SIZE = 36;
-const TEST_FONT_COLOR = '#FF0000';
-const TEST_TEXT_ALIGN = 'left';
+// ... باقي الخيارات كما هي ...
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
@@ -55,7 +40,7 @@ exports.handler = async (event, context) => {
         const testText = 'مرحباً بكم على مكتبة path'; // نص توضيحي
 
         try {
-            // استخدام sharp مباشرة مع مسار الصورة المحلي (في بيئة Netlify)
+            // استخدام sharp مباشرة مع URL الصورة
             const imageWithText = await sharp(CERTIFICATE_TEMPLATE_URL)
                 .composite([
                     {
