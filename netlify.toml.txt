@@ -2,4 +2,4 @@
   directory = "netlify/functions"
 
 [[functions."generateCertificateTwo2"]]
-  included_files = ["../../images/ppp.jpg"]
+  included_files = ["images/ppp.jpg"]
