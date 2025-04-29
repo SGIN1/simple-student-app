@@ -48,23 +48,23 @@ exports.handler = async (event, context) => {
                 <meta charset="UTF-8">
                 <title>شهادة الطالب</title>
                 <style type="text/css" media="print">
-                  @page {
-                    size: auto;   /* auto is the initial value */
-                    margin: 0;
-                  }
-                  body {
-                    margin: 0; /* Reset body margin for printing */
-                  }
-                  @media print {
                     @page {
-                      margin-top: 0;
-                      margin-bottom: 0;
+                        size: auto;   /* auto is the initial value */
+                        margin: 0;
                     }
                     body {
-                      padding-top: 0;
-                      padding-bottom: 0 ;
+                        margin: 0; /* Reset body margin for printing */
                     }
-                  }
+                    @media print {
+                        @page {
+                            margin-top: 0;
+                            margin-bottom: 0;
+                        }
+                        body {
+                            padding-top: 0;
+                            padding-bottom: 0 ;
+                        }
+                    }
                 </style>
                 <style>
                     body { font-family: Arial, sans-serif; direction: rtl; text-align: center; }

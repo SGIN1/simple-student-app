@@ -1,18 +1,27 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const sharp = require('sharp');
+const Jimp = require('jimp');
 const path = require('path');
-const fs = require('fs').promises; // قد لا نحتاجها بشكل مباشر الآن
 
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
-// رابط URL الخام لقالب الشهادة الثانية من GitHub
-const CERTIFICATE_TEMPLATE_URL = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/refs/heads/master/netlify/functions/images/ppp.jpg';
+// مسار قالب الشهادة الثانية (يوجد في مجلد 'images' داخل مجلد الوظيفة)
+const CERTIFICATE_TEMPLATE_PATH = path.join(__dirname, 'images', 'ppp.jpg');
 
-// --- خيارات تعديل حجم الشهادة والنص ---
-const OUTPUT_QUALITY = 85;
-// ... باقي الخيارات كما هي ...
+// --- خيارات النص ---
+const SERIAL_TEXT_X = 550;
+const SERIAL_TEXT_Y = 350;
+const SERIAL_FONT_SIZE = 52;
+const SERIAL_FONT_COLOR = '#000000';
+const SERIAL_TEXT_ALIGN = Jimp.HORIZONTAL_ALIGN_CENTER;
+const SERIAL_TEXT_MAX_WIDTH = 450;
+
+const TEST_TEXT_X = 150;
+const TEST_TEXT_Y = 100;
+const TEST_FONT_SIZE = 36;
+const TEST_FONT_COLOR = '#FF0000';
+const TEST_TEXT_ALIGN_TEST = Jimp.HORIZONTAL_ALIGN_LEFT;
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
@@ -37,53 +46,50 @@ exports.handler = async (event, context) => {
         }
 
         const serialNumber = student.serial_number;
-        const testText = 'مرحباً بكم على مكتبة path'; // نص توضيحي
+        const testText = 'مرحباً بكم على مكتبة Jimp'; // نص توضيحي
 
         try {
-            // استخدام sharp مباشرة مع URL الصورة
-            const imageWithText = await sharp(CERTIFICATE_TEMPLATE_URL)
-                .composite([
-                    {
-                        text: {
-                            text: serialNumber,
-                            x: SERIAL_TEXT_X,
-                            y: SERIAL_TEXT_Y,
-                            font: 'arial',
-                            size: SERIAL_FONT_SIZE,
-                            color: SERIAL_FONT_COLOR,
-                            align: SERIAL_TEXT_ALIGN,
-                            width: SERIAL_TEXT_WIDTH,
-                            height: SERIAL_TEXT_HEIGHT,
-                            wrap: 'word'
-                        }
-                    },
-                    { // إضافة النص التوضيحي
-                        text: {
-                            text: testText,
-                            x: TEST_TEXT_X,
-                            y: TEST_TEXT_Y,
-                            font: 'arial',
-                            size: TEST_FONT_SIZE,
-                            color: TEST_FONT_COLOR,
-                            align: 'left',
-                        }
-                    }
-                ])
-                .jpeg({ quality: OUTPUT_QUALITY })
-                .toBuffer();
+            const image = await Jimp.read(CERTIFICATE_TEMPLATE_PATH);
+            const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK); // يمكنك اختيار خط آخر
+
+            // إضافة الرقم التسلسلي
+            image.print(
+                font,
+                SERIAL_TEXT_X,
+                SERIAL_TEXT_Y,
+                {
+                    text: serialNumber,
+                    alignmentX: SERIAL_TEXT_ALIGN,
+                    maxWidth: SERIAL_TEXT_MAX_WIDTH
+                },
+                SERIAL_TEXT_MAX_WIDTH // تحديد أقصى عرض للنص
+            );
+
+            // إضافة النص التوضيحي
+            image.print(
+                font,
+                TEST_TEXT_X,
+                TEST_TEXT_Y,
+                {
+                    text: testText,
+                    alignmentX: TEST_TEXT_ALIGN_TEST
+                }
+            );
+
+            const buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
 
             return {
                 statusCode: 200,
                 headers: { 'Content-Type': 'image/jpeg' },
-                body: imageWithText.toString('base64'),
+                body: buffer.toString('base64'),
                 isBase64Encoded: true,
             };
 
         } catch (error) {
-            console.error('خطأ في معالجة الصورة:', error);
+            console.error('خطأ في معالجة الصورة باستخدام Jimp:', error);
             return {
                 statusCode: 500,
-                body: `<h1>حدث خطأ أثناء إنشاء الشهادة الثانية</h1><p>${error.message}</p>`,
+                body: `<h1>حدث خطأ أثناء إنشاء الشهادة الثانية باستخدام Jimp</h1><p>${error.message}</p>`,
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
