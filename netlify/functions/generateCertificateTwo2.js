@@ -1,36 +1,27 @@
 const { MongoClient, ObjectId } = require('mongodb');
 const sharp = require('sharp');
 const path = require('path');
-const fs = require('fs').promises; // استخدام promises لعمليات الملفات غير المتزامنة
+const fs = require('fs').promises; // قد لا نحتاجها بشكل مباشر الآن
 
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
-// مسار قالب الشهادة الثانية (تأكد من أن هذا المسار صحيح بالنسبة لموقع ملف القالب في مشروعك)
-const CERTIFICATE_TEMPLATE_PATH = path.join(__dirname, 'certificate_template_two.jpg'); // مثال على اسم الملف
+// رابط URL الخام لقالب الشهادة الثانية من GitHub
+const CERTIFICATE_TEMPLATE_URL = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/refs/heads/master/images/ppp.jpg';
 
 // --- خيارات تعديل حجم الشهادة والنص ---
-const OUTPUT_QUALITY = 85; // جودة الضغط (0-100) - تقليل القيمة يقلل الحجم
-// يمكنك إضافة خيارات resize هنا إذا أردت تغيير أبعاد الصورة بشكل مباشر
-// const OUTPUT_WIDTH = 800;
-// const OUTPUT_HEIGHT = 600;
+const OUTPUT_QUALITY = 85;
+// ... باقي الخيارات كما هي ...
 
-// خيارات النص للرقم التسلسلي
-const SERIAL_TEXT_X = 550;   // الإحداثي X
-const SERIAL_TEXT_Y = 350;   // الإحداثي Y
-const SERIAL_FONT_SIZE = 52; // حجم الخط
-const SERIAL_FONT_COLOR = '#000000';
-const SERIAL_TEXT_ALIGN = 'center';
-const SERIAL_TEXT_WIDTH = 450;
-const SERIAL_TEXT_HEIGHT = 120;
-
-// خيارات النص التوضيحي (يمكنك تعديلها أو حذفها لاحقًا)
-const TEST_TEXT_X = 150;
-const TEST_TEXT_Y = 100;
-const TEST_FONT_SIZE = 36;
-const TEST_FONT_COLOR = '#FF0000';
-const TEST_TEXT_ALIGN = 'left';
+// دالة مساعدة لجلب الصورة من URL كـ Buffer
+async function fetchImage(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`فشل في جلب الصورة: ${response.status}`);
+    }
+    return await response.buffer();
+}
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
@@ -58,16 +49,11 @@ exports.handler = async (event, context) => {
         const testText = 'مرحباً بكم على مكتبة path'; // نص توضيحي
 
         try {
-            // قراءة قالب الشهادة ك buffer
-            const templateImage = await fs.readFile(CERTIFICATE_TEMPLATE_PATH);
+            // جلب قالب الشهادة كـ Buffer من URL
+            const templateImage = await fetchImage(CERTIFICATE_TEMPLATE_URL);
 
             // كائن Sharp لبدء المعالجة
             let sharpImage = sharp(templateImage);
-
-            // تطبيق تغيير الحجم إذا تم تحديده
-            // if (OUTPUT_WIDTH && OUTPUT_HEIGHT) {
-            //     sharpImage = sharpImage.resize({ width: OUTPUT_WIDTH, height: OUTPUT_HEIGHT });
-            // }
 
             // إضافة النصوص إلى الصورة باستخدام Sharp
             const imageWithText = await sharpImage
@@ -98,7 +84,7 @@ exports.handler = async (event, context) => {
                         }
                     }
                 ])
-                .jpeg({ quality: OUTPUT_QUALITY }) // تحويل الصورة إلى JPEG مع الجودة المحددة
+                .jpeg({ quality: OUTPUT_QUALITY })
                 .toBuffer();
 
             return {
@@ -109,7 +95,7 @@ exports.handler = async (event, context) => {
             };
 
         } catch (error) {
-            console.error('خطأ في معالجة الصورة باستخدام Sharp:', error);
+            console.error('خطأ في معالجة الصورة أو جلبها:', error);
             return {
                 statusCode: 500,
                 body: `<h1>حدث خطأ أثناء إنشاء الشهادة الثانية</h1><p>${error.message}</p>`,
