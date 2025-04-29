@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>بيانات الطلاب</title>
-    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -85,17 +84,6 @@
             cursor: pointer;
             font-size: 12px;
         }
-        .print-btn-two { /* ستايل خاص بزر الشهادة الثانية */
-            background-color: #6c757d;
-            color: white;
-            display: inline-block;
-            margin-left: 5px;
-            text-decoration: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-        }
         .no-results {
             text-align: center;
             color: gray;
@@ -104,6 +92,7 @@
         #certificateContainer {
             margin-top: 20px;
             text-align: center;
+            display: none; /* إخفاء الحاوية الخاصة بالـ QR Code في الصفحة الرئيسية */
         }
     </style>
 </head>
@@ -184,10 +173,7 @@
                         <a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>
                     `;
                     const printCell = row.insertCell();
-                    printCell.innerHTML = `
-                        <button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>
-                        <button class="print-btn-two" onclick="showCertificateTwo('/.netlify/functions/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>
-                    `;
+                    printCell.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
                 });
             } else {
                 studentsTbody.innerHTML = '<tr><td colspan="6">لا يوجد أي طلاب مسجلين.</td></tr>';
@@ -196,52 +182,35 @@
 
         searchInput.addEventListener('keyup', function() {
             const searchTerm = this.value.trim();
-            const filteredStudents = allStudents.filter(student => {
-                return student.residency_number && typeof student.residency_number === 'string' && student.residency_number.startsWith(searchTerm);
-            });
+            const filteredStudents = allStudents.filter(student =>
+                student.residency_number.includes(searchTerm)
+            );
             renderStudentsTable(filteredStudents);
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
         function showCertificate(url) {
-            var printFrame = document.getElementById('printFrame');
-            printFrame.src = url;
-            setTimeout(function() {
-                printFrame.contentWindow.print();
-            }, 500); // تأخير بسيط قبل الطباعة
-        }
+            // قم بإنشاء إطار iframe جديد في كل مرة لتجنب التداخل
+            var newPrintFrame = document.createElement('iframe');
+            newPrintFrame.style.width = '0';
+            newPrintFrame.style.height = '0';
+            newPrintFrame.style.border = '0';
+            newPrintFrame.style.position = 'absolute';
+            document.body.appendChild(newPrintFrame);
 
-        async function showCertificateTwo(url) {
-            try {
-                // استخلاص ID الطالب من URL الفانكشن
-                const studentId = url.split('id=')[1];
+            newPrintFrame.src = url;
 
-                // جلب بيانات الطالب باستخدام ID
-                const response = await fetch('/.netlify/functions/getStudentById?id=' + studentId);
-                const data = await response.json();
-
-                if (response.ok && data) {
-                    const certificateContainer = document.getElementById('certificateContainer');
-                    certificateContainer.innerHTML = `
-                        <div style="position: relative; width: 800px; height: 600px; background-image: url('https://raw.githubusercontent.com/SGIN1/simple-student-app/1c3610d4e38df2d71c6e70d88399c74ec02eea9e/images/ppp.jpg'); background-size: cover; background-repeat: no-repeat; display: flex; justify-content: center; align-items: center;">
-                            <div style="position: absolute; top: 180px; left: 50px; font-size: 28px; font-weight: bold; color: black; text-align: center; width: 180px;">
-                                ${data.serial_number}
-                            </div>
-                            </div>
-                    `;
-                } else {
-                    alert('فشل في عرض الشهادة الثانية.');
-                    console.error('فشل في جلب بيانات الطالب للشهادة الثانية:', data.error || 'حدث خطأ غير معروف');
-                }
-            } catch (error) {
-                alert('حدث خطأ أثناء محاولة عرض الشهادة الثانية.');
-                console.error('خطأ أثناء جلب بيانات الطالب للشهادة الثانية:', error);
-            }
+            newPrintFrame.onload = function() {
+                newPrintFrame.contentWindow.print();
+                // قم بإزالة الإطار بعد الطباعة أو الإغلاق
+                setTimeout(function() {
+                    document.body.removeChild(newPrintFrame);
+                }, 500);
+            };
         }
 
         // جلب بيانات الطلاب عند تحميل الصفحة
         fetchStudents();
     </script>
-    <iframe id="printFrame" style="width:0;height:0;border:0;position:absolute;"></iframe>
 </body>
 </html>

@@ -4,38 +4,13 @@ const QRCode = require('qrcode');
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
-const CERTIFICATE_ONE_IMAGE_URL = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/1c3610d4e38df2d71c6e70d88399c74ec02eea9e/images/www.jpg';
 
-// يمكنك تعديل هذه القيم لتناسب مواقع وأحجام الخطوط المطلوبة
-const SERIAL_NUMBER_STYLE_ONE = `
-    position: absolute;
-    top: 250px; /* تعديل المسافة من الأعلى */
-    right: 100px; /* تعديل المسافة من اليمين */
-    font-size: 24px;
-    font-weight: bold;
-    color: black;
-`;
-
-const RESIDENCY_NUMBER_STYLE_ONE = `
-    position: absolute;
-    top: 300px; /* تعديل المسافة من الأعلى */
-    right: 100px; /* تعديل المسافة من اليمين */
-    font-size: 24px;
-    font-weight: bold;
-    color: black;
-`;
-
-const QR_CODE_STYLE_ONE = `
-    position: absolute;
-    bottom: 50px; /* تعديل المسافة من الأسفل */
-    left: 50px; /* تعديل المسافة من اليسار */
-    width: 100px; /* تعديل حجم الـ QR Code */
-    height: 100px;
-`;
+// التأكد من تضمين النطاق الأساسي لـ Netlify في الرابط
+const NETLIFY_BASE_URL = 'https://spiffy-meerkat-be5bc1.netlify.app';
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
-    console.log('ID المستلم في وظيفة generateCertificateOne1 (HTML + CSS + QR):', studentId);
+    console.log('ID المستلم في وظيفة generateCertificateOne1:', studentId);
 
     let client;
 
@@ -44,13 +19,19 @@ exports.handler = async (event, context) => {
         await client.connect();
         const database = client.db(dbName);
         const studentsCollection = database.collection(collectionName);
+
         const student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
 
         if (!student) {
-            return { statusCode: 404, body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`, headers: { 'Content-Type': 'text/html; charset=utf-8' } };
+            return {
+                statusCode: 404,
+                body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`,
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            };
         }
 
-        const certificateTwoUrl = `https://spiffy-meerkat-be5bc1.netlify.app/.netlify/functions/generateCertificateTwo2?id=${student._id}`;
+        // إنشاء رابط URL كامل للشهادة الثانية
+        const certificateTwoUrl = `${NETLIFY_BASE_URL}/.netlify/functions/generateCertificateTwo2?id=${student._id}`;
         let qrCodeDataUri;
 
         try {
@@ -60,61 +41,83 @@ exports.handler = async (event, context) => {
             qrCodeDataUri = '';
         }
 
-        const htmlContent = `
+        const htmlCertificate = `
             <!DOCTYPE html>
             <html lang="ar">
             <head>
                 <meta charset="UTF-8">
-                <title>الشهادة الأولى</title>
+                <title>شهادة الطالب</title>
+                <style type="text/css" media="print">
+                  @page {
+                    size: auto;   /* auto is the initial value */
+                    margin: 0;
+                  }
+                  body {
+                    margin: 0; /* Reset body margin for printing */
+                  }
+                  @media print {
+                    @page {
+                      margin-top: 0;
+                      margin-bottom: 0;
+                    }
+                    body {
+                      padding-top: 0;
+                      padding-bottom: 0 ;
+                    }
+                  }
+                </style>
                 <style>
-                    body { margin: 0; }
-                    .certificate-container {
-                        position: relative;
-                        width: 800px; /* تعديل العرض حسب حجم الشهادة */
-                        height: 600px; /* تعديل الارتفاع حسب حجم الشهادة */
-                        background-image: url('${CERTIFICATE_ONE_IMAGE_URL}');
-                        background-size: cover;
-                        background-repeat: no-repeat;
-                        direction: rtl;
-                        text-align: right;
-                    }
-                    .serial-number {
-                        ${SERIAL_NUMBER_STYLE_ONE}
-                    }
-                    .residency-number {
-                        ${RESIDENCY_NUMBER_STYLE_ONE}
-                    }
-                    .qrcode-container {
-                        ${QR_CODE_STYLE_ONE}
-                    }
-                    .qrcode-container img {
-                        width: 100%;
-                        height: 100%;
-                    }
+                    body { font-family: Arial, sans-serif; direction: rtl; text-align: center; }
+                    .certificate-container { width: 80%; margin: 20px auto; border: 1px solid #ccc; padding: 20px; }
+                    .template { max-width: 100%; }
+                    .data { margin-top: 20px; }
+                    .serial { font-size: 1.2em; font-weight: bold; }
+                    .residency { font-size: 1.2em; font-weight: bold; }
+                    .qrcode-container { margin-top: 20px; }
+                    .qrcode-container img { max-width: 150px; }
+                    .qrcode-text { font-size: 0.8em; color: gray; }
                 </style>
             </head>
             <body>
                 <div class="certificate-container">
-                    <div class="serial-number">${student.serial_number}</div>
-                    <div class="residency-number">${student.residency_number}</div>
-                    <div class="qrcode-container">
-                        ${qrCodeDataUri ? `<img src="${qrCodeDataUri}" alt="QR Code للشهادة الثانية">` : `<p>خطأ في QR</p>`}
+                    <img src="/www.jpg" alt="قالب الشهادة" class="template">
+                    <div class="data">
+                        <p class="serial">${student.serial_number}</p>
+                        <p class="residency">${student.residency_number}</p>
+                        ${qrCodeDataUri ? `
+                            <div class="qrcode-container">
+                                <img src="${qrCodeDataUri}" alt="QR Code للشهادة الثانية">
+                                <p class="qrcode-text">امسح هذا الرمز لفتح الشهادة الثانية</p>
+                            </div>
+                        ` : `<p class="qrcode-text">حدث خطأ في إنشاء QR Code</p>`}
                     </div>
                 </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(function() { window.close(); }, 100);
+                    };
+                </script>
             </body>
             </html>
         `;
 
         return {
             statusCode: 200,
-            body: htmlContent,
+            body: htmlCertificate,
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
 
     } catch (error) {
-        console.error('خطأ في وظيفة generateCertificateOne1 (HTML + CSS + QR):', error);
-        return { statusCode: 500, body: `<h1>حدث خطأ أثناء توليد الشهادة الأولى</h1><p>${error.message}</p>`, headers: { 'Content-Type': 'text/html; charset=utf-8' } };
+        console.error('خطأ في وظيفة توليد الشهادة:', error);
+        return {
+            statusCode: 500,
+            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        };
     } finally {
-        if (client) await client.close();
+        if (client) {
+            await client.close();
+        }
     }
 };
