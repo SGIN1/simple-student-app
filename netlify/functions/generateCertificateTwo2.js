@@ -14,15 +14,6 @@ const CERTIFICATE_TEMPLATE_URL = 'https://raw.githubusercontent.com/SGIN1/simple
 const OUTPUT_QUALITY = 85;
 // ... باقي الخيارات كما هي ...
 
-// دالة مساعدة لجلب الصورة من URL كـ Buffer
-async function fetchImage(url) {
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`فشل في جلب الصورة: ${response.status}`);
-    }
-    return await response.buffer();
-}
-
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
     console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
@@ -49,14 +40,8 @@ exports.handler = async (event, context) => {
         const testText = 'مرحباً بكم على مكتبة path'; // نص توضيحي
 
         try {
-            // جلب قالب الشهادة كـ Buffer من URL
-            const templateImage = await fetchImage(CERTIFICATE_TEMPLATE_URL);
-
-            // كائن Sharp لبدء المعالجة
-            let sharpImage = sharp(templateImage);
-
-            // إضافة النصوص إلى الصورة باستخدام Sharp
-            const imageWithText = await sharpImage
+            // استخدام sharp مباشرة مع URL الصورة
+            const imageWithText = await sharp(CERTIFICATE_TEMPLATE_URL)
                 .composite([
                     {
                         text: {
@@ -95,7 +80,7 @@ exports.handler = async (event, context) => {
             };
 
         } catch (error) {
-            console.error('خطأ في معالجة الصورة أو جلبها:', error);
+            console.error('خطأ في معالجة الصورة:', error);
             return {
                 statusCode: 500,
                 body: `<h1>حدث خطأ أثناء إنشاء الشهادة الثانية</h1><p>${error.message}</p>`,
