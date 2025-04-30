@@ -4,8 +4,8 @@ const path = require('path');
 // استخدام رابط RAW لملف ppp.jpg من GitHub مباشرة
 const CERTIFICATE_TEMPLATE_URL = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/refs/heads/master/ppp.jpg';
 
-// --- مسار الخط ---
-const FONT_PATH = path.join(__dirname, 'arial.ttf');
+// --- مسار الخط (معدل لبيئة Netlify) ---
+const FONT_PATH = '/var/task/arial.ttf';
 
 // --- خيارات النص للرقم التسلسلي ---
 const SERIAL_TEXT_X = 550;
@@ -28,7 +28,7 @@ exports.handler = async (event, context) => {
         const image = await Jimp.read(CERTIFICATE_TEMPLATE_URL);
         console.log('تم تحميل الصورة بنجاح من URL:', image ? 'نعم' : 'لا');
 
-        // تحميل الخط
+        // تحميل الخط من المسار المتوقع في Netlify
         const font = await Jimp.loadFont(FONT_PATH);
         console.log('تم تحميل الخط بنجاح من المسار:', FONT_PATH);
 
