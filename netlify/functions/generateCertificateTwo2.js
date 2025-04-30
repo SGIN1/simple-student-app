@@ -1,11 +1,10 @@
 const Jimp = require('jimp');
-const path = require('path');
 
 // استخدام رابط RAW لملف ppp.jpg من GitHub مباشرة
 const CERTIFICATE_TEMPLATE_URL = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/refs/heads/master/ppp.jpg';
 
-// --- مسار الخط (معدل لبيئة Netlify باستخدام LAMBDA_TASK_ROOT) ---
-const FONT_PATH = path.join(process.env.LAMBDA_TASK_ROOT, 'arial.ttf');
+// --- رابط خط من Google Fonts (مثال: Amiri) ---
+const FONT_URL = 'https://fonts.googleapis.com/css2?family=Amiri&display=swap';
 
 // --- خيارات النص للرقم التسلسلي ---
 const SERIAL_TEXT_X = 550;
@@ -22,15 +21,42 @@ const TEST_FONT_SIZE = 36;
 const TEST_FONT_COLOR = '#FF0000';
 const TEST_TEXT_ALIGN_TEST = Jimp.HORIZONTAL_ALIGN_LEFT;
 
+async function loadRemoteFont() {
+    try {
+        // نقوم بجلب ملف CSS الخاص بالخط
+        const response = await fetch(FONT_URL);
+        const css = await response.text();
+
+        // نبحث عن رابط ملف woff2 داخل ملف CSS
+        const fontUrlMatch = css.match(/url\((.*?\.woff2)\)/);
+        if (fontUrlMatch && fontUrlMatch[1]) {
+            return await Jimp.loadFont(fontUrlMatch[1]);
+        } else {
+            console.error('لم يتم العثور على رابط woff2 في ملف CSS.');
+            return null;
+        }
+    } catch (error) {
+        console.error('خطأ أثناء تحميل الخط من الإنترنت:', error);
+        return null;
+    }
+}
+
 exports.handler = async (event, context) => {
     try {
         console.log('محاولة قراءة الملف من URL:', CERTIFICATE_TEMPLATE_URL);
         const image = await Jimp.read(CERTIFICATE_TEMPLATE_URL);
         console.log('تم تحميل الصورة بنجاح من URL:', image ? 'نعم' : 'لا');
 
-        // تحميل الخط من المسار المتوقع في Netlify باستخدام LAMBDA_TASK_ROOT
-        const font = await Jimp.loadFont(FONT_PATH);
-        console.log('تم تحميل الخط بنجاح من المسار:', FONT_PATH);
+        // تحميل الخط من الإنترنت
+        const font = await loadRemoteFont();
+        if (!font) {
+            return {
+                statusCode: 500,
+                body: `<h1>حدث خطأ أثناء تحميل الخط من الإنترنت</h1>`,
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            };
+        }
+        console.log('تم تحميل الخط بنجاح من الإنترنت.');
 
         const serialNumber = 'SN12345'; // هنا يجب أن تحصل على الرقم التسلسلي الديناميكي
         const testText = 'مرحباً بكم على مكتبة Jimp'; // نص توضيحي
