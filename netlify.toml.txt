@@ -6,4 +6,4 @@ package = "@netlify/plugin-functions-core"
 
   [plugins.inputs]
   functions_path = "netlify/functions"
-  included_files = ["arial.ttf"] # قد تحتاج لإضافة أي ملفات أخرى تستخدمها وظيفتك
+  included_files = ["arial.ttf", "public/images/الشهادة2.jpg"] # أضفنا مسار الصورة
