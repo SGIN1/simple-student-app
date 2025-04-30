@@ -1,10 +1,10 @@
 const Jimp = require('jimp');
 
 // استخدام رابط RAW لملف ppp.jpg من GitHub مباشرة
-const CERTIFICATE_TEMPLATE_URL = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/refs/heads/master/ppp.jpg';
+const CERTIFICATE_TEMPLATE_URL = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/refs/heads/master/ppp.jpg?raw=true';
 
-// --- رابط مباشر لملف خط TTF مجاني (مثال: Almarai-Regular.ttf من Google Fonts CDN) ---
-const FONT_URL = 'https://fonts.gstatic.com/s/almarai/v15/taiYGmYF_GGH97WXHSxYcScvYjY.ttf';
+// --- رابط مباشر لملف خط TTF (Roboto) ---
+const FONT_URL = 'https://fonts.gstatic.com/s/roboto/v40/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf';
 
 exports.handler = async (event, context) => {
     try {
@@ -16,31 +16,78 @@ exports.handler = async (event, context) => {
         const font = await Jimp.loadFont(FONT_URL);
         console.log('تم تحميل الخط بنجاح من URL:', FONT_URL);
 
-        const serialNumber = 'SN12345'; // هنا يجب أن تحصل على الرقم التسلسلي الديناميكي
-        const testText = 'مرحباً بكم على مكتبة Jimp'; // نص توضيحي
+        const studentId = event.queryStringParameters.id;
+        // هنا يجب أن تسترجع بيانات الطالب بناءً على studentId من قاعدة البيانات
+        // لأغراض التجربة، سنستخدم بيانات وهمية
+        const student = {
+            serial_number: 'SN2025-001',
+            residency_number: '1234567890',
+            created_at: new Date().toISOString().substring(0, 10),
+            _id: studentId || 'TEMP_ID'
+        };
+
+        // حجم وموقع النصوص على الشهادة - تحتاج لتعديل هذه القيم!
+        const fontSize = 60;
+        const textColor = '#000000'; // أسود
+        const serialNumberX = 550;
+        const serialNumberY = 400;
+        const residencyNumberX = 550;
+        const residencyNumberY = 500;
+        const enrollmentDateX = 550;
+        const enrollmentDateY = 600;
+        const studentIdX = 150;
+        const studentIdY = 700;
 
         // إضافة الرقم التسلسلي
         image.print(
             font,
-            SERIAL_TEXT_X,
-            SERIAL_TEXT_Y,
+            serialNumberX,
+            serialNumberY,
             {
-                text: serialNumber,
+                text: student.serial_number,
                 alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-                maxWidth: 450
+                maxWidth: 400
             },
-            450
+            400
         );
 
-        // إضافة النص التوضيحي
+        // إضافة رقم الإقامة
         image.print(
             font,
-            150,
-            100,
+            residencyNumberX,
+            residencyNumberY,
             {
-                text: testText,
-                alignmentX: Jimp.HORIZONTAL_ALIGN_LEFT
-            }
+                text: student.residency_number,
+                alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+                maxWidth: 400
+            },
+            400
+        );
+
+        // إضافة تاريخ التسجيل
+        image.print(
+            font,
+            enrollmentDateX,
+            enrollmentDateY,
+            {
+                text: student.created_at,
+                alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+                maxWidth: 400
+            },
+            400
+        );
+
+        // إضافة معرف الطالب (للتتبع)
+        image.print(
+            font,
+            studentIdX,
+            studentIdY,
+            {
+                text: `ID: ${student._id}`,
+                alignmentX: Jimp.HORIZONTAL_ALIGN_LEFT,
+                maxWidth: 300
+            },
+            300
         );
 
         const buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
