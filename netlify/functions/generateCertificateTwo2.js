@@ -4,7 +4,7 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-const CERTIFICATE_IMAGE_PATH = '/images/ppp.jpg';
+const CERTIFICATE_IMAGE_PATH = '/images/الشهادة2.jpg'; // تم تحديث اسم الصورة
 const FONT_PATH = '/fonts/Amiri-Regular.ttf';
 
 const SERIAL_NUMBER_STYLE = `
