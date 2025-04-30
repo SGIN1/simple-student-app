@@ -1,8 +1,8 @@
 const Jimp = require('jimp');
 const path = require('path');
 
-// استخدام path.join للانتقال من مجلد الوظيفة إلى جذر المشروع ثم إلى images
-const CERTIFICATE_TEMPLATE_PATH = path.join(__dirname, '..', '..', 'images', 'ppp.jpg');
+// محاولة استخدام مسار نسبي مباشر من جذر المشروع (قد يحتاج إلى تعديل حسب بيئة Netlify)
+const CERTIFICATE_TEMPLATE_PATH = path.join(process.cwd(), 'images', 'ppp.jpg');
 
 exports.handler = async (event, context) => {
     try {
