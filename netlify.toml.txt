@@ -6,4 +6,4 @@ package = "@netlify/plugin-functions-core"
 
   [plugins.inputs]
   functions_path = "netlify/functions"
-  included_files = ["images/**"]
+  included_files = ["ppp.jpg"]
