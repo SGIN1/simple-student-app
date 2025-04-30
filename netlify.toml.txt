@@ -1,2 +1,6 @@
-[functions]
-  directory = "netlify/functions"
+[[plugins]]
+package = "@netlify/plugin-functions-core"
+
+  [plugins.inputs]
+  functions_path = "netlify/functions"
+  included_files = ["images/**"]
