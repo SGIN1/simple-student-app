@@ -3,8 +3,8 @@ const Jimp = require('jimp');
 // استخدام رابط RAW لملف ppp.jpg من GitHub مباشرة
 const CERTIFICATE_TEMPLATE_URL = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/refs/heads/master/ppp.jpg';
 
-// --- رابط خط من Google Fonts (مثال: Amiri) ---
-const FONT_URL = 'https://fonts.googleapis.com/css2?family=Amiri&display=swap';
+// --- رابط خط Sarabun من Google Fonts ---
+const FONT_URL = 'https://fonts.googleapis.com/css2?family=Sarabun&display=swap';
 
 // --- خيارات النص للرقم التسلسلي ---
 const SERIAL_TEXT_X = 550;
