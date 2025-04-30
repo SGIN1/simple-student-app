@@ -3,43 +3,8 @@ const Jimp = require('jimp');
 // استخدام رابط RAW لملف ppp.jpg من GitHub مباشرة
 const CERTIFICATE_TEMPLATE_URL = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/refs/heads/master/ppp.jpg';
 
-// --- رابط خط Sarabun من Google Fonts ---
-const FONT_URL = 'https://fonts.googleapis.com/css2?family=Sarabun&display=swap';
-
-// --- خيارات النص للرقم التسلسلي ---
-const SERIAL_TEXT_X = 550;
-const SERIAL_TEXT_Y = 350;
-const SERIAL_FONT_SIZE = 52;
-const SERIAL_FONT_COLOR = '#000000';
-const SERIAL_TEXT_ALIGN = Jimp.HORIZONTAL_ALIGN_CENTER;
-const SERIAL_TEXT_MAX_WIDTH = 450;
-
-// --- خيارات النص التجريبي ---
-const TEST_TEXT_X = 150;
-const TEST_TEXT_Y = 100;
-const TEST_FONT_SIZE = 36;
-const TEST_FONT_COLOR = '#FF0000';
-const TEST_TEXT_ALIGN_TEST = Jimp.HORIZONTAL_ALIGN_LEFT;
-
-async function loadRemoteFont() {
-    try {
-        // نقوم بجلب ملف CSS الخاص بالخط
-        const response = await fetch(FONT_URL);
-        const css = await response.text();
-
-        // نبحث عن رابط ملف woff2 داخل ملف CSS
-        const fontUrlMatch = css.match(/url\((.*?\.woff2)\)/);
-        if (fontUrlMatch && fontUrlMatch[1]) {
-            return await Jimp.loadFont(fontUrlMatch[1]);
-        } else {
-            console.error('لم يتم العثور على رابط woff2 في ملف CSS.');
-            return null;
-        }
-    } catch (error) {
-        console.error('خطأ أثناء تحميل الخط من الإنترنت:', error);
-        return null;
-    }
-}
+// --- رابط مباشر لملف خط TTF مجاني (مثال: Almarai-Regular.ttf من Google Fonts CDN) ---
+const FONT_URL = 'https://fonts.gstatic.com/s/almarai/v15/taiYGmYF_GGH97WXHSxYcScvYjY.ttf';
 
 exports.handler = async (event, context) => {
     try {
@@ -47,16 +12,9 @@ exports.handler = async (event, context) => {
         const image = await Jimp.read(CERTIFICATE_TEMPLATE_URL);
         console.log('تم تحميل الصورة بنجاح من URL:', image ? 'نعم' : 'لا');
 
-        // تحميل الخط من الإنترنت
-        const font = await loadRemoteFont();
-        if (!font) {
-            return {
-                statusCode: 500,
-                body: `<h1>حدث خطأ أثناء تحميل الخط من الإنترنت</h1>`,
-                headers: { 'Content-Type': 'text/html; charset=utf-8' },
-            };
-        }
-        console.log('تم تحميل الخط بنجاح من الإنترنت.');
+        // تحميل الخط مباشرة من URL
+        const font = await Jimp.loadFont(FONT_URL);
+        console.log('تم تحميل الخط بنجاح من URL:', FONT_URL);
 
         const serialNumber = 'SN12345'; // هنا يجب أن تحصل على الرقم التسلسلي الديناميكي
         const testText = 'مرحباً بكم على مكتبة Jimp'; // نص توضيحي
@@ -68,20 +26,20 @@ exports.handler = async (event, context) => {
             SERIAL_TEXT_Y,
             {
                 text: serialNumber,
-                alignmentX: SERIAL_TEXT_ALIGN,
-                maxWidth: SERIAL_TEXT_MAX_WIDTH
+                alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+                maxWidth: 450
             },
-            SERIAL_TEXT_MAX_WIDTH
+            450
         );
 
         // إضافة النص التوضيحي
         image.print(
             font,
-            TEST_TEXT_X,
-            TEST_TEXT_Y,
+            150,
+            100,
             {
                 text: testText,
-                alignmentX: TEST_TEXT_ALIGN_TEST
+                alignmentX: Jimp.HORIZONTAL_ALIGN_LEFT
             }
         );
 
