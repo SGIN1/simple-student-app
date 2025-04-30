@@ -1,11 +1,12 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const fetch = require('node-fetch');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
-const CERTIFICATE_IMAGE_PATH = '/images/ppp.jpg'; // افترض أن الصورة في public/images
-const FONT_PATH = '/fonts/Amiri-Regular.ttf'; // افترض أن الخط في public/fonts
+
+// المسارات النسبية من جذر الموقع (مجلد public)
+const CERTIFICATE_IMAGE_PATH = '/images/ppp.jpg';
+const FONT_PATH = '/fonts/Amiri-Regular.ttf';
 
 const SERIAL_NUMBER_STYLE = `
   position: absolute;
@@ -25,12 +26,16 @@ exports.handler = async (event, context) => {
   let client;
 
   try {
+    // 1. الاتصال بقاعدة البيانات
     client = new MongoClient(uri);
     await client.connect();
     const database = client.db(dbName);
     const studentsCollection = database.collection(collectionName);
+
+    // 2. استرداد بيانات الطالب
     const student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
 
+    // 3. التحقق من وجود الطالب
     if (!student) {
       return {
         statusCode: 404,
@@ -39,11 +44,14 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // 4. استخراج البيانات المطلوبة
     const serialNumber = student.serial_number;
     const studentNameArabic = student.arabic_name || 'اسم الطالب';
 
-    const certificateLink = `https://your-netlify-site.netlify.app/.netlify/functions/generateCertificateTwo2?id=${studentId}`; // إنشاء رابط الشهادة
+    // 5. إنشاء رابط الشهادة
+    const certificateLink = `https://spiffy-meerkat-be5bc1.netlify.app/.netlify/functions/generateCertificateTwo2?id=${studentId}`;
 
+    // 6. بناء محتوى HTML للشهادة
     const htmlContent = `
       <!DOCTYPE html>
       <html lang="ar">
@@ -79,7 +87,7 @@ exports.handler = async (event, context) => {
             ${SERIAL_NUMBER_STYLE}
             font-family: sans-serif;
           }
-          .certificate-link { /* نمط للرابط */
+          .certificate-link {
             margin-top: 20px;
             font-size: 20px;
           }
@@ -97,12 +105,14 @@ exports.handler = async (event, context) => {
       </html>
     `;
 
+    // 7. إرسال الاستجابة
     return {
       statusCode: 200,
       body: htmlContent,
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     };
   } catch (error) {
+    // 8. معالجة الأخطاء
     console.error('خطأ في وظيفة توليد الشهادة:', error);
     return {
       statusCode: 500,
@@ -110,6 +120,7 @@ exports.handler = async (event, context) => {
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     };
   } finally {
+    // 9. إغلاق الاتصال بقاعدة البيانات
     if (client) await client.close();
   }
 };
