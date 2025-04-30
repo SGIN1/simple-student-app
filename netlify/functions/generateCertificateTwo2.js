@@ -1,109 +1,101 @@
-const Jimp = require('jimp');
+const { MongoClient, ObjectId } = require(mongodb);
+const fetch = require(node-fetch);
 
-// استخدام رابط RAW لملف ppp.jpg من GitHub مباشرة
-const CERTIFICATE_TEMPLATE_URL = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/refs/heads/master/ppp.jpg?raw=true';
+const uri = process.env.MONGODB_URI;
+const dbName = "Cluster0";
+const collectionName = "enrolled_students_tbl";
+// المسار النسبي لصورة الشهادة
+const CERTIFICATE_IMAGE_PATH = '/images/ppp.jpg';
+// المسار النسبي لملف الخط
+const FONT_PATH = '/fonts/Amiri-Regular.ttf';
 
-// --- رابط مباشر لملف خط TTF (Roboto) ---
-const FONT_URL = 'https://fonts.gstatic.com/s/roboto/v40/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf';
+const SERIAL_NUMBER_STYLE = `
+  position: absolute;
+  top: 180px;
+  left: 50px;
+  font-size: 28px;
+  font-weight: bold;
+  color: black;
+  text-align: center;
+  width: 180px;
+`;
 
 exports.handler = async (event, context) => {
+    const studentId = event.queryStringParameters.id;
+    console.log("ID المستلم في وظيفة generateCertificateTwo2 (HTML + CSS) مع مسارات نسبية:", studentId);
+
+    let client;
+
     try {
-        console.log('محاولة قراءة الملف من URL:', CERTIFICATE_TEMPLATE_URL);
-        const image = await Jimp.read(CERTIFICATE_TEMPLATE_URL);
-        console.log('تم تحميل الصورة بنجاح من URL:', image ? 'نعم' : 'لا');
+        client = new MongoClient(uri);
+        await client.connect();
+        const database = client.db(dbName);
+        const studentsCollection = database.collection(collectionName);
+        const student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
 
-        // تحميل الخط مباشرة من URL
-        const font = await Jimp.loadFont(FONT_URL);
-        console.log('تم تحميل الخط بنجاح من URL:', FONT_URL);
+        if (!student) {
+            return { statusCode: 404, body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`, headers: { "Content-Type": "text/html; charset=utf-8" } };
+        }
 
-        const studentId = event.queryStringParameters.id;
-        // هنا يجب أن تسترجع بيانات الطالب بناءً على studentId من قاعدة البيانات
-        // لأغراض التجربة، سنستخدم بيانات وهمية
-        const student = {
-            serial_number: 'SN2025-001',
-            residency_number: '1234567890',
-            created_at: new Date().toISOString().substring(0, 10),
-            _id: studentId || 'TEMP_ID'
-        };
+        const serialNumber = student.serial_number;
+        const studentNameArabic = student.arabic_name || "اسم الطالب"; // افترض وجود حقل للاسم بالعربية
 
-        // حجم وموقع النصوص على الشهادة - تحتاج لتعديل هذه القيم!
-        const fontSize = 60;
-        const textColor = '#000000'; // أسود
-        const serialNumberX = 550;
-        const serialNumberY = 400;
-        const residencyNumberX = 550;
-        const residencyNumberY = 500;
-        const enrollmentDateX = 550;
-        const enrollmentDateY = 600;
-        const studentIdX = 150;
-        const studentIdY = 700;
-
-        // إضافة الرقم التسلسلي
-        image.print(
-            font,
-            serialNumberX,
-            serialNumberY,
-            {
-                text: student.serial_number,
-                alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-                maxWidth: 400
-            },
-            400
-        );
-
-        // إضافة رقم الإقامة
-        image.print(
-            font,
-            residencyNumberX,
-            residencyNumberY,
-            {
-                text: student.residency_number,
-                alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-                maxWidth: 400
-            },
-            400
-        );
-
-        // إضافة تاريخ التسجيل
-        image.print(
-            font,
-            enrollmentDateX,
-            enrollmentDateY,
-            {
-                text: student.created_at,
-                alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-                maxWidth: 400
-            },
-            400
-        );
-
-        // إضافة معرف الطالب (للتتبع)
-        image.print(
-            font,
-            studentIdX,
-            studentIdY,
-            {
-                text: `ID: ${student._id}`,
-                alignmentX: Jimp.HORIZONTAL_ALIGN_LEFT,
-                maxWidth: 300
-            },
-            300
-        );
-
-        const buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+        const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <title>الشهادة</title>
+        <style>
+          body { margin: 0; font-family: sans-serif; } /* خط افتراضي */
+          .certificate-container {
+            position: relative;
+            width: 800px; /* يمكنك تعديل الأبعاد حسب الحاجة */
+            height: 600px; /* يمكنك تعديل الأبعاد حسب الحاجة */
+            background-image: url('${CERTIFICATE_IMAGE_PATH}');
+            background-size: cover;
+            background-repeat: no-repeat;
+            display: flex;
+            flex-direction: column; /* لترتيب العناصر عمودياً */
+            align-items: center; /* لمركزة العناصر أفقياً */
+            justify-content: center; /* لمركزة العناصر رأسياً */
+            text-align: center; /* لمحاذاة النص داخل الحاوية */
+          }
+          @font-face {
+            font-family: 'ArabicFont';
+            src: url('${FONT_PATH}') format('truetype');
+          }
+          .student-name {
+            font-family: 'ArabicFont', serif;
+            font-size: 48px;
+            color: #000;
+            margin-top: 200px; /* تعديل المسافة من الأعلى */
+          }
+          .serial-number {
+            ${SERIAL_NUMBER_STYLE}
+            font-family: sans-serif; /* العودة إلى خط افتراضي للأرقام إذا لزم الأمر */
+          }
+        </style>
+      </head>
+      <body>
+        <div class="certificate-container">
+          <div class="student-name">${studentNameArabic}</div>
+          <div class="serial-number">${serialNumber}</div>
+        </div>
+      </body>
+      </html>
+    `;
 
         return {
             statusCode: 200,
-            headers: { 'Content-Type': 'image/jpeg' },
-            body: buffer.toString('base64'),
-            isBase64Encoded: true,
+            body: htmlContent,
+            headers: { "Content-Type": "text/html; charset=utf-8" },
         };
+
     } catch (error) {
-        console.error('حدث خطأ أثناء معالجة الصورة أو إضافة النصوص:', error);
-        return {
-            statusCode: 500,
-            body: `<h1>حدث خطأ أثناء معالجة الصورة أو إضافة النصوص</h1><pre>${error.message}</pre>`,
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        };
+        console.error("خطأ في وظيفة توليد الشهادة الثانية (HTML + CSS) مع مسارات نسبية:", error);
+        return { statusCode: 500, body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`, headers: { "Content-Type": "text/html; charset=utf-8" } };
+    } finally {
+        if (client) await client.close();
     }
 };
