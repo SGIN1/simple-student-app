@@ -4,8 +4,9 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-const CERTIFICATE_IMAGE_PATH = '/images/الشهادة2.jpg'; // تم تحديث اسم الصورة
-const FONT_PATH = '/fonts/Amiri-Regular.ttf';
+// **التغيير الرئيسي:** استخدام الرابط الخام للصورة من GitHub
+const CERTIFICATE_IMAGE_URL = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/refs/heads/master/public/images/%D8%A7%D9%84%D8%B4%D9%87%D8%A7%D8%AF%D8%A92.jpg';
+const FONT_PATH = '/fonts/Amiri-Regular.ttf'; // مسار الخط (قد تحتاج إلى تعديله)
 
 const SERIAL_NUMBER_STYLE = `
   position: absolute;
@@ -53,7 +54,7 @@ exports.handler = async (event, context) => {
     const serialNumber = student.serial_number;
     const studentNameArabic = student.arabic_name || 'اسم الطالب';
 
-    // **التغيير الرئيسي:** عرض الشهادة مباشرةً
+    // **التغييرات الرئيسية:** عرض الشهادة مباشرةً مع التعديلات على المقاسات واللون
     const htmlContent = `
       <!DOCTYPE html>
       <html lang="ar">
@@ -61,19 +62,23 @@ exports.handler = async (event, context) => {
         <meta charset="UTF-8">
         <title>الشهادة</title>
         <style>
-          body { margin: 0; font-family: sans-serif; }
-          .certificate-container {
-            position: relative;
-            width: 800px;
-            height: 600px;
-            background-image: url('${CERTIFICATE_IMAGE_PATH}');
-            background-size: cover;
-            background-repeat: no-repeat;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
+          body { 
+            margin: 0px; 
+            height: 100%; 
+            background-color: rgb(14, 14, 14); 
+            display: flex; /* إضافة لعرض مرن */
+            justify-content: center; /* توسيط أفقي */
+            align-items: center; /* توسيط رأسي */
+          }
+          img { 
+            display: block; 
+            -webkit-user-select: none; 
+            margin: auto; 
+            cursor: zoom-in; 
+            background-color: hsl(0, 0%, 90%); 
+            transition: background-color 300ms;
+            width: 207px; /* المقاسات الرسمية */
+            height: 253px; /* المقاسات الرسمية */
           }
           @font-face {
             font-family: 'ArabicFont';
@@ -82,18 +87,25 @@ exports.handler = async (event, context) => {
           .student-name {
             font-family: 'ArabicFont', serif;
             font-size: 48px;
-            color: #000;
-            margin-top: 200px;
+            color: #fff; /* تغيير لون الاسم إلى أبيض */
+            position: absolute; /* تحديد الموضع بدقة */
+            top: 100px; /* تعديل الموضع الرأسي */
+            left: 50%; /* توسيط أفقي */
+            transform: translateX(-50%); /* توسيط أفقي دقيق */
+            text-align: center;
+            width: 90%; /* أو قيمة مناسبة */
           }
           .serial-number {
             ${SERIAL_NUMBER_STYLE}
             font-family: sans-serif;
+            color: #fff; /* تغيير لون الرقم التسلسلي إلى أبيض */
           }
         </style>
       </head>
       <body>
-        <div class="certificate-container">
-          <div class="student-name">${studentNameArabic}</div> <div class="serial-number">${serialNumber}</div> </div>
+        <img src="${CERTIFICATE_IMAGE_URL}">
+        <div class="student-name">${studentNameArabic}</div>
+        <div class="serial-number">${serialNumber}</div>
       </body>
       </html>
     `;

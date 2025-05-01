@@ -5,69 +5,119 @@ const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
+// التأكد من تضمين النطاق الأساسي لـ Netlify في الرابط
+const NETLIFY_BASE_URL = 'https://spiffy-meerkat-be5bc1.netlify.app';
+
 exports.handler = async (event, context) => {
-  const studentId = event.queryStringParameters.id;
-  console.log('ID المستلم في وظيفة generateCertificateOne1 (QR Code):', studentId);
+    const studentId = event.queryStringParameters.id;
+    console.log('ID المستلم في وظيفة generateCertificateOne1:', studentId);
 
-  let client;
-
-  try {
-    client = new MongoClient(uri);
-    await client.connect();
-    const database = client.db(dbName);
-    const studentsCollection = database.collection(collectionName);
-    const student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
-
-    if (!student) {
-      return { statusCode: 404, body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`, headers: { 'Content-Type': 'text/html; charset=utf-8' } };
-    }
-
-    const certificateTwoUrl = `https://spiffy-meerkat-be5bc1.netlify.app/.netlify/functions/generateCertificateTwo2?id=${student._id}`;
-    let qrCodeDataUri;
+    let client;
 
     try {
-      qrCodeDataUri = await QRCode.toDataURL(certificateTwoUrl);
-    } catch (err) {
-      console.error("Error generating QR code:", err);
-      qrCodeDataUri = '';
+        client = new MongoClient(uri);
+        await client.connect();
+        const database = client.db(dbName);
+        const studentsCollection = database.collection(collectionName);
+
+        const student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
+
+        if (!student) {
+            return {
+                statusCode: 404,
+                body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`,
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            };
+        }
+
+        // إنشاء رابط URL كامل للشهادة الثانية
+        const certificateTwoUrl = `${NETLIFY_BASE_URL}/.netlify/functions/generateCertificateTwo2?id=${student._id}`;
+        let qrCodeDataUri;
+
+        try {
+            qrCodeDataUri = await QRCode.toDataURL(certificateTwoUrl);
+        } catch (err) {
+            console.error("Error generating QR code:", err);
+            qrCodeDataUri = '';
+        }
+
+        const htmlCertificate = `
+            <!DOCTYPE html>
+            <html lang="ar">
+            <head>
+                <meta charset="UTF-8">
+                <title>شهادة الطالب</title>
+                <style type="text/css" media="print">
+                  @page {
+                    size: auto;   /* auto is the initial value */
+                    margin: 0;
+                  }
+                  body {
+                    margin: 0; /* Reset body margin for printing */
+                  }
+                  @media print {
+                    @page {
+                      margin-top: 0;
+                      margin-bottom: 0;
+                    }
+                    body {
+                      padding-top: 0;
+                      padding-bottom: 0 ;
+                    }
+                  }
+                </style>
+                <style>
+                    body { font-family: Arial, sans-serif; direction: rtl; text-align: center; }
+                    .certificate-container { width: 80%; margin: 20px auto; border: 1px solid #ccc; padding: 20px; }
+                    .template { max-width: 100%; }
+                    .data { margin-top: 20px; }
+                    .serial { font-size: 1.2em; font-weight: bold; }
+                    .residency { font-size: 1.2em; font-weight: bold; }
+                    .qrcode-container { margin-top: 20px; }
+                    .qrcode-container img { max-width: 150px; }
+                    .qrcode-text { font-size: 0.8em; color: gray; }
+                </style>
+            </head>
+            <body>
+                <div class="certificate-container">
+                    <img src="/www.jpg" alt="قالب الشهادة" class="template">
+                    <div class="data">
+                        <p class="serial">${student.serial_number}</p>
+                        <p class="residency">${student.residency_number}</p>
+                        ${qrCodeDataUri ? `
+                            <div class="qrcode-container">
+                                <img src="${qrCodeDataUri}" alt="QR Code للشهادة الثانية">
+                                <p class="qrcode-text">امسح هذا الرمز لفتح الشهادة الثانية</p>
+                            </div>
+                        ` : `<p class="qrcode-text">حدث خطأ في إنشاء QR Code</p>`}
+                    </div>
+                </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(function() { window.close(); }, 100);
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+
+        return {
+            statusCode: 200,
+            body: htmlCertificate,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        };
+
+    } catch (error) {
+        console.error('خطأ في وظيفة توليد الشهادة:', error);
+        return {
+            statusCode: 500,
+            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        };
+    } finally {
+        if (client) {
+            await client.close();
+        }
     }
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="ar">
-      <head>
-        <meta charset="UTF-8">
-        <title>QR Code للشهادة الثانية</title>
-        <style>
-          body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f0f0f0; direction: rtl; text-align: center; }
-          .qrcode-container { background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
-          img { max-width: 100%; height: auto; }
-          p { margin-top: 20px; font-size: 1.2em; color: #333; }
-        </style>
-      </head>
-      <body>
-        <div class="qrcode-container">
-          ${qrCodeDataUri ? `<img src="${qrCodeDataUri}" alt="QR Code للشهادة الثانية">` : `<p>حدث خطأ في إنشاء QR Code</p>`}
-          <p>امسح هذا الرمز لفتح الشهادة</p>
-        </div>
-      </body>
-      </html>
-    `;
-
-    return {
-      statusCode: 200,
-      body: htmlContent,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    };
-
-  } catch (error) {
-    console.error('خطأ في وظيفة generateCertificateOne1 (QR Code):', error);
-    return { statusCode: 500, body: `<h1>حدث خطأ أثناء توليد QR Code</h1><p>${error.message}</p>`, headers: { 'Content-Type': 'text/html; charset=utf-8' } };
-  } finally {
-    if (client) await client.close();
-  }
 };
-
-
-
-
