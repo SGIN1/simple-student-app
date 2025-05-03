@@ -1,0 +1,299 @@
+/* القالب_المشترك2.css */
+
+/* ==========================================================================
+    تنسيقات عامة للصفحة
+    ========================================================================= */
+body {
+    font-family: Arial, sans-serif;
+    direction: rtl;
+    text-align: right;
+    background-color: #f4f6f8;
+    padding: 0;
+    align-items: stretch;
+}
+
+/* ==========================================================================
+    تنسيقات الحاوية الرئيسية مع تدرج ألوان جمالي
+    ========================================================================= */
+.container {
+    width: 95%;
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    align-items: stretch;
+    color: #495057; /* لون النص داخل الحاوية */
+}
+
+.container h1 {
+    font-size: 28px; /* حجم أكبر لعنوان الصفحة */
+    color: #fff; /* لون أبيض للعنوان عشان يبرز على الخلفية المتدرجة */
+    text-align: center; /* توسيط العنوان */
+    padding: 20px; /* مساحة حول العنوان */
+    background-color: rgba(52, 152, 219, 0.8); /* خلفية شفافة للعنوان بنفس درجة الأزرق */
+    border-radius: 8px 8px 0 0; /* نفس انحناء الحاوية من الأعلى */
+    margin-bottom: 20px; /* مسافة أسفل العنوان */
+}
+
+/* ==========================================================================
+    تنسيقات منطقة التحكم (الأزرار وشريط البحث)
+    ========================================================================= */
+.controls-container {
+    background-color: rgba(236, 240, 241, 0.7); /* خلفية شفافة لمنطقة التحكم */
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.buttons-container {
+    display: flex;
+    gap: 10px;
+}
+
+/* تنسيق زر إاصدار جديد ليكون مثل الزر الأخضر في الصورة مع مسافة سفلية */
+.add-new {
+    margin-bottom: 20px; /* إضافة هامش سفلي بمقدار 10 بكسل */
+}
+
+.add-new a {
+    background-color: #28a745; /* لون أخضر مشابه */
+    color: white;
+    padding: 10px 20px; /* حجم مشابه */
+    border: none;
+    border-radius: 5px;
+    font-size: 16px; /* نفس حجم الخط تقريبًا */
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.add-new a:hover {
+    background-color: #218838; /* لون أغمق عند التhover */
+}
+
+.btn-primary-new {
+    background-color: blue;
+    color: white;
+    padding: 10px 15px;
+    border: 1px solid #27ae60;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn-secondary-new {
+    background-color: red;
+    color: yellow;
+    padding: 10px 15px;
+    border: 1px solid #c0392b;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn-test-one {
+    background-color: green;
+    color: white;
+    padding: 10px 15px;
+    border: 1px solid darkgreen;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn-test-two {
+    background-color: orange;
+    color: black;
+    padding: 10px 15px;
+    border: 1px solid darkorange;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.search-form { /* هذا هو الكلاس الخاص بحقل البحث */
+    /* ... التنسيقات الخاصة بحقل البحث موجودة هنا ... */
+}
+
+.search-bar-container input[type="text"] {
+    padding: 10px;
+    border: 1px solid #bdc3c7;
+    border-radius: 5px;
+    width: 300px;
+    max-width: 100%;
+    box-sizing: border-box;
+    font-size: 16px;
+    background-color: white;
+}
+
+/* ==========================================================================
+    تنسيقات جدول البيانات
+    ========================================================================= */
+table {
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: rgba(255, 255, 255, 0.8); /* خلفية شفافة للجدول */
+    border: 1px solid #e0e0e0;
+    width: 100%;
+    table-layout: fixed;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: center;
+    font-weight: normal;
+    font-size: 16px;
+    border-bottom: 1px solid #e0e0e0;
+    word-break: break-word;
+}
+
+thead th {
+    background-color: rgba(248, 249, 250, 0.8); /* خلفية شفافة لرأس الجدول */
+    color: #495057;
+    font-weight: bold;
+    text-align: center;
+}
+
+th:first-child, td:first-child {
+    border-right: none;
+}
+
+th:last-child, td:last-child {
+    border-left: none;
+}
+
+th, td {
+    border-left: 1px solid #e0e0e0;
+    border-right: 1px solid #e0e0e0;
+}
+
+th:first-child, td:first-child {
+    border-right: none;
+}
+
+th:nth-child(5), td:nth-child(5) {
+    width: 80px;
+}
+
+th:nth-child(6), td:nth-child(6) {
+    width: 80px;
+}
+
+th:nth-child(7), td:nth-child(7) {
+    width: 120px;
+}
+
+.edit-btn {
+    display: block;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    background-color: #ffc107;
+    color: black;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    margin: 5px auto;
+}
+
+.delete-btn {
+    display: block;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    background-color: #dc3545;
+    color: white;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    margin: 5px auto;
+}
+
+.print-btn {
+    display: block;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    background-color: #007bff;
+    color: white;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    margin: 5px auto;
+}
+
+/* ==========================================================================
+    تنسيقات رسالة لا يوجد نتائج
+    ========================================================================= */
+.no-results {
+    text-align: center;
+    color: gray;
+    margin-top: 20px;
+    font-size: 18px;
+}
+
+/* ==========================================================================
+    تنسيقات حاوية الشهادة (مخفية افتراضيًا)
+    ========================================================================= */
+#certificateContainer {
+    margin-top: 20px;
+    text-align: center;
+    display: none;
+}
+
+/* ==========================================================================
+    استعلامات إعلامية للتجاوب
+    ========================================================================= */
+@media (max-width: 768px) {
+    .controls-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .buttons-container {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .buttons-container button, .buttons-container a {
+        width: 100%;
+        margin-left: 0;
+        margin-bottom: 10px;
+    }
+
+    .search-bar-container input[type="text"] {
+        width: 100%;
+    }
+
+    .container {
+        width: 98%;
+        margin: 10px auto;
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+
+    th, td {
+        font-size: 14px;
+        padding: 8px 5px;
+    }
+}

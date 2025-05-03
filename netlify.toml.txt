@@ -1,5 +1,6 @@
-[functions]
-  directory = "netlify/functions"
+[build]
+  functions = "netlify/functions"
+  publish = "public" # أو أي مجلد يحتوي على ملفات موقعك الثابتة
 
 [[plugins]]
 package = "@netlify/plugin-functions-core"
@@ -7,3 +8,8 @@ package = "@netlify/plugin-functions-core"
   [plugins.inputs]
   functions_path = "netlify/functions"
   included_files = ["arial.ttf", "public/images/الشهادة2.jpg", "public/fonts/Amiri-Regular.ttf"]
+
+[[redirects]]
+  from = "/certificate/student/:id"
+  to = "/.netlify/functions/generateCertificateTwo2?id=:id"
+  status = 200
