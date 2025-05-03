@@ -3,4 +3,4 @@
 
   [[functions]]
     path = "/.netlify/functions/generateCertificateTwo2" # تأكد من صحة مسار وظيفتك
-    included_files = ["fonts/arial.ttf"]
+    # included_files = ["fonts/arial.ttf"] <--- قمنا بتعليق هذا السطر مؤقتًا
