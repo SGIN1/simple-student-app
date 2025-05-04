@@ -4,7 +4,7 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **تم التعديل:** استخدام المسار الجديد لصورة الشهادة واسم المجلد الجديد
+// **تم التأكيد:** استخدام المسار الصحيح للصورة من جذر الموقع
 const CERTIFICATE_IMAGE_PATH = '/images_temp/wwee.jpg';
 const FONT_PATH = './arial.ttf'; // **تم التأكيد:** مسار خط Arial داخل مجلد وظائف
 

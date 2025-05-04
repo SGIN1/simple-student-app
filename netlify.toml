@@ -1,9 +1,4 @@
-[build]
-  base = "/"
-
-[functions]
-  directory = "netlify/functions"
-
+included_files
 
 [functions.generateCertificateTwo2]
-  included_files = ["fonts/arial.ttf"]
+  included_files = ["fonts/arial.ttf", "images_temp/wwee.jpg"]
