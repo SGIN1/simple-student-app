@@ -9,5 +9,5 @@
 
 [[redirects]]
   from = "/images/full/:file"
-  to = "/.netlify/images?url=/images_temp/:file"
+  to = "/.netlify/images?url=/public/images_temp/:file"
   status = 200

@@ -4,8 +4,8 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **تم التعديل:** استخدام المسار الجديد للصورة ليتوافق مع قاعدة إعادة التوجيه
-const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
+// **تم التعديل:** استخدام المسار الذي يعكس هيكلة مجلد public
+const CERTIFICATE_IMAGE_PATH = '/public/images_temp/wwee.jpg';
 const FONT_PATH = './arial.ttf'; // **تم التأكيد:** مسار خط Arial داخل مجلد وظائف
 
 const SERIAL_NUMBER_STYLE = `
@@ -28,7 +28,7 @@ exports.handler = async (event, context) => {
   try {
     client = new MongoClient(uri);
     await client.connect();
-    const database = client.db(dbName);
+    const database = client.dbName(dbName);
     const studentsCollection = database.collection(collectionName);
 
     let student;
