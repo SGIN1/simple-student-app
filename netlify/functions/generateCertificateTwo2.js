@@ -4,8 +4,8 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **تم التعديل:** استخدام المسار النسبي لصورة الشهادة من مجلد public
-const CERTIFICATE_IMAGE_PATH = '/images/الشهادة2.jpg';
+// **تم التعديل:** استخدام رابط خام لصورة الشهادة عبر الإنترنت
+const CERTIFICATE_IMAGE_PATH = 'https://via.placeholder.com/207x253'; // استبدل هذا برابطك الخام لاحقًا
 const FONT_PATH = './fonts/arial.ttf'; // **تم التأكيد:** مسار خط Arial داخل مجلد وظائف
 
 const SERIAL_NUMBER_STYLE = `
