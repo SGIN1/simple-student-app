@@ -5,7 +5,7 @@ const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
 // **تم التعديل:** استخدام المسار النسبي لصورة الشهادة
-const CERTIFICATE_IMAGE_PATH = '/images/الشهادة2.jpg';
+const CERTIFICATE_IMAGE_PATH = '/public/images/الشهادة2.jpg'; // إذا كنت تريد المسار الكامل
 const FONT_PATH = './fonts/arial.ttf'; // **تم التعديل:** مسار خط Arial
 
 const SERIAL_NUMBER_STYLE = `
