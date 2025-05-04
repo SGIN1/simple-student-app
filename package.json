@@ -1,12 +1,17 @@
 {
+  "name": "functions",
+  "version": "1.0.0",
+  "main": "addStudent.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
   "dependencies": {
-    "jimp": "^1.6.0",
     "mongodb": "^6.16.0",
     "qrcode": "^1.5.3",
-    "qrcodejs": "^1.0.0",
-    "sharp": "^0.34.1"
-  },
-  "devDependencies": {
-    "lodash": "^4.17.21"
+    "jimp": "^0.22.11"
   }
 }
