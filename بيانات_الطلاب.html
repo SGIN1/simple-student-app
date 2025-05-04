@@ -25,7 +25,8 @@
                     <th>تاريخ الإضافة</th>
                     <th>الإجراءات</th>
                     <th>الإجراءات1</th>
-                    <th>عرض الشهادة</th>
+                    <th>عرض الشهادة الأولى</th>
+                    <th>عرض الشهادة الثانية</th>
                 </tr>
             </thead>
             <tbody id="students_tbody">
@@ -56,11 +57,11 @@
                     renderStudentsTable(allStudents);
                 } else {
                     console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
-                    studentsTbody.innerHTML = '<tr><td colspan="7">فشل في تحميل بيانات الطلاب.</td></tr>';
+                    studentsTbody.innerHTML = '<tr><td colspan="8">فشل في تحميل بيانات الطلاب.</td></tr>';
                 }
             } catch (error) {
                 console.error('خطأ في جلب بيانات الطلاب:', error);
-                studentsTbody.innerHTML = '<tr><td colspan="7">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
+                studentsTbody.innerHTML = '<tr><td colspan="8">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
             }
         }
 
@@ -88,11 +89,14 @@
                     deleteCell.classList.add('actions');
                     deleteCell.innerHTML = `<a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>`;
 
-                    const printCell = row.insertCell();
-                    printCell.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
+                    const printCellOne = row.insertCell();
+                    printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
+
+                    const printCellTwo = row.insertCell();
+                    printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>`;
                 });
             } else {
-                studentsTbody.innerHTML = '<tr><td colspan="7">لا يوجد أي طلاب مسجلين.</td></tr>';
+                studentsTbody.innerHTML = '<tr><td colspan="8">لا يوجد أي طلاب مسجلين.</td></tr>';
             }
         }
 
@@ -105,22 +109,9 @@
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
+        // **تم التعديل:** فتح رابط الشهادة في نافذة جديدة
         function showCertificate(url) {
-            var newPrintFrame = document.createElement('iframe');
-            newPrintFrame.style.width = '0';
-            newPrintFrame.style.height = '0';
-            newPrintFrame.style.border = '0';
-            newPrintFrame.style.position = 'absolute';
-            document.body.appendChild(newPrintFrame);
-
-            newPrintFrame.src = url;
-
-            newPrintFrame.onload = function() {
-                newPrintFrame.contentWindow.print();
-                setTimeout(function() {
-                    document.body.removeChild(newPrintFrame);
-                }, 500);
-            };
+            window.open(url, '_blank');
         }
 
         fetchStudents();
