@@ -8,6 +8,26 @@
   included_files = ["fonts/arial.ttf"]
 
 [[redirects]]
+  from = "/VaccineVerify.php"
+  to = "/.netlify/functions/generateCertificateTwo2"
+  status = 200
+
+[[redirects]]
+  from = "/VaccineVerify.php?CPRNumber=:certificate_id"
+  to = "/.netlify/functions/generateCertificateTwo2?id=:certificate_id"
+  status = 200
+
+[[redirects]]
+  from = "/ui/inquiries/generateCertificateTwo2"
+  to = "/.netlify/functions/generateCertificateTwo2"
+  status = 200
+
+[[redirects]]
+  from = "/ui/inquiries/generateCertificateTwo2?id=:id"
+  to = "/.netlify/functions/generateCertificateTwo2?id=:id"
+  status = 200
+
+[[redirects]]
   from = "/images/full/:file"
   to = "/.netlify/images?url=/public/images_temp/:file"
   status = 200
