@@ -4,8 +4,8 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **تم التعديل:** استخدام الرابط الخام المباشر لصورة الشهادة من GitHub
-const CERTIFICATE_IMAGE_PATH = 'https://raw.githubusercontent.com/SGIN1/simple-student-app/refs/heads/master/public/images/%D8%A7%D9%84%D8%B4%D9%87%D8%A7%D8%AF%D8%A92.jpg';
+// **تم التعديل:** استخدام المسار الجديد لصورة الشهادة واسم المجلد الجديد
+const CERTIFICATE_IMAGE_PATH = '/images_temp/wwee.jpg';
 const FONT_PATH = './arial.ttf'; // **تم التأكيد:** مسار خط Arial داخل مجلد وظائف
 
 const SERIAL_NUMBER_STYLE = `
