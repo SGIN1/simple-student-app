@@ -5,4 +5,3 @@ base = "/"
 [[functions]]
   path = "/.netlify/functions/generateCertificateTwo2"
   included_files = ["fonts/arial.ttf"]
-  
