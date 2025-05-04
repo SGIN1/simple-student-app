@@ -4,8 +4,8 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **تم التأكيد:** استخدام المسار الصحيح للصورة من جذر الموقع
-const CERTIFICATE_IMAGE_PATH = '/images_temp/wwee.jpg';
+// **تم التعديل:** استخدام المسار الجديد للصورة ليتوافق مع قاعدة إعادة التوجيه
+const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
 const FONT_PATH = './arial.ttf'; // **تم التأكيد:** مسار خط Arial داخل مجلد وظائف
 
 const SERIAL_NUMBER_STYLE = `
