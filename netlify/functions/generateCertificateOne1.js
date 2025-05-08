@@ -5,7 +5,7 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **تم التعديل:** استخدام الدومين الجديد الخاص بك
+// **تم التحديث:** استخدام الدومين الجديد الخاص بك
 const NETLIFY_BASE_URL = 'https://ssadsd.kozow.com';
 
 exports.handler = async (event, context) => {
@@ -49,11 +49,11 @@ exports.handler = async (event, context) => {
         <title>شهادة الطالب</title>
         <style type="text/css" media="print">
           @page {
-            size: auto;    /* auto is the initial value */
+            size: auto;
             margin: 0;
           }
           body {
-            margin: 0; /* Reset body margin for printing */
+            margin: 0;
           }
           @media print {
             @page {
@@ -94,7 +94,7 @@ exports.handler = async (event, context) => {
         </div>
         <script>
           window.onload = function() {
-            // window.print(); // يمكنك تفعيل الطباعة التلقائية هنا إذا أردت
+            // window.print();
             // setTimeout(function() { window.close(); }, 100);
           };
         </script>
