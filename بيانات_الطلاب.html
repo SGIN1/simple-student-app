@@ -93,7 +93,8 @@
                     printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
 
                     const printCellTwo = row.insertCell();
-                    // **تم التعديل هنا لاستخدام الرابط الجديد**
+                    // **تم إضافة هذا السطر للتسجيل**
+                    console.log('قيمة student.id قبل إنشاء زر الشهادة الثانية:', student.id);
                     printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificate('/get-certificate/${student.id}')">عرض الثانية</button>`;
                 });
             } else {
