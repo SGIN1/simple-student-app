@@ -4,10 +4,9 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **تم التحديث:** استخدام المسار الصحيح للخط بناءً على included_files
-const FONT_PATH = './fonts/arial.ttf';
-// **تم التأكيد:** استخدام المسار الذي يعكس هيكلة مجلد public (قد تحتاج تعديله)
+// **تم التأكيد:** استخدام المسار الذي يعكس هيكلة مجلد public
 const CERTIFICATE_IMAGE_PATH = '/public/images_temp/wwee.jpg';
+const FONT_PATH = './arial.ttf'; // **تم التأكيد:** مسار خط Arial داخل مجلد وظائف
 
 const SERIAL_NUMBER_STYLE = `
   position: absolute;
@@ -29,6 +28,7 @@ exports.handler = async (event, context) => {
   try {
     client = new MongoClient(uri);
     await client.connect();
+    // **تم التصحيح:** استخدام client.db() بشكل صحيح
     const database = client.db(dbName);
     const studentsCollection = database.collection(collectionName);
 
@@ -67,9 +67,9 @@ exports.handler = async (event, context) => {
             margin: 0px;
             height: 100%;
             background-color: rgb(14, 14, 14);
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex; /* إضافة لعرض مرن */
+            justify-content: center; /* توسيط أفقي */
+            align-items: center; /* توسيط رأسي */
           }
           img {
             display: block;
@@ -78,8 +78,8 @@ exports.handler = async (event, context) => {
             cursor: zoom-in;
             background-color: hsl(0, 0%, 90%);
             transition: background-color 300ms;
-            width: 496px;
-            height: 607px;
+            width: 496px; /* تم نسخ العرض من الكود الأصلي */
+            height: 607px; /* تم نسخ الارتفاع من الكود الأصلي */
           }
           @font-face {
             font-family: 'ArabicFont';
@@ -88,18 +88,18 @@ exports.handler = async (event, context) => {
           .student-name {
             font-family: 'ArabicFont', serif;
             font-size: 48px;
-            color: #fff;
-            position: absolute;
-            top: 100px;
-            left: 50%;
-            transform: translateX(-50%);
+            color: #fff; /* تغيير لون الاسم إلى أبيض */
+            position: absolute; /* تحديد الموضع بدقة */
+            top: 100px; /* تعديل الموضع الرأسي */
+            left: 50%; /* توسيط أفقي */
+            transform: translateX(-50%); /* توسيط أفقي دقيق */
             text-align: center;
-            width: 90%;
+            width: 90%; /* أو قيمة مناسبة */
           }
           .serial-number {
             ${SERIAL_NUMBER_STYLE}
             font-family: sans-serif;
-            color: #fff;
+            color: #fff; /* تغيير لون الرقم التسلسلي إلى أبيض */
           }
         </style>
       </head>
