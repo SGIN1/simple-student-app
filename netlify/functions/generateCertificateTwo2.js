@@ -1,48 +1,129 @@
-[build]
-  base = "/"
+const { MongoClient, ObjectId } = require('mongodb');
 
-[functions]
-  directory = "netlify/functions"
+const uri = process.env.MONGODB_URI;
+const dbName = 'Cluster0';
+const collectionName = 'enrolled_students_tbl';
 
-[functions.generateCertificateTwo2]
-  included_files = ["fonts/arial.ttf"]
+// **تم التأكيد:** استخدام المسار الذي يعكس هيكلة مجلد public
+const CERTIFICATE_IMAGE_PATH = '/public/images_temp/wwee.jpg';
+const FONT_PATH = './arial.ttf'; // **تم التأكيد:** مسار خط Arial داخل مجلد وظائف
 
-[[redirects]]
-  from = "/certificate/:certificate_id" # رابط جديد "نظيف" مع بارامتر
-  to = "/.netlify/functions/generateCertificateTwo2?id=:certificate_id" # توجيه داخلي للوظيفة مع تمرير البارامتر
-  status = 200
+const SERIAL_NUMBER_STYLE = `
+  position: absolute;
+  top: 180px;
+  left: 50px;
+  font-size: 28px;
+  font-weight: bold;
+  color: black;
+  text-align: center;
+  width: 180px;
+`;
 
-[[redirects]]
-  from = "/verify/:certificate_id" # رابط بديل "نظيف" إذا حبيت
-  to = "/.netlify/functions/generateCertificateTwo2?id=:certificate_id"
-  status = 200
+exports.handler = async (event, context) => {
+  const studentId = event.queryStringParameters.id;
+  console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
-[[redirects]]
-  from = "/get-certificate/:id" # مثال آخر لرابط نظيف
-  to = "/.netlify/functions/generateCertificateTwo2?id=:id"
-  status = 200
+  let client;
 
-[[redirects]]
-  from = "/VaccineVerify.php" # إذا كنت تستخدم هذا الرابط في مكان ما وتبغى تحافظ عليه
-  to = "/certificate/:certificate_id" # وجهه إلى الرابط الجديد "النظيف" (تحتاج تعديل الكود اللي يرسل لهذا الرابط)
-  status = 301 # أو 200 حسب حاجتك
+  try {
+    client = new MongoClient(uri);
+    await client.connect();
+    // **تم التصحيح:** استخدام client.db() بشكل صحيح
+    const database = client.db(dbName);
+    const studentsCollection = database.collection(collectionName);
 
-[[redirects]]
-  from = "/VaccineVerify.php?CPRNumber=:certificate_id" # نفس الشي هنا
-  to = "/certificate/:certificate_id"
-  status = 301 # أو 200
+    let student;
+    try {
+      student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
+    } catch (objectIdError) {
+      console.error('خطأ في إنشاء ObjectId:', objectIdError);
+      return {
+        statusCode: 400,
+        body: '<h1>معرف الطالب غير صالح</h1><p>يجب أن يكون المعرف سلسلة نصية مكونة من 24 حرفًا سداسيًا عشريًا.</p>',
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      };
+    }
 
-[[redirects]]
-  from = "/ui/inquiries/generateCertificateTwo2" # إذا كان هذا الرابط مستخدم داخليًا
-  to = "/certificate/:certificate_id" # وجهه إلى الرابط الجديد (تحتاج تعديل الكود اللي يرسل لهذا الرابط)
-  status = 301 # أو 200
+    if (!student) {
+      return {
+        statusCode: 404,
+        body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      };
+    }
 
-[[redirects]]
-  from = "/ui/inquiries/generateCertificateTwo2?id=:id" # نفس الشي هنا
-  to = "/certificate/:id"
-  status = 301 # أو 200
+    const serialNumber = student.serial_number;
+    const studentNameArabic = student.arabic_name || '';
 
-[[redirects]]
-  from = "/images/full/:file"
-  to = "/.netlify/images?url=/public/images_temp/:file"
-  status = 200
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="ar" style="height: 100%;">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=0.1">
+        <title>الشهادة</title>
+        <style>
+          body {
+            margin: 0px;
+            height: 100%;
+            background-color: rgb(14, 14, 14);
+            display: flex; /* إضافة لعرض مرن */
+            justify-content: center; /* توسيط أفقي */
+            align-items: center; /* توسيط رأسي */
+          }
+          img {
+            display: block;
+            -webkit-user-select: none;
+            margin: auto;
+            cursor: zoom-in;
+            background-color: hsl(0, 0%, 90%);
+            transition: background-color 300ms;
+            width: 496px; /* تم نسخ العرض من الكود الأصلي */
+            height: 607px; /* تم نسخ الارتفاع من الكود الأصلي */
+          }
+          @font-face {
+            font-family: 'ArabicFont';
+            src: url('${FONT_PATH}') format('truetype');
+          }
+          .student-name {
+            font-family: 'ArabicFont', serif;
+            font-size: 48px;
+            color: #fff; /* تغيير لون الاسم إلى أبيض */
+            position: absolute; /* تحديد الموضع بدقة */
+            top: 100px; /* تعديل الموضع الرأسي */
+            left: 50%; /* توسيط أفقي */
+            transform: translateX(-50%); /* توسيط أفقي دقيق */
+            text-align: center;
+            width: 90%; /* أو قيمة مناسبة */
+          }
+          .serial-number {
+            ${SERIAL_NUMBER_STYLE}
+            font-family: sans-serif;
+            color: #fff; /* تغيير لون الرقم التسلسلي إلى أبيض */
+          }
+        </style>
+      </head>
+      <body style="margin: 0px; height: 100%; background-color: rgb(14, 14, 14);">
+        <img style="display: block;-webkit-user-select: none;margin: auto;cursor: zoom-in;background-color: hsl(0, 0%, 90%);transition: background-color 300ms;" src="${CERTIFICATE_IMAGE_PATH}" width="496" height="607">
+        <div class="student-name">${studentNameArabic}</div>
+        <div class="serial-number">${serialNumber}</div>
+      </body>
+      </html>
+    `;
+
+    return {
+      statusCode: 200,
+      body: htmlContent,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    };
+  } catch (error) {
+    console.error('خطأ في وظيفة توليد الشهادة:', error);
+    return {
+      statusCode: 500,
+      body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    };
+  } finally {
+    if (client) await client.close();
+  }
+};
