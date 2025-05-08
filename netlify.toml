@@ -1,17 +1,11 @@
 [build]
   base = "/"
-  publish = "public" # تأكد من أن هذا المسار هو المجلد الذي يحتوي على ملفات موقعك بعد البناء
 
 [functions]
   directory = "netlify/functions"
 
 [functions.generateCertificateTwo2]
   included_files = ["fonts/arial.ttf"]
-
-[[redirects]]
-  from = "/certificates/two2/:id"
-  to = "/.netlify/functions/generateCertificateTwo2/:id"
-  status = 200
 
 [[redirects]]
   from = "/images/full/:file"
