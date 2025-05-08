@@ -93,7 +93,8 @@
                     printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
 
                     const printCellTwo = row.insertCell();
-                    printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>`;
+                    // **تم التعديل هنا لاستخدام الرابط الجديد**
+                    printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificate('/get-certificate/${student.id}')">عرض الثانية</button>`;
                 });
             } else {
                 studentsTbody.innerHTML = '<tr><td colspan="8">لا يوجد أي طلاب مسجلين.</td></tr>';
