@@ -5,9 +5,4 @@
   directory = "netlify/functions"
 
 [functions.generateCertificateTwo2]
-  included_files = ["fonts/arial.ttf"]
-
-[[redirects]]
-  from = "/images/full/:file"
-  to = "/.netlify/images?url=/public/images_temp/:file"
-  status = 200
+  included_files = ["./arial.ttf"]

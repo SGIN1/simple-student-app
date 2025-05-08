@@ -26,6 +26,7 @@
                     <th>الإجراءات</th>
                     <th>الإجراءات1</th>
                     <th>عرض الشهادة الأولى</th>
+                    <th>عرض الشهادة الثانية</th>
                 </tr>
             </thead>
             <tbody id="students_tbody">
@@ -56,11 +57,11 @@
                     renderStudentsTable(allStudents);
                 } else {
                     console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
-                    studentsTbody.innerHTML = '<tr><td colspan="7">فشل في تحميل بيانات الطلاب.</td></tr>';
+                    studentsTbody.innerHTML = '<tr><td colspan="8">فشل في تحميل بيانات الطلاب.</td></tr>'; // تعديل colspan
                 }
             } catch (error) {
                 console.error('خطأ في جلب بيانات الطلاب:', error);
-                studentsTbody.innerHTML = '<tr><td colspan="7">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
+                studentsTbody.innerHTML = '<tr><td colspan="8">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>'; // تعديل colspan
             }
         }
 
@@ -90,9 +91,13 @@
 
                     const printCellOne = row.insertCell();
                     printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
+
+                    // إضافة زر عرض الشهادة الثانية
+                    const printCellTwo = row.insertCell();
+                    printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificateTwo('${student.id}')">عرض الثانية</button>`; // استدعاء دالة جديدة
                 });
             } else {
-                studentsTbody.innerHTML = '<tr><td colspan="7">لا يوجد أي طلاب مسجلين.</td></tr>';
+                studentsTbody.innerHTML = '<tr><td colspan="8">لا يوجد أي طلاب مسجلين.</td></tr>'; // تعديل colspan
             }
         }
 
@@ -108,6 +113,12 @@
         // **تم التعديل:** فتح رابط الشهادة في نافذة جديدة
         function showCertificate(url) {
             window.open(url, '_blank');
+        }
+
+        // **دالة جديدة:** لإنشاء وفتح رابط الشهادة الثانية
+        function showCertificateTwo(studentId) {
+            const certificateTwoUrl = `https://ssadsd.kozow.com/generateCertificateTwo2?id=${studentId}`;
+            window.open(certificateTwoUrl, '_blank');
         }
 
         fetchStudents();
