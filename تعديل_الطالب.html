@@ -1,130 +1,137 @@
-const { MongoClient, ObjectId } = require('mongodb');
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>تعديل بيانات الطالب</title>
+    <link rel="stylesheet" href="القالب_المشترك.css">
+</head>
+<body>
+    <header style="position: relative;">
+        <div class="container">
+            <div class="menu-icon" id="menu-toggle">☰</div>
+            <h1>تعديل بيانات الطالب</h1>
+            <ul id="dropdown-menu" class="hidden">
+                <li><a href="بيانات_الطلاب.html">العودة إلى صفحة الطلاب</a></li>
+            </ul>
+        </div>
+    </header>
 
-const uri = process.env.MONGODB_URI;
-const dbName = 'Cluster0';
-const collectionName = 'enrolled_students_tbl';
+    <div class="container">
+        <h1>تعديل بيانات الطالب</h1>
+        <form id="editStudentForm">
+            <div class="form-group">
+                <label for="serial_number">الرقم التسلسلي:</label>
+                <input type="text" id="serial_number" name="serial_number">
+            </div>
+            <div class="form-group">
+                <label for="residency_number">رقم الإقامة:</label>
+                <input type="text" id="residency_number" name="residency_number">
+            </div>
+            <div class="form-group">
+                <button type="submit">حفظ التعديلات</button>
+            </div>
+            <div id="errorMessage" class="error-message" style="display:none;"></div>
+        </form>
+    </div>
 
-// **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
-const CERTIFICATE_IMAGE_PATH = '/public/images_temp/wwee.jpg';
+    <footer>
+        <div class="container">
+            جميع الحقوق محفوظة - البوابة الوطنية الداعمة للمجتمع البلدي © 2023
+        </div>
+    </footer>
 
-// **مسار الخط:** يجب أن يكون موجودًا في مجلد netlify/functions/fonts
-const FONT_PATH = './arial.ttf';
+    <script>
+        const form = document.getElementById('editStudentForm');
+        const serialNumberInput = document.getElementById('serial_number');
+        const residencyNumberInput = document.getElementById('residency_number');
+        const errorMessageDiv = document.getElementById('errorMessage');
 
-const SERIAL_NUMBER_STYLE = `
-  position: absolute;
-  top: 180px;
-  left: 50px;
-  font-size: 28px;
-  font-weight: bold;
-  color: black;
-  text-align: center;
-  width: 180px;
-`;
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentId = urlParams.get('id');
 
-exports.handler = async (event, context) => {
-  const studentId = event.pathParameters.id;
-  console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
+        async function fetchStudentData(id) {
+            try {
+                console.log('Fetching student data for ID:', id);
+                // عرض مؤشر تحميل
+                serialNumberInput.value = 'جارٍ التحميل...';
+                residencyNumberInput.value = 'جارٍ التحميل...';
 
-  let client;
+                const response = await fetch(`/.netlify/functions/getStudent?id=${id}`);
+                const data = await response.json();
 
-  try {
-    client = new MongoClient(uri);
-    await client.connect();
-    const database = client.db(dbName);
-    const studentsCollection = database.collection(collectionName);
+                if (response.ok) {
+                    console.log('Student data fetched:', data);
+                    serialNumberInput.value = data.serial_number;
+                    residencyNumberInput.value = data.residency_number;
+                } else {
+                    console.error('Failed to fetch student data:', data.error || 'Unknown error');
+                    alert('حدث خطأ أثناء محاولة جلب بيانات الطالب.');
+                    serialNumberInput.value = ''; // مسح مؤشر التحميل في حالة الخطأ
+                    residencyNumberInput.value = '';
+                }
+            } catch (error) {
+                console.error('Error fetching student data:', error);
+                alert('حدث خطأ أثناء محاولة جلب بيانات الطالب.');
+                serialNumberInput.value = ''; // مسح مؤشر التحميل في حالة الخطأ
+                residencyNumberInput.value = '';
+            }
+        }
 
-    let student;
-    try {
-      student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
-    } catch (objectIdError) {
-      console.error('خطأ في إنشاء ObjectId:', objectIdError);
-      return {
-        statusCode: 400,
-        body: '<h1>معرف الطالب غير صالح</h1><p>يجب أن يكون المعرف سلسلة نصية مكونة من 24 حرفًا سداسيًا عشريًا.</p>',
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      };
-    }
+        async function updateStudentData(event) {
+            event.preventDefault();
+            const updatedData = {
+                id: studentId,
+                serial_number: serialNumberInput.value,
+                residency_number: residencyNumberInput.value
+            };
 
-    if (!student) {
-      return {
-        statusCode: 404,
-        body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`,
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      };
-    }
+            try {
+                const response = await fetch('/.netlify/functions/updateStudent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+                const result = await response.json();
 
-    const serialNumber = student.serial_number;
-    const studentNameArabic = student.arabic_name || '';
+                if (response.ok) {
+                    // إزالة الـ alert والانتقال مباشرة
+                    window.location.href = 'بيانات_الطلاب.html'; // العودة إلى صفحة البيانات
+                } else {
+                    errorMessageDiv.textContent = result.error || 'حدث خطأ أثناء تحديث بيانات الطالب.';
+                    errorMessageDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error updating student data:', error);
+                errorMessageDiv.textContent = 'حدث خطأ أثناء تحديث بيانات الطالب.';
+                errorMessageDiv.style.display = 'block';
+            }
+        }
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="ar" style="height: 100%;">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, minimum-scale=0.1">
-        <title>الشهادة</title>
-        <style>
-          body {
-            margin: 0px;
-            height: 100%;
-            background-color: rgb(14, 14, 14);
-            display: flex; /* إضافة لعرض مرن */
-            justify-content: center; /* توسيط أفقي */
-            align-items: center; /* توسيط رأسي */
-          }
-          img {
-            display: block;
-            -webkit-user-select: none;
-            margin: auto;
-            cursor: zoom-in;
-            background-color: hsl(0, 0%, 90%);
-            transition: background-color 300ms;
-            width: 496px; /* تم نسخ العرض من الكود الأصلي */
-            height: 607px; /* تم نسخ الارتفاع من الكود الأصلي */
-          }
-          @font-face {
-            font-family: 'ArabicFont';
-            src: url('${FONT_PATH}') format('truetype');
-          }
-          .student-name {
-            font-family: 'ArabicFont', serif;
-            font-size: 48px;
-            color: #fff; /* تغيير لون الاسم إلى أبيض */
-            position: absolute; /* تحديد الموضع بدقة */
-            top: 100px; /* تعديل الموضع الرأسي */
-            left: 50%; /* توسيط أفقي */
-            transform: translateX(-50%); /* توسيط أفقي دقيق */
-            text-align: center;
-            width: 90%; /* أو قيمة مناسبة */
-          }
-          .serial-number {
-            ${SERIAL_NUMBER_STYLE}
-            font-family: sans-serif;
-            color: #fff; /* تغيير لون الرقم التسلسلي إلى أبيض */
-          }
-        </style>
-      </head>
-      <body style="margin: 0px; height: 100%; background-color: rgb(14, 14, 14);">
-        <img style="display: block;-webkit-user-select: none;margin: auto;cursor: zoom-in;background-color: hsl(0, 0%, 90%);transition: background-color 300ms;" src="${CERTIFICATE_IMAGE_PATH}" width="496" height="607">
-        <div class="student-name">${studentNameArabic}</div>
-        <div class="serial-number">${serialNumber}</div>
-      </body>
-      </html>
-    `;
+        // جلب بيانات الطالب عند تحميل الصفحة إذا كان هناك ID في URL
+        if (studentId) {
+            fetchStudentData(studentId);
+        } else {
+            alert('لم يتم توفير مُعرّف الطالب لتعديله.');
+            window.location.href = 'بيانات_الطلاب.html';
+        }
 
-    return {
-      statusCode: 200,
-      body: htmlContent,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    };
-  } catch (error) {
-    console.error('خطأ في وظيفة توليد الشهادة:', error);
-    return {
-      statusCode: 500,
-      body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    };
-  } finally {
-    if (client) await client.close();
-  }
-};
+        form.addEventListener('submit', updateStudentData);
+
+        const menuToggle = document.getElementById('menu-toggle');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+
+        menuToggle.addEventListener('click', () => {
+            dropdownMenu.classList.toggle('hidden');
+        });
+
+        // إغلاق القائمة المنسدلة عند النقر خارجها
+        document.addEventListener('click', (event) => {
+            if (!menuToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
