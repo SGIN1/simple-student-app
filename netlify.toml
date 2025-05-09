@@ -1,4 +1,7 @@
-[[rewrites]]
-  from = "/generateCertificateTwo2"
-  to = "/.netlify/functions/generateCertificateTwo2"
-  status = 200
+[[redirects]]
+
+  from = "/certificate/student/:id"
+
+  to = "/.netlify/functions/generateCertificateTwo2?id=:id"
+
+  status = 200
