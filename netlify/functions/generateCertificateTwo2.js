@@ -1,22 +1,18 @@
-// generateCertificateTwo2.js
-const jimp = require('jimp');
 const { MongoClient, ObjectId } = require('mongodb');
+const fs = require('fs').promises;
 const path = require('path');
 
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
-const CERTIFICATE_IMAGE_PATH = path.join(__dirname, '..', 'public', 'images_temp', 'wwee.jpg');
-const FONT_PATH = path.join(__dirname, 'fonts', 'arial.ttf'); // المسار الصحيح لملف الخط
+const CERTIFICATE_TEMPLATE_PATH = path.join(__dirname, 'certificate_template.html');
+const FONT_PATH = '/fonts/arial.ttf'; // نفترض وضع الخط في public/fonts
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
 
     if (!studentId) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: 'مُعرّف الطالب مفقود.' }),
-        };
+        return { statusCode: 400, body: '<h1>مُعرّف الطالب مفقود</h1>', headers: { 'Content-Type': 'text/html; charset=utf-8' } };
     }
 
     let client;
@@ -27,63 +23,33 @@ exports.handler = async (event, context) => {
         const database = client.db(dbName);
         const studentsCollection = database.collection(collectionName);
 
-        let student = null;
-        try {
-            const query = { _id: studentId };
-            student = await studentsCollection.findOne(query);
-            if (!student && ObjectId.isValid(studentId)) {
-                student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
-            }
-        } catch (error) {
-            console.error("خطأ في البحث عن الطالب:", error);
-            return {
-                statusCode: 500,
-                body: JSON.stringify({ error: 'حدث خطأ أثناء البحث عن الطالب.' }),
-            };
-        }
+        const student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
 
-        if (!student || !student.serial_number) {
-            return {
-                statusCode: 404,
-                body: JSON.stringify({ error: 'لم يتم العثور على الطالب أو الرقم التسلسلي.' }),
-            };
+        if (!student || !student.serial_number || !student.arabic_name) {
+            return { statusCode: 404, body: '<h1>لم يتم العثور على بيانات الطالب المطلوبة</h1>', headers: { 'Content-Type': 'text/html; charset=utf-8' } };
         }
 
         const serialNumber = student.serial_number;
+        const studentNameArabic = student.arabic_name;
+        const issueDate = new Date().toLocaleDateString('ar-SA');
 
-        try {
-            const font = await jimp.loadFont(FONT_PATH);
-            const certificate = await jimp.read(CERTIFICATE_IMAGE_PATH);
-            const x = 100;
-            const y = 200;
-            certificate.print(font, x, y, serialNumber);
-            const buffer = await certificate.getBufferAsync(jimp.MIME_PNG);
+        let certificateHTML = await fs.readFile(CERTIFICATE_TEMPLATE_PATH, 'utf8');
 
-            return {
-                statusCode: 200,
-                headers: {
-                    'Content-Type': 'image/png',
-                },
-                body: buffer.toString('base64'),
-                isBase64Encoded: true,
-            };
-        } catch (error) {
-            console.error('خطأ في معالجة الصورة:', error);
-            return {
-                statusCode: 500,
-                body: JSON.stringify({ error: 'حدث خطأ أثناء معالجة صورة الشهادة.' }),
-            };
-        }
+        certificateHTML = certificateHTML.replace('{{اسم_الطالب}}', studentNameArabic);
+        certificateHTML = certificateHTML.replace('{{الرقم_التسلسلي}}', serialNumber);
+        certificateHTML = certificateHTML.replace('{{تاريخ_الإصدار}}', issueDate);
+        certificateHTML = certificateHTML.replace('{{مسار_الخط}}', FONT_PATH);
+
+        return {
+            statusCode: 200,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            body: certificateHTML,
+        };
 
     } catch (error) {
-        console.error('خطأ في دالة توليد الشهادة:', error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: error.message }),
-        };
+        console.error('خطأ في دالة توليد الشهادة (HTML):', error);
+        return { statusCode: 500, body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`, headers: { 'Content-Type': 'text/html; charset=utf-8' } };
     } finally {
-        if (client) {
-            await client.close();
-        }
+        if (client) await client.close();
     }
 };
