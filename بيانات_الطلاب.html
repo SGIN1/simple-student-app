@@ -25,8 +25,7 @@
                     <th>تاريخ الإضافة</th>
                     <th>الإجراءات</th>
                     <th>الإجراءات1</th>
-                    <th>الشهادة الثانية</th>
-                </tr>
+                    <th>عرض الشهادة الأولى</th> <th>عرض الشهادة الثانية</th> </tr>
             </thead>
             <tbody id="students_tbody">
             </tbody>
@@ -56,11 +55,13 @@
                     renderStudentsTable(allStudents);
                 } else {
                     console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
-                    studentsTbody.innerHTML = '<tr><td colspan="7">فشل في تحميل بيانات الطلاب.</td></tr>';
+                    // تم تعديل colspan ليناسب عدد الأعمدة الجديدة
+                    studentsTbody.innerHTML = '<tr><td colspan="8">فشل في تحميل بيانات الطلاب.</td></tr>';
                 }
             } catch (error) {
                 console.error('خطأ في جلب بيانات الطلاب:', error);
-                studentsTbody.innerHTML = '<tr><td colspan="7">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
+                 // تم تعديل colspan ليناسب عدد الأعمدة الجديدة
+                studentsTbody.innerHTML = '<tr><td colspan="8">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
             }
         }
 
@@ -87,18 +88,24 @@
                     deleteCell.classList.add('actions');
                     deleteCell.innerHTML = `<a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>`;
 
-                    // إضافة زر عرض الشهادة الثانية مع الرابط النظيف
-                    const certificateCell = row.insertCell();
-                    const certificateButton = document.createElement('button');
-                    certificateButton.textContent = 'عرض الشهادة الثانية';
-                    certificateButton.addEventListener('click', () => {
-                        const certificateUrl = `/certificate/${student.id}`;
-                        window.open(certificateUrl, '_blank');
+                    // إضافة زر عرض الشهادة الأولى (تمت الإعادة)
+                    const printCellOne = row.insertCell();
+                    printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
+
+                    // إضافة زر عرض الشهادة الثانية (يستخدم الرابط الأنيق الآن)
+                    const printCellTwo = row.insertCell();
+                    const certificateButtonTwo = document.createElement('button');
+                    certificateButtonTwo.textContent = 'عرض الثانية';
+                    certificateButtonTwo.addEventListener('click', () => {
+                        // استخدام الرابط الأنيق للشهادة الثانية
+                        const certificateUrlTwo = `/certificate/${student.id}`;
+                        window.open(certificateUrlTwo, '_blank');
                     });
-                    certificateCell.appendChild(certificateButton);
+                    printCellTwo.appendChild(certificateButtonTwo);
                 });
             } else {
-                studentsTbody.innerHTML = '<tr><td colspan="7">لا يوجد أي طلاب مسجلين.</td></tr>';
+                 // تم تعديل colspan ليناسب عدد الأعمدة الجديدة
+                studentsTbody.innerHTML = '<tr><td colspan="8">لا يوجد أي طلاب مسجلين.</td></tr>';
             }
         }
 
@@ -111,10 +118,13 @@
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
+         // دالة لفتح رابط الشهادة في نافذة جديدة (تستخدم لكلا الزرين)
+        function showCertificate(url) {
+            window.open(url, '_blank');
+        }
+
+
         fetchStudents();
     </script>
 </body>
 </html>
-
-
-
