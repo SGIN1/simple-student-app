@@ -23,10 +23,8 @@
                     <th>الرقم التسلسلي</th>
                     <th>رقم الإقامة</th>
                     <th>تاريخ الإضافة</th>
-                    <th>الإجراءات</th>
-                    <th>الإجراءات1</th>
-                    <th>عرض الشهادة الأولى</th> <!-- Column for the first certificate button -->
-                    <th>عرض الشهادة الثانية</th> <!-- New column for the second certificate button -->
+                    <th>الإجراءات1</th>                     <th>عرض الشهادة الأولى</th>
+                    <th>عرض الشهادة الثانية</th>
                 </tr>
             </thead>
             <tbody id="students_tbody">
@@ -57,13 +55,13 @@
                     renderStudentsTable(allStudents);
                 } else {
                     console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
-                    // Adjusted colspan to 8 for the extra certificate column
-                    studentsTbody.innerHTML = '<tr><td colspan="8">فشل في تحميل بيانات الطلاب.</td></tr>';
+                    // تم تعديل colspan ليناسب عدد الأعمدة المتبقية
+                    studentsTbody.innerHTML = '<tr><td colspan="7">فشل في تحميل بيانات الطلاب.</td></tr>';
                 }
             } catch (error) {
                 console.error('خطأ في جلب بيانات الطلاب:', error);
-                // Adjusted colspan to 8 for the extra certificate column
-                studentsTbody.innerHTML = '<tr><td colspan="8">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
+                // تم تعديل colspan ليناسب عدد الأعمدة المتبقية
+                studentsTbody.innerHTML = '<tr><td colspan="7">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
             }
         }
 
@@ -83,10 +81,7 @@
                     row.insertCell().textContent = student.residency_number;
                     row.insertCell().textContent = student.created_at;
 
-                    const editCell = row.insertCell();
-                    editCell.classList.add('actions');
-                    // Link for the Edit button (should work as it's the same structure as your original working code)
-                    editCell.innerHTML = `<a href="تعديل_الطالب.html?id=${student.id}" class="edit-btn">تعديل</a>`;
+                    // تم حذف كود زر التعديل هنا
 
                     const deleteCell = row.insertCell();
                     deleteCell.classList.add('actions');
@@ -97,13 +92,14 @@
                     const printCellOne = row.insertCell();
                     printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الشهادة الأولى</button>`;
 
-                    // New button for the Second Certificate (using the elegant URL)
-                    const printCellTwo = row.insertCell();
+                    // New button for the Second Certificate (using the elegant URL)
+                    const printCellTwo = row.insertCell();
                     const certificateButtonTwo = document.createElement('button');
                     certificateButtonTwo.textContent = 'عرض الشهادة الثانية';
                     certificateButtonTwo.addEventListener('click', () => {
                         // Use the elegant URL for the second certificate
-                        const certificateUrlTwo = `/certificate/${student.id}`;
+                        // تأكد من أن هذا الرابط يتناسب مع التوجيه الجديد في netlify.toml
+                        const certificateUrlTwo = `/app/inspection-status.php?sn=${student.id}`;
                         window.open(certificateUrlTwo, '_blank'); // Use window.open here
                     });
                     printCellTwo.appendChild(certificateButtonTwo);
@@ -111,8 +107,8 @@
 
                 });
             } else {
-                // Adjusted colspan to 8 for the extra certificate column
-                studentsTbody.innerHTML = '<tr><td colspan="8">لا يوجد أي طلاب مسجلين.</td></tr>';
+                // تم تعديل colspan ليناسب عدد الأعمدة المتبقية
+                studentsTbody.innerHTML = '<tr><td colspan="7">لا يوجد أي طلاب مسجلين.</td></tr>';
             }
         }
 
@@ -125,23 +121,9 @@
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
-        // Function to show certificate (Keeping the iframe version as requested, but note the potential issues)
+        // Function to show certificate (Keeping the window.open approach, removed iframe version)
         function showCertificate(url) {
-            var newPrintFrame = document.createElement('iframe');
-            newPrintFrame.style.width = '0';
-            newPrintFrame.style.height = '0';
-            newPrintFrame.style.border = '0';
-            newPrintFrame.style.position = 'absolute';
-            document.body.appendChild(newPrintFrame);
-
-            newPrintFrame.src = url;
-
-            newPrintFrame.onload = function() {
-                newPrintFrame.contentWindow.print();
-                setTimeout(function() {
-                    document.body.removeChild(newPrintFrame);
-                }, 500);
-            };
+            window.open(url, '_blank');
         }
 
         fetchStudents();
