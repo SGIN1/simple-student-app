@@ -1,6 +1,6 @@
 [build]
-  base = "/"
-  functions = "netlify/functions"
+base = "/"
+functions = "netlify/functions"
 
 [functions.generateCertificateTwo2]
   included_files = ["fonts/arial.ttf"]
