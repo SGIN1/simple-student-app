@@ -5,7 +5,8 @@
 [functions.generateCertificateTwo2]
   included_files = ["fonts/arial.ttf"]
 
-[[rewrites]]
+[[redirects]]
   from = "/certificate/:id"
-  to = "/.netlify/functions/generateCertificateTwo2?id=:id"
+  to = "/.netlify/functions/generateCertificateTwo2/:id"
   status = 200
+  force = true
