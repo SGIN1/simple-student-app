@@ -1,8 +1,4 @@
-[build]
-  base = "/"
-
-[functions]
-  directory = "netlify/functions"
-
-[functions.generateCertificateTwo2]
-  included_files = ["./arial.ttf"]
+[[redirects]]
+  from = "/certificate-two/:id"
+  to = "/certificate-two.html"
+  status = 200
