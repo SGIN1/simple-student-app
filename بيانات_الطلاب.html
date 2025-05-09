@@ -1,117 +1,117 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-    <meta charset="UTF-8">
-    <title>بيانات الطلاب</title>
-    <link rel="stylesheet" href="القالب_المشترك2.css">
+    <meta charset="UTF-8">
+    <title>بيانات الطلاب</title>
+    <link rel="stylesheet" href="القالب_المشترك2.css">
 </head>
 <body>
-    <div class="container">
-        <h1>بيانات الطلاب</h1>
-        <div class="add-new">
-            <a href="إضافة_طالب.html">إصدار جديد</a>
-        </div>
+    <div class="container">
+        <h1>بيانات الطلاب</h1>
+        <div class="add-new">
+            <a href="إضافة_طالب.html">إصدار جديد</a>
+        </div>
 
-        <div class="search-form">
-            <input type="text" id="search_residency" placeholder="ابحث برقم الإقامة">
-        </div>
+        <div class="search-form">
+            <input type="text" id="search_residency" placeholder="ابحث برقم الإقامة">
+        </div>
 
-        <table id="students_table">
-            <thead>
-                <tr>
-                    <th>المعرف</th>
-                    <th>الرقم التسلسلي</th>
-                    <th>رقم الإقامة</th>
-                    <th>تاريخ الإضافة</th>
-                    <th>الإجراءات</th>
-                    <th>الإجراءات1</th>
-                    <th>الشهادة الثانية</th>
-                </tr>
-            </thead>
-            <tbody id="students_tbody">
-            </tbody>
-        </table>
+        <table id="students_table">
+            <thead>
+                <tr>
+                    <th>المعرف</th>
+                    <th>الرقم التسلسلي</th>
+                    <th>رقم الإقامة</th>
+                    <th>تاريخ الإضافة</th>
+                    <th>الإجراءات</th>
+                    <th>الإجراءات1</th>
+                    <th>الشهادة الثانية</th>
+                </tr>
+            </thead>
+            <tbody id="students_tbody">
+            </tbody>
+        </table>
 
-        <p id="no_results" class="no-results" style="display:none;">لا يوجد طلاب بهذا الرقم للإقامة.</p>
-        <div id="certificateContainer"></div>
-    </div>
+        <p id="no_results" class="no-results" style="display:none;">لا يوجد طلاب بهذا الرقم للإقامة.</p>
+        <div id="certificateContainer"></div>
+    </div>
 
-    <script>
-        const searchInput = document.getElementById('search_residency');
-        const studentsTable = document.getElementById('students_table');
-        const studentsTbody = document.getElementById('students_tbody');
-        const noResultsMessage = document.getElementById('no_results');
-        const certificateContainer = document.getElementById('certificateContainer');
+    <script>
+        const searchInput = document.getElementById('search_residency');
+        const studentsTable = document.getElementById('students_table');
+        const studentsTbody = document.getElementById('students_tbody');
+        const noResultsMessage = document.getElementById('no_results');
+        const certificateContainer = document.getElementById('certificateContainer');
 
-        let allStudents = []; // سيتم تعبئة هذه المصفوفة ببيانات الطلاب من الخادم
+        let allStudents = []; // سيتم تعبئة هذه المصفوفة ببيانات الطلاب من الخادم
 
-        // دالة لجلب بيانات الطلاب من Netlify Function
-        async function fetchStudents() {
-            try {
-                const response = await fetch('/.netlify/functions/getStudent'); // رابط Netlify Function لجلب الطلاب
-                const data = await response.json();
+        // دالة لجلب بيانات الطلاب من Netlify Function
+        async function fetchStudents() {
+            try {
+                const response = await fetch('/.netlify/functions/getStudent'); // رابط Netlify Function لجلب الطلاب
+                const data = await response.json();
 
-                if (response.ok) {
-                    allStudents = data;
-                    renderStudentsTable(allStudents);
-                } else {
-                    console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
-                    studentsTbody.innerHTML = '<tr><td colspan="8">فشل في تحميل بيانات الطلاب.</td></tr>'; // تعديل colspan
-                }
-            } catch (error) {
-                console.error('خطأ في جلب بيانات الطلاب:', error);
-                studentsTbody.innerHTML = '<tr><td colspan="8">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>'; // تعديل colspan
-            }
-        }
+                if (response.ok) {
+                    allStudents = data;
+                    renderStudentsTable(allStudents);
+                } else {
+                    console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
+                    studentsTbody.innerHTML = '<tr><td colspan="7">فشل في تحميل بيانات الطلاب.</td></tr>';
+                }
+            } catch (error) {
+                console.error('خطأ في جلب بيانات الطلاب:', error);
+                studentsTbody.innerHTML = '<tr><td colspan="7">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
+            }
+        }
 
-        // دالة لتحديث جدول الطلاب في المتصفح
-        function renderStudentsTable(students) {
-            studentsTbody.innerHTML = ''; // مسح الجدول الحالي
+        // دالة لتحديث جدول الطلاب في المتصفح
+        function renderStudentsTable(students) {
+            studentsTbody.innerHTML = ''; // مسح الجدول الحالي
 
-            if (students.length > 0) {
-                noResultsMessage.style.display = 'none';
-                const reversedStudents = [...students].reverse();
+            if (students.length > 0) {
+                noResultsMessage.style.display = 'none';
+                const reversedStudents = [...students].reverse();
 
-                reversedStudents.forEach(student => {
-                    const row = studentsTbody.insertRow();
-                    row.insertCell().textContent = student.id;
-                    row.insertCell().textContent = student.serial_number;
-                    row.insertCell().textContent = student.residency_number;
-                    row.insertCell().textContent = student.created_at;
+                reversedStudents.forEach(student => {
+                    const row = studentsTbody.insertRow();
+                    row.insertCell().textContent = student.id;
+                    row.insertCell().textContent = student.serial_number;
+                    row.insertCell().textContent = student.residency_number;
+                    row.insertCell().textContent = student.created_at;
 
-                    const editCell = row.insertCell();
-                    editCell.classList.add('actions');
-                    editCell.innerHTML = `<a href="تعديل_الطالب.html?id=${student.id}" class="edit-btn">تعديل</a>`;
+                    const editCell = row.insertCell();
+                    editCell.classList.add('actions');
+                    editCell.innerHTML = `<a href="تعديل_الطالب.html?id=${student.id}" class="edit-btn">تعديل</a>`;
 
-                    const deleteCell = row.insertCell();
-                    deleteCell.classList.add('actions');
-                    deleteCell.innerHTML = `<a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>`;
+                    const deleteCell = row.insertCell();
+                    deleteCell.classList.add('actions');
+                    deleteCell.innerHTML = `<a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>`;
 
-                    // إضافة زر عرض الشهادة الثانية مع الرابط النظيف
-                    const certificateCell = row.insertCell();
-                    const certificateButton = document.createElement('button');
-                    certificateButton.textContent = 'عرض الشهادة الثانية';
-                    certificateButton.addEventListener('click', () => {
-                        const certificateUrl = `/certificate/${student.id}`;
-                        window.open(certificateUrl, '_blank');
-                    });
-                    certificateCell.appendChild(certificateButton);
-                });
-            } else {
-                studentsTbody.innerHTML = '<tr><td colspan="8">لا يوجد أي طلاب مسجلين.</td></tr>'; // تعديل colspan
-            }
-        }
+                    // إضافة زر عرض الشهادة الثانية مع الرابط النظيف
+                    const certificateCell = row.insertCell();
+                    const certificateButton = document.createElement('button');
+                    certificateButton.textContent = 'عرض الشهادة الثانية';
+                    certificateButton.addEventListener('click', () => {
+                        const certificateUrl = `/certificate/${student.id}`;
+                        window.open(certificateUrl, '_blank');
+                    });
+                    certificateCell.appendChild(certificateButton);
+                });
+            } else {
+                studentsTbody.innerHTML = '<tr><td colspan="7">لا يوجد أي طلاب مسجلين.</td></tr>';
+            }
+        }
 
-        searchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.trim();
-            const filteredStudents = allStudents.filter(student =>
-                student.residency_number.includes(searchTerm)
-            );
-            renderStudentsTable(filteredStudents);
-            noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
-        });
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.trim();
+            const filteredStudents = allStudents.filter(student =>
+                student.residency_number.includes(searchTerm)
+            );
+            renderStudentsTable(filteredStudents);
+            noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
+        });
 
-        fetchStudents();
-    </script>
+        fetchStudents();
+    </script>
 </body>
 </html>

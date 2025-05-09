@@ -1,11 +1,11 @@
 [build]
-base = "/"
-functions = "netlify/functions"
+  base = "/"
+  functions = "netlify/functions"
 
 [functions.generateCertificateTwo2]
-included_files = ["fonts/arial.ttf"]
+  included_files = ["fonts/arial.ttf"]
 
-[[redirects]]
-from = "/certificate/:id"
-to = "/.netlify/functions/generateCertificateTwo2/:id"
-status = 200
+[[rewrites]]
+  from = "/certificate/:id"
+  to = "/.netlify/functions/generateCertificateTwo2?id=:id"
+  status = 200
