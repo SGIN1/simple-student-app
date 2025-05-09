@@ -7,6 +7,7 @@ const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 const CERTIFICATE_IMAGE_PATH = path.join(__dirname, '..', 'public', 'images_temp', 'wwee.jpg');
+const FONT_PATH = path.join(__dirname, 'fonts', 'arial.ttf'); // المسار الصحيح لملف الخط
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
@@ -41,15 +42,21 @@ exports.handler = async (event, context) => {
             };
         }
 
-        if (!student) {
+        if (!student || !student.serial_number) {
             return {
                 statusCode: 404,
-                body: JSON.stringify({ error: 'لم يتم العثور على الطالب.' }),
+                body: JSON.stringify({ error: 'لم يتم العثور على الطالب أو الرقم التسلسلي.' }),
             };
         }
 
+        const serialNumber = student.serial_number;
+
         try {
+            const font = await jimp.loadFont(FONT_PATH);
             const certificate = await jimp.read(CERTIFICATE_IMAGE_PATH);
+            const x = 100;
+            const y = 200;
+            certificate.print(font, x, y, serialNumber);
             const buffer = await certificate.getBufferAsync(jimp.MIME_PNG);
 
             return {

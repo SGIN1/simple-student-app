@@ -1,18 +1,23 @@
 [build]
-  base = "/"
-
-[functions]
-  directory = "netlify/functions"
-
-[functions.generateCertificateTwo2]
-  included_files = ["fonts/arial.ttf"]
-
-[[redirects]]
-  from = "/images/full/:file"
-  to = "/.netlify/images?url=/public/images_temp/:file"
-  status = 200
+  functions = "netlify/functions"
+  publish = "public" # تأكد أن هذا هو المجلد الذي يحتوي على ملف HTML الخاص بك
 
 [[redirects]]
   from = "/generateCertificateTwo2"
   to = "/.netlify/functions/generateCertificateTwo2"
+  status = 200
+
+[[redirects]]
+  from = "/updateStudent"
+  to = "/.netlify/functions/updateStudent" # اسم الملف الخاص بتحديث الطالب
+  status = 200
+
+[[redirects]]
+  from = "/addStudent"
+  to = "/.netlify/functions/addStudent" # اسم الملف الخاص بإضافة الطالب
+  status = 200
+
+[[redirects]]
+  from = "/getStudent"
+  to = "/.netlify/functions/getStudent" # اسم الملف الخاص بجلب الطلاب
   status = 200
