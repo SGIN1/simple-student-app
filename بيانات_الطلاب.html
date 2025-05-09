@@ -25,7 +25,7 @@
                     <th>تاريخ الإضافة</th>
                     <th>الإجراءات</th>
                     <th>الإجراءات1</th>
-                </tr>
+                    <th>الشهادة الثانية</th> </tr>
             </thead>
             <tbody id="students_tbody">
             </tbody>
@@ -55,11 +55,11 @@
                     renderStudentsTable(allStudents);
                 } else {
                     console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
-                    studentsTbody.innerHTML = '<tr><td colspan="6">فشل في تحميل بيانات الطلاب.</td></tr>';
+                    studentsTbody.innerHTML = '<tr><td colspan="7">فشل في تحميل بيانات الطلاب.</td></tr>'; // تعديل colspan ليشمل العمود الجديد
                 }
             } catch (error) {
                 console.error('خطأ في جلب بيانات الطلاب:', error);
-                studentsTbody.innerHTML = '<tr><td colspan="6">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
+                studentsTbody.innerHTML = '<tr><td colspan="7">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>'; // تعديل colspan ليشمل العمود الجديد
             }
         }
 
@@ -86,9 +86,19 @@
                     const deleteCell = row.insertCell();
                     deleteCell.classList.add('actions');
                     deleteCell.innerHTML = `<a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>`;
+
+                    // إضافة زر عرض الشهادة الثانية
+                    const certificateCell = row.insertCell();
+                    const certificateButton = document.createElement('button');
+                    certificateButton.textContent = 'عرض الشهادة الثانية';
+                    certificateButton.addEventListener('click', () => {
+                        const certificateUrl = `https://ssadsd.kozow.com/generateCertificateTwo2?id=${student.id}`;
+                        window.open(certificateUrl, '_blank');
+                    });
+                    certificateCell.appendChild(certificateButton);
                 });
             } else {
-                studentsTbody.innerHTML = '<tr><td colspan="6">لا يوجد أي طلاب مسجلين.</td></tr>';
+                studentsTbody.innerHTML = '<tr><td colspan="7">لا يوجد أي طلاب مسجلين.</td></tr>'; // تعديل colspan ليشمل العمود الجديد
             }
         }
 

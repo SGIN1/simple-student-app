@@ -1,13 +1,4 @@
-[build]
-  base = "/"
-
-[functions]
-  directory = "netlify/functions"
-
-[functions.generateCertificateTwo2]
-  included_files = ["fonts/arial.ttf"]
-
 [[redirects]]
-  from = "/images/full/:file"
-  to = "/.netlify/images?url=/public/images_temp/:file"
+  from = "/generateCertificateTwo2"
+  to = "/.netlify/functions/generateCertificateTwo2"
   status = 200
