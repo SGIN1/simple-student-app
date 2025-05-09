@@ -23,8 +23,10 @@
                     <th>الرقم التسلسلي</th>
                     <th>رقم الإقامة</th>
                     <th>تاريخ الإضافة</th>
-                    <th>الإجراءات1</th>                     <th>عرض الشهادة الأولى</th>
-                    <th>عرض الشهادة الثانية</th>
+                    <th>الإجراءات</th> <!-- Added back the Edit column header -->
+                    <th>الإجراءات1</th>
+                    <th>عرض الشهادة الأولى</th>
+                    <th>عرض الشهادة الثانية</th> <!-- Added back the Second Certificate column header -->
                 </tr>
             </thead>
             <tbody id="students_tbody">
@@ -55,13 +57,13 @@
                     renderStudentsTable(allStudents);
                 } else {
                     console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
-                    // تم تعديل colspan ليناسب عدد الأعمدة المتبقية
-                    studentsTbody.innerHTML = '<tr><td colspan="7">فشل في تحميل بيانات الطلاب.</td></tr>';
+                    // Adjusted colspan to 8
+                    studentsTbody.innerHTML = '<tr><td colspan="8">فشل في تحميل بيانات الطلاب.</td></tr>';
                 }
             } catch (error) {
                 console.error('خطأ في جلب بيانات الطلاب:', error);
-                // تم تعديل colspan ليناسب عدد الأعمدة المتبقية
-                studentsTbody.innerHTML = '<tr><td colspan="7">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
+                // Adjusted colspan to 8
+                studentsTbody.innerHTML = '<tr><td colspan="8">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
             }
         }
 
@@ -81,34 +83,38 @@
                     row.insertCell().textContent = student.residency_number;
                     row.insertCell().textContent = student.created_at;
 
-                    // تم حذف كود زر التعديل هنا
+                    // Added back the Edit cell and link
+                    const editCell = row.insertCell();
+                    editCell.classList.add('actions');
+                    // Link for the Edit button (simple href to the edit page)
+                    editCell.innerHTML = `<a href="تعديل_الطالب.html?id=${student.id}" class="edit-btn">تعديل</a>`;
 
                     const deleteCell = row.insertCell();
                     deleteCell.classList.add('actions');
-                    // Link for the Delete button (should work as it's the same structure)
+                    // Link for the Delete button
                     deleteCell.innerHTML = `<a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>`;
 
-                    // Button for the First Certificate (using the direct function URL, as in your working code)
+                    // Button for the First Certificate (using the direct function URL)
                     const printCellOne = row.insertCell();
+                    // Using window.open for consistency
                     printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الشهادة الأولى</button>`;
 
-                    // New button for the Second Certificate (using the elegant URL)
+                    // Added back the cell and button for the Second Certificate
                     const printCellTwo = row.insertCell();
                     const certificateButtonTwo = document.createElement('button');
                     certificateButtonTwo.textContent = 'عرض الشهادة الثانية';
                     certificateButtonTwo.addEventListener('click', () => {
                         // Use the elegant URL for the second certificate
-                        // تأكد من أن هذا الرابط يتناسب مع التوجيه الجديد في netlify.toml
-                        const certificateUrlTwo = `/app/inspection-status.php?sn=${student.id}`;
-                        window.open(certificateUrlTwo, '_blank'); // Use window.open here
+                        const certificateUrlTwo = `/certificate/${student.id}`;
+                        window.open(certificateUrlTwo, '_blank'); // Use window.open
                     });
                     printCellTwo.appendChild(certificateButtonTwo);
 
 
                 });
             } else {
-                // تم تعديل colspan ليناسب عدد الأعمدة المتبقية
-                studentsTbody.innerHTML = '<tr><td colspan="7">لا يوجد أي طلاب مسجلين.</td></tr>';
+                // Adjusted colspan to 8
+                studentsTbody.innerHTML = '<tr><td colspan="8">لا يوجد أي طلاب مسجلين.</td></tr>';
             }
         }
 
@@ -121,7 +127,7 @@
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
-        // Function to show certificate (Keeping the window.open approach, removed iframe version)
+        // Function to show certificate (Using window.open for consistency and reliability)
         function showCertificate(url) {
             window.open(url, '_blank');
         }
