@@ -1,12 +1,11 @@
 [build]
-  functions = "netlify/functions"
-  publish = "public"
+  base = "/"
+  functions = "netlify/functions"
+
+[functions.generateCertificateTwo2]
+  included_files = ["fonts/arial.ttf"]
 
 [[redirects]]
-  from = "/generateCertificateTwo2"
-  to = "/.netlify/functions/generateCertificateTwo2"
-  status = 200
-
-# تضمين ملف الخط مع دالة generateCertificateTwo2
-[functions.generateCertificateTwo2]
-  included_files = ["fonts/arial.ttf", "certificate_template.html"]
+  from = "/certificate/:id"
+  to = "/.netlify/functions/generateCertificateTwo2?id=:id"
+  status = 200
