@@ -22,7 +22,7 @@ const SERIAL_NUMBER_STYLE = `
 `;
 
 exports.handler = async (event, context) => {
-  const studentId = event.queryStringParameters.id;
+  const studentId = event.path.split('/').pop(); // استخراج المعرّف من event.path
   console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
   let client;
@@ -128,8 +128,3 @@ exports.handler = async (event, context) => {
     if (client) await client.close();
   }
 };
-
-
-
-
-
