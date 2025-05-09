@@ -1,13 +1,13 @@
 // generateCertificateTwo2.js
 const jimp = require('jimp');
-const { MongoClient, ObjectId } = require('mongodb'); // استيراد ObjectId بشكل صحيح
+const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
 
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 const CERTIFICATE_IMAGE_PATH = path.join(__dirname, '..', 'public', 'images_temp', 'wwee.jpg');
-const FONT_PATH = path.join(__dirname, 'fonts', 'arial.ttf');
+const FONT_PATH = path.join(__dirname, 'fonts', 'arial.ttf'); // المسار الصحيح لملف الخط
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
@@ -27,7 +27,7 @@ exports.handler = async (event, context) => {
         const database = client.db(dbName);
         const studentsCollection = database.collection(collectionName);
 
-        let student = null; // تهيئة المتغير student بقيمة null
+        let student = null;
         try {
             const query = { _id: studentId };
             student = await studentsCollection.findOne(query);
