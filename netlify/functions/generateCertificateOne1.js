@@ -5,8 +5,8 @@ const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
-// التأكد من تضمين النطاق الأساسي لـ Netlify في الرابط
-const NETLIFY_BASE_URL = 'https://spiffy-meerkat-be5bc1.netlify.app';
+// **هام جدًا:** تأكد من أن هذا الرابط يشير إلى الدومين الجديد الخاص بك
+const NETLIFY_BASE_URL = 'https://ssadsd.kozow.com'; // استبدل بـاسم دومينك
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
@@ -30,8 +30,9 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // إنشاء رابط URL كامل للشهادة الثانية
-        const certificateTwoUrl = `${NETLIFY_BASE_URL}/.netlify/functions/generateCertificateTwo2?id=${student._id}`;
+        // **التعديل هنا:** إنشاء رابط URL كامل للشهادة الثانية باستخدام الرابط الأنيق مع الدومين الجديد
+        const certificateTwoUrl = `${NETLIFY_BASE_URL}/certificate/${student._id}`;
+
         let qrCodeDataUri;
 
         try {
@@ -48,23 +49,23 @@ exports.handler = async (event, context) => {
                 <meta charset="UTF-8">
                 <title>شهادة الطالب</title>
                 <style type="text/css" media="print">
-                  @page {
-                    size: auto;   /* auto is the initial value */
-                    margin: 0;
-                  }
-                  body {
-                    margin: 0; /* Reset body margin for printing */
-                  }
-                  @media print {
                     @page {
-                      margin-top: 0;
-                      margin-bottom: 0;
+                        size: auto;    /* auto is the initial value */
+                        margin: 0;
                     }
                     body {
-                      padding-top: 0;
-                      padding-bottom: 0 ;
+                        margin: 0; /* Reset body margin for printing */
                     }
-                  }
+                    @media print {
+                        @page {
+                            margin-top: 0;
+                            margin-bottom: 0;
+                        }
+                        body {
+                            padding-top: 0;
+                            padding-bottom: 0 ;
+                        }
+                    }
                 </style>
                 <style>
                     body { font-family: Arial, sans-serif; direction: rtl; text-align: center; }
