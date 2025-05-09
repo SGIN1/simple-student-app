@@ -1,11 +1,14 @@
 // generateCertificateTwo2.js
 const jimp = require('jimp');
 const { MongoClient } = require('mongodb');
+const path = require('path');
 
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
-const CERTIFICATE_IMAGE_PATH = '/public/images_temp/wwee.jpg'; // المسار النسبي للصورة (سيتم تعديله ليناسب بيئة Netlify)
+// استخدام path.join لتكوين المسار بشكل صحيح
+const CERTIFICATE_IMAGE_PATH = path.join(__dirname, '..', 'public', 'images_temp', 'wwee.jpg');
+const FONT_PATH = path.join(__dirname, 'arial.ttf'); // تأكد من وجود ملف الخط في نفس مجلد الدالة أو عدّل المسار
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
@@ -25,7 +28,24 @@ exports.handler = async (event, context) => {
         const database = client.db(dbName);
         const studentsCollection = database.collection(collectionName);
 
-        const student = await studentsCollection.findOne({ _id: studentId }); // أو أي حقل تعريف فريد آخر تستخدمه
+        // محاولة تحويل studentId إلى ObjectId إذا كان تنسيقه كذلك في قاعدة البيانات
+        let query;
+        try {
+            query = { _id: studentId }; // محاولة البحث باستخدام المعرّف كما هو
+            const student = await studentsCollection.findOne(query);
+            if (!student) {
+                // إذا لم يتم العثور عليه، نحاول البحث باستخدام ObjectId
+                query = { _id: new ObjectId(studentId) };
+                const studentWithObjectId = await studentsCollection.findOne(query);
+                if (studentWithObjectId) {
+                    student = studentWithObjectId;
+                }
+            }
+        } catch (error) {
+            // إذا فشل تحويل ObjectId، فهذا يعني أن المعرّف ليس بتنسيق ObjectId، ونستمر في البحث كما هو
+            console.error("خطأ في محاولة تحويل ObjectId:", error);
+            const student = await studentsCollection.findOne({ _id: studentId });
+        }
 
         if (!student || !student.serial_number) {
             return {
@@ -36,11 +56,11 @@ exports.handler = async (event, context) => {
 
         const serialNumber = student.serial_number;
 
-        // قراءة الخط (تأكد من وجود هذا الخط في مجلد وظائف Netlify أو مسار يمكن الوصول إليه)
-        const font = await jimp.loadFont(jimp.FONT_SANS_32_BLACK); // يمكنك اختيار خط آخر وتوفيره
+        // قراءة الخط باستخدام المسار المحدد
+        const font = await jimp.loadFont(FONT_PATH);
 
-        // قراءة صورة الشهادة
-        const certificate = await jimp.read(__dirname + CERTIFICATE_IMAGE_PATH); // __dirname يشير إلى مجلد الدالة
+        // قراءة صورة الشهادة باستخدام المسار المحدد
+        const certificate = await jimp.read(CERTIFICATE_IMAGE_PATH);
 
         // تحديد موقع النص (يمكن تعديل هذه القيم)
         const x = 100;
@@ -50,12 +70,12 @@ exports.handler = async (event, context) => {
         certificate.print(font, x, y, serialNumber);
 
         // تحويل الصورة إلى Buffer قابل للإرسال
-        const buffer = await certificate.getBufferAsync(jimp.MIME_PNG); // يمكنك اختيار MIME آخر حسب نوع الصورة
+        const buffer = await certificate.getBufferAsync(jimp.MIME_PNG);
 
         return {
             statusCode: 200,
             headers: {
-                'Content-Type': 'image/png', // أو image/jpeg حسب نوع الصورة
+                'Content-Type': 'image/png',
             },
             body: buffer.toString('base64'),
             isBase64Encoded: true,
