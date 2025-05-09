@@ -25,8 +25,8 @@
                     <th>تاريخ الإضافة</th>
                     <th>الإجراءات</th>
                     <th>الإجراءات1</th>
-                    <th>عرض الشهادة الأولى</th>
-                    <th>عرض الشهادة الثانية</th>
+                    <th>عرض الشهادة الأولى</th> <!-- Column for the first certificate button -->
+                    <th>عرض الشهادة الثانية</th> <!-- New column for the second certificate button -->
                 </tr>
             </thead>
             <tbody id="students_tbody">
@@ -57,10 +57,12 @@
                     renderStudentsTable(allStudents);
                 } else {
                     console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
+                    // Adjusted colspan to 8 for the extra certificate column
                     studentsTbody.innerHTML = '<tr><td colspan="8">فشل في تحميل بيانات الطلاب.</td></tr>';
                 }
             } catch (error) {
                 console.error('خطأ في جلب بيانات الطلاب:', error);
+                // Adjusted colspan to 8 for the extra certificate column
                 studentsTbody.innerHTML = '<tr><td colspan="8">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
             }
         }
@@ -83,28 +85,33 @@
 
                     const editCell = row.insertCell();
                     editCell.classList.add('actions');
+                    // Link for the Edit button (should work as it's the same structure as your original working code)
                     editCell.innerHTML = `<a href="تعديل_الطالب.html?id=${student.id}" class="edit-btn">تعديل</a>`;
 
                     const deleteCell = row.insertCell();
                     deleteCell.classList.add('actions');
+                    // Link for the Delete button (should work as it's the same structure)
                     deleteCell.innerHTML = `<a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>`;
 
+                    // Button for the First Certificate (using the direct function URL, as in your working code)
                     const printCellOne = row.insertCell();
-                    printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
+                    printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الشهادة الأولى</button>`;
 
-                    // **التعديل هنا:** جعل زر الشهادة الثانية يستخدم الرابط الأنيق
-                    const printCellTwo = row.insertCell();
+                    // New button for the Second Certificate (using the elegant URL)
+                    const printCellTwo = row.insertCell();
                     const certificateButtonTwo = document.createElement('button');
-                    certificateButtonTwo.textContent = 'عرض الثانية';
+                    certificateButtonTwo.textContent = 'عرض الشهادة الثانية';
                     certificateButtonTwo.addEventListener('click', () => {
-                        // استخدام الرابط الأنيق للشهادة الثانية
+                        // Use the elegant URL for the second certificate
                         const certificateUrlTwo = `/certificate/${student.id}`;
-                        window.open(certificateUrlTwo, '_blank');
+                        window.open(certificateUrlTwo, '_blank'); // Use window.open here
                     });
                     printCellTwo.appendChild(certificateButtonTwo);
 
+
                 });
             } else {
+                // Adjusted colspan to 8 for the extra certificate column
                 studentsTbody.innerHTML = '<tr><td colspan="8">لا يوجد أي طلاب مسجلين.</td></tr>';
             }
         }
@@ -118,9 +125,23 @@
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
-        // دالة لفتح رابط الشهادة في نافذة جديدة (تستخدم لكلا الزرين)
+        // Function to show certificate (Keeping the iframe version as requested, but note the potential issues)
         function showCertificate(url) {
-            window.open(url, '_blank');
+            var newPrintFrame = document.createElement('iframe');
+            newPrintFrame.style.width = '0';
+            newPrintFrame.style.height = '0';
+            newPrintFrame.style.border = '0';
+            newPrintFrame.style.position = 'absolute';
+            document.body.appendChild(newPrintFrame);
+
+            newPrintFrame.src = url;
+
+            newPrintFrame.onload = function() {
+                newPrintFrame.contentWindow.print();
+                setTimeout(function() {
+                    document.body.removeChild(newPrintFrame);
+                }, 500);
+            };
         }
 
         fetchStudents();
