@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>إضافة معلم جديد</title>
+    <link rel="stylesheet" href="../القالب_المشترك.css">
+</head>
+<body>
+    <header style="position: relative;">
+        <div class="container">
+            <div class="menu-icon" id="menu-toggle">☰</div>
+            <h1>إضافة معلم جديد</h1>
+            <ul id="dropdown-menu" class="hidden">
+                <li><a href="بيانات_المعلمين.html">العودة إلى صفحة المعلمين</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>إضافة معلم جديد</h1>
+        <form id="addTeacherForm">
+            <label for="teacher_serial_number">الرقم التسلسلي للمعلم:</label>
+            <input type="text" id="teacher_serial_number" name="teacher_serial_number" required>
+
+            <label for="teacher_residency_number">رقم إقامة المعلم:</label>
+            <input type="text" id="teacher_residency_number" name="teacher_residency_number" required>
+
+            <button type="submit" class="add-button">إضافة معلم</button>
+        </form>
+        <div id="message" class="message" style="display:none;"></div>
+        <div class="back-link">
+            <a href="بيانات_المعلمين.html">الرجوع إلى صفحة البيانات</a>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            جميع الحقوق محفوظة - البوابة الوطنية الداعمة للمجتمع البلدي © 2023
+        </div>
+    </footer>
+
+    <script>
+        const menuToggle = document.getElementById('menu-toggle');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+
+        menuToggle.addEventListener('click', () => {
+            dropdownMenu.classList.toggle('hidden');
+        });
+
+        // إغلاق القائمة المنسدلة عند النقر خارجها
+        document.addEventListener('click', (event) => {
+            if (!menuToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('addTeacherForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const teacherSerialNumber = document.getElementById('teacher_serial_number').value;
+            const teacherResidencyNumber = document.getElementById('teacher_residency_number').value;
+            const messageDiv = document.getElementById('message');
+            messageDiv.style.display = 'block';
+            messageDiv.textContent = 'جاري إضافة المعلم...';
+            messageDiv.className = 'message';
+
+            const response = await fetch('/teachers/.netlify/functions/addTeacher', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ serial_number: teacherSerialNumber, residency_number: teacherResidencyNumber }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                messageDiv.textContent = data.message || 'تمت إضافة المعلم بنجاح! سيتم نقلك لصفحة البيانات.';
+                messageDiv.className = 'message success';
+                document.getElementById('addTeacherForm').reset();
+                window.location.href = 'بيانات_المعلمين.html'; // انتقال فوري بعد النجاح
+            } else {
+                messageDiv.textContent = data.error || 'حدث خطأ أثناء محاولة إضافة المعلم.';
+                messageDiv.className = 'message error';
+            }
+        });
+    </script>
+</body>
+</html>
