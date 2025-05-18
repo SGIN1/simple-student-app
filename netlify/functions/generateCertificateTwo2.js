@@ -34,7 +34,7 @@ exports.handler = async (event, context) => {
                 <title>الشهادة الثانية للطالب</title>
                 <style type="text/css" media="print">
                     @page {
-                        size: auto;    /* auto is the initial value */
+                        size: auto;     /* auto is the initial value */
                         margin: 0;
                     }
                     body {
