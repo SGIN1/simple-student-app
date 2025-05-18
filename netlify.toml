@@ -1,21 +1,12 @@
 [build]
   base = "/"
-  functions = "netlify/functions/teachers" # يشير إلى المجلد الفرعي لوظائف المعلمين
+  functions = "netlify/functions"
 
-[functions.generateCertificateTwo2] # هذا التكوين لوظيفة شهادة الطالب الثانية
+[functions.generateCertificateTwo2]
   included_files = ["fonts/arial.ttf"]
 
-[functions.generateCertificateTwoTeacher4] # تكوين وظيفة شهادة المعلم الثانية
-  included_files = ["fonts/arial.ttf"] # إذا كانت تستخدم نفس الخط أو خط آخر
-
 [[redirects]]
-  from = "/certificate/:id" # إعادة توجيه لشهادات الطلاب
+  from = "/certificate/:id"
   to = "/.netlify/functions/generateCertificateTwo2/:id"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/teachers/certificate/:id" # إعادة توجيه لشهادات المعلمين
-  to = "/.netlify/functions/generateCertificateTwoTeacher4/:id"
   status = 200
   force = true
