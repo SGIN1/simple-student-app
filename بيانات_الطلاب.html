@@ -37,6 +37,7 @@
                     <th>الإجراءات</th>
                     <th>الإجراءات1</th>
                     <th>عرض الشهادة الأولى</th>
+                    <th>عرض الشهادة الثانية</th>
                 </tr>
             </thead>
             <tbody id="students_tbody">
@@ -67,13 +68,11 @@
                     renderStudentsTable(allStudents);
                 } else {
                     console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
-                    // تم تعديل colspan ليناسب عدد الأعمدة الجديدة
-                    studentsTbody.innerHTML = '<tr><td colspan="18">فشل في تحميل بيانات الطلاب.</td></tr>';
+                    studentsTbody.innerHTML = '<tr><td colspan="19">فشل في تحميل بيانات الطلاب.</td></tr>'; // تم تعديل colspan
                 }
             } catch (error) {
                 console.error('خطأ في جلب بيانات الطلاب:', error);
-                // تم تعديل colspan ليناسب عدد الأعمدة الجديدة
-                studentsTbody.innerHTML = '<tr><td colspan="18">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
+                studentsTbody.innerHTML = '<tr><td colspan="19">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>'; // تم تعديل colspan
             }
         }
 
@@ -111,13 +110,22 @@
                     deleteCell.classList.add('actions');
                     deleteCell.innerHTML = `<a href="حذف_الطالب.php?id=${student.id}" class="delete-btn" onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟');">حذف</a>`;
 
-                    // إضافة زر عرض الشهادة الأولى (تمت الإعادة)
+                    // إضافة زر عرض الشهادة الأولى
                     const printCellOne = row.insertCell();
                     printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
+
+                    // إضافة زر عرض الشهادة الثانية (باستخدام الرابط الأنيق كما في المثال)
+                    const printCellTwo = row.insertCell();
+                    const certificateButtonTwo = document.createElement('button');
+                    certificateButtonTwo.textContent = 'عرض الثانية';
+                    certificateButtonTwo.addEventListener('click', () => {
+                        const certificateUrlTwo = `/certificate/${student.id}`;
+                        window.open(certificateUrlTwo, '_blank');
+                    });
+                    printCellTwo.appendChild(certificateButtonTwo);
                 });
             } else {
-                // تم تعديل colspan ليناسب عدد الأعمدة الجديدة
-                studentsTbody.innerHTML = '<tr><td colspan="18">لا يوجد أي طلاب مسجلين.</td></tr>';
+                studentsTbody.innerHTML = '<tr><td colspan="19">لا يوجد أي طلاب مسجلين.</td></tr>'; // تم تعديل colspan
             }
         }
 
@@ -130,11 +138,10 @@
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
-        // دالة لفتح رابط الشهادة في نافذة جديدة (تستخدم لكلا الزرين)
+        // دالة لفتح رابط الشهادة في نافذة جديدة
         function showCertificate(url) {
             window.open(url, '_blank');
         }
-
 
         fetchStudents();
     </script>
