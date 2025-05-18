@@ -6,7 +6,7 @@ const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
 exports.handler = async (event, context) => {
-    const studentId = event.path.split('/').pop(); // استخراج المُعرّف من الرابط الأنيق
+    const CERTIFICATE_IMAGE_PATH = '/public/images_temp/wwee.jpg';
 
     let client;
 

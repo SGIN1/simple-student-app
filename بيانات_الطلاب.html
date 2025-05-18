@@ -116,16 +116,9 @@
                     const printCellOne = row.insertCell();
                     printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
 
-                    // إضافة زر عرض الشهادة الثانية (يستخدم الرابط الأنيق الآن)
+                    // إضافة زر عرض الشهادة الثانية (تم التعديل ليعود للآلية الأصلية)
                     const printCellTwo = row.insertCell();
-                    const certificateButtonTwo = document.createElement('button');
-                    certificateButtonTwo.textContent = 'عرض الثانية';
-                    certificateButtonTwo.addEventListener('click', () => {
-                        // استخدام الرابط الأنيق للشهادة الثانية
-                        const certificateUrlTwo = `/certificate/${student.id}`;
-                        window.open(certificateUrlTwo, '_blank');
-                    });
-                    printCellTwo.appendChild(certificateButtonTwo);
+                    printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificate('/.netlify/functions/generateCertificateTwo2/${student.id}')">عرض الثانية</button>`;
                 });
             } else {
                 // تم تعديل colspan ليناسب عدد الأعمدة الجديدة
@@ -146,7 +139,6 @@
         function showCertificate(url) {
             window.open(url, '_blank');
         }
-
 
         fetchStudents();
     </script>
