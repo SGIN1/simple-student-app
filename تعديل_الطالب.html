@@ -28,6 +28,50 @@
                 <input type="text" id="residency_number" name="residency_number">
             </div>
             <div class="form-group">
+                <label for="document_serial_number">الرقم التسلسلي للوثيقة:</label>
+                <input type="text" id="document_serial_number" name="document_serial_number">
+            </div>
+            <div class="form-group">
+                <label for="plate_number">رقم اللوحة:</label>
+                <input type="text" id="plate_number" name="plate_number">
+            </div>
+            <div class="form-group">
+                <label for="inspection_date">تاريخ الفحص:</label>
+                <input type="date" id="inspection_date" name="inspection_date">
+            </div>
+            <div class="form-group">
+                <label for="manufacturer">الشركة الصانعة:</label>
+                <input type="text" id="manufacturer" name="manufacturer">
+            </div>
+            <div class="form-group">
+                <label for="inspection_expiry_date">تاريخ انتهاء الفحص:</label>
+                <input type="date" id="inspection_expiry_date" name="inspection_expiry_date">
+            </div>
+            <div class="form-group">
+                <label for="car_type">نوع السيارة:</label>
+                <input type="text" id="car_type" name="car_type">
+            </div>
+            <div class="form-group">
+                <label for="counter_reading">قراءة العداد:</label>
+                <input type="number" id="counter_reading" name="counter_reading">
+            </div>
+            <div class="form-group">
+                <label for="chassis_number">رقم الهيكل:</label>
+                <input type="text" id="chassis_number" name="chassis_number">
+            </div>
+            <div class="form-group">
+                <label for="vehicle_model">طراز المركبة:</label>
+                <input type="text" id="vehicle_model" name="vehicle_model">
+            </div>
+            <div class="form-group">
+                <label for="color">اللون:</label>
+                <input type="text" id="color" name="color">
+            </div>
+            <div class="form-group">
+                <label for="serial_number_duplicate">الرقم التسلسلي:</label>
+                <input type="text" id="serial_number_duplicate" name="serial_number_duplicate">
+            </div>
+            <div class="form-group">
                 <button type="submit">حفظ التعديلات</button>
             </div>
             <div id="errorMessage" class="error-message" style="display:none;"></div>
@@ -44,6 +88,17 @@
         const form = document.getElementById('editStudentForm');
         const serialNumberInput = document.getElementById('serial_number');
         const residencyNumberInput = document.getElementById('residency_number');
+        const documentSerialNumberInput = document.getElementById('document_serial_number');
+        const plateNumberInput = document.getElementById('plate_number');
+        const inspectionDateInput = document.getElementById('inspection_date');
+        const manufacturerInput = document.getElementById('manufacturer');
+        const inspectionExpiryDateInput = document.getElementById('inspection_expiry_date');
+        const carTypeInput = document.getElementById('car_type');
+        const counterReadingInput = document.getElementById('counter_reading');
+        const chassisNumberInput = document.getElementById('chassis_number');
+        const vehicleModelInput = document.getElementById('vehicle_model');
+        const colorInput = document.getElementById('color');
+        const serialNumberDuplicateInput = document.getElementById('serial_number_duplicate');
         const errorMessageDiv = document.getElementById('errorMessage');
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -55,6 +110,17 @@
                 // عرض مؤشر تحميل
                 serialNumberInput.value = 'جارٍ التحميل...';
                 residencyNumberInput.value = 'جارٍ التحميل...';
+                documentSerialNumberInput.value = 'جارٍ التحميل...';
+                plateNumberInput.value = 'جارٍ التحميل...';
+                inspectionDateInput.value = 'جارٍ التحميل...';
+                manufacturerInput.value = 'جارٍ التحميل...';
+                inspectionExpiryDateInput.value = 'جارٍ التحميل...';
+                carTypeInput.value = 'جارٍ التحميل...';
+                counterReadingInput.value = 'جارٍ التحميل...';
+                chassisNumberInput.value = 'جارٍ التحميل...';
+                vehicleModelInput.value = 'جارٍ التحميل...';
+                colorInput.value = 'جارٍ التحميل...';
+                serialNumberDuplicateInput.value = 'جارٍ التحميل...';
 
                 const response = await fetch(`/.netlify/functions/getStudent?id=${id}`);
                 const data = await response.json();
@@ -63,17 +129,50 @@
                     console.log('Student data fetched:', data);
                     serialNumberInput.value = data.serial_number;
                     residencyNumberInput.value = data.residency_number;
+                    documentSerialNumberInput.value = data.document_serial_number || '';
+                    plateNumberInput.value = data.plate_number || '';
+                    inspectionDateInput.value = data.inspection_date || '';
+                    manufacturerInput.value = data.manufacturer || '';
+                    inspectionExpiryDateInput.value = data.inspection_expiry_date || '';
+                    carTypeInput.value = data.car_type || '';
+                    counterReadingInput.value = data.counter_reading || '';
+                    chassisNumberInput.value = data.chassis_number || '';
+                    vehicleModelInput.value = data.vehicle_model || '';
+                    colorInput.value = data.color || '';
+                    serialNumberDuplicateInput.value = data.serial_number_duplicate || '';
                 } else {
                     console.error('Failed to fetch student data:', data.error || 'Unknown error');
                     alert('حدث خطأ أثناء محاولة جلب بيانات الطالب.');
                     serialNumberInput.value = ''; // مسح مؤشر التحميل في حالة الخطأ
                     residencyNumberInput.value = '';
+                    documentSerialNumberInput.value = '';
+                    plateNumberInput.value = '';
+                    inspectionDateInput.value = '';
+                    manufacturerInput.value = '';
+                    inspectionExpiryDateInput.value = '';
+                    carTypeInput.value = '';
+                    counterReadingInput.value = '';
+                    chassisNumberInput.value = '';
+                    vehicleModelInput.value = '';
+                    colorInput.value = '';
+                    serialNumberDuplicateInput.value = '';
                 }
             } catch (error) {
                 console.error('Error fetching student data:', error);
                 alert('حدث خطأ أثناء محاولة جلب بيانات الطالب.');
                 serialNumberInput.value = ''; // مسح مؤشر التحميل في حالة الخطأ
                 residencyNumberInput.value = '';
+                documentSerialNumberInput.value = '';
+                plateNumberInput.value = '';
+                inspectionDateInput.value = '';
+                manufacturerInput.value = '';
+                inspectionExpiryDateInput.value = '';
+                carTypeInput.value = '';
+                counterReadingInput.value = '';
+                chassisNumberInput.value = '';
+                vehicleModelInput.value = '';
+                colorInput.value = '';
+                serialNumberDuplicateInput.value = '';
             }
         }
 
@@ -82,7 +181,18 @@
             const updatedData = {
                 id: studentId,
                 serial_number: serialNumberInput.value,
-                residency_number: residencyNumberInput.value
+                residency_number: residencyNumberInput.value,
+                document_serial_number: documentSerialNumberInput.value,
+                plate_number: plateNumberInput.value,
+                inspection_date: inspectionDateInput.value,
+                manufacturer: manufacturerInput.value,
+                inspection_expiry_date: inspectionExpiryDateInput.value,
+                car_type: carTypeInput.value,
+                counter_reading: counterReadingInput.value,
+                chassis_number: chassisNumberInput.value,
+                vehicle_model: vehicleModelInput.value,
+                color: colorInput.value,
+                serial_number_duplicate: serialNumberDuplicateInput.value
             };
 
             try {
@@ -96,7 +206,6 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    // إزالة الـ alert والانتقال مباشرة
                     window.location.href = 'بيانات_الطلاب.html'; // العودة إلى صفحة البيانات
                 } else {
                     errorMessageDiv.textContent = result.error || 'حدث خطأ أثناء تحديث بيانات الطالب.';

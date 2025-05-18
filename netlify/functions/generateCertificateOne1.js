@@ -1,3 +1,4 @@
+// netlify/functions/generateCertificateOne1.js
 const { MongoClient, ObjectId } = require('mongodb');
 const QRCode = require('qrcode');
 
@@ -74,6 +75,7 @@ exports.handler = async (event, context) => {
                     .data { margin-top: 20px; }
                     .serial { font-size: 1.2em; font-weight: bold; }
                     .residency { font-size: 1.2em; font-weight: bold; }
+                    .other-data { margin-top: 10px; font-size: 1em; }
                     .qrcode-container { margin-top: 20px; }
                     .qrcode-container img { max-width: 150px; }
                     .qrcode-text { font-size: 0.8em; color: gray; }
@@ -85,6 +87,17 @@ exports.handler = async (event, context) => {
                     <div class="data">
                         <p class="serial">${student.serial_number}</p>
                         <p class="residency">${student.residency_number}</p>
+                        <p class="other-data">الرقم التسلسلي للوثيقة: ${student.document_serial_number || 'غير محدد'}</p>
+                        <p class="other-data">رقم اللوحة: ${student.plate_number || 'غير محدد'}</p>
+                        <p class="other-data">تاريخ الفحص: ${student.inspection_date || 'غير محدد'}</p>
+                        <p class="other-data">الشركة الصانعة: ${student.manufacturer || 'غير محدد'}</p>
+                        <p class="other-data">تاريخ انتهاء الفحص: ${student.inspection_expiry_date || 'غير محدد'}</p>
+                        <p class="other-data">نوع السيارة: ${student.car_type || 'غير محدد'}</p>
+                        <p class="other-data">قراءة العداد: ${student.counter_reading || 'غير محدد'}</p>
+                        <p class="other-data">رقم الهيكل: ${student.chassis_number || 'غير محدد'}</p>
+                        <p class="other-data">طراز المركبة: ${student.vehicle_model || 'غير محدد'}</p>
+                        <p class="other-data">اللون: ${student.color || 'غير محدد'}</p>
+                        <p class="other-data">الرقم التسلسلي: ${student.serial_number_duplicate || 'غير محدد'}</p>
                         ${qrCodeDataUri ? `
                             <div class="qrcode-container">
                                 <img src="${qrCodeDataUri}" alt="QR Code للشهادة الثانية">

@@ -89,7 +89,9 @@ label {
     margin-bottom: 10px;
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="date"],
+input[type="number"] {
     width: calc(100% - 20px);
     padding: 10px;
     margin-bottom: 15px;
@@ -167,7 +169,9 @@ button {
     font-weight: bold;
 }
 
-.form-group input[type="text"] {
+.form-group input[type="text"],
+.form-group input[type="date"],
+.form-group input[type="number"] {
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;
@@ -195,4 +199,37 @@ button {
 .error-message {
     color: red;
     margin-top: 10px;
+}
+
+.back-link {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.back-link a {
+    color: var(--اللون-الرئيسي);
+    text-decoration: none;
+}
+
+.back-link a:hover {
+    text-decoration: underline;
+}
+
+.message {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
 }

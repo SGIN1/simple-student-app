@@ -1,3 +1,4 @@
+// netlify/functions/updateStudent.js
 const { MongoClient, ObjectId } = require('mongodb');
 
 const uri = process.env.MONGODB_URI;
@@ -12,7 +13,22 @@ exports.handler = async (event, context) => {
     let client;
 
     try {
-        const { id, serial_number, residency_number } = JSON.parse(event.body);
+        const {
+            id,
+            serial_number,
+            residency_number,
+            document_serial_number,
+            plate_number,
+            inspection_date,
+            manufacturer,
+            inspection_expiry_date,
+            car_type,
+            counter_reading,
+            chassis_number,
+            vehicle_model,
+            color,
+            serial_number_duplicate
+        } = JSON.parse(event.body);
 
         if (!id || !serial_number || !residency_number) {
             return { statusCode: 400, body: JSON.stringify({ error: 'مُعرّف الطالب والرقم التسلسلي ورقم الإقامة كلها مطلوبة.' }) };
@@ -25,7 +41,23 @@ exports.handler = async (event, context) => {
 
         const updateResult = await studentsCollection.updateOne(
             { _id: new ObjectId(id) },
-            { $set: { serial_number, residency_number } }
+            {
+                $set: {
+                    serial_number,
+                    residency_number,
+                    document_serial_number,
+                    plate_number,
+                    inspection_date,
+                    manufacturer,
+                    inspection_expiry_date,
+                    car_type,
+                    counter_reading,
+                    chassis_number,
+                    vehicle_model,
+                    color,
+                    serial_number_duplicate
+                }
+            }
         );
 
         if (updateResult.modifiedCount > 0) {

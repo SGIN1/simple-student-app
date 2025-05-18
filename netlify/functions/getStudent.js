@@ -44,6 +44,17 @@ exports.handler = async (event, context) => {
                         id: student._id.toString(),
                         serial_number: student.serial_number,
                         residency_number: student.residency_number,
+                        document_serial_number: student.document_serial_number,
+                        plate_number: student.plate_number,
+                        inspection_date: student.inspection_date,
+                        manufacturer: student.manufacturer,
+                        inspection_expiry_date: student.inspection_expiry_date,
+                        car_type: student.car_type,
+                        counter_reading: student.counter_reading,
+                        chassis_number: student.chassis_number,
+                        vehicle_model: student.vehicle_model,
+                        color: student.color,
+                        serial_number_duplicate: student.serial_number_duplicate,
                         created_at: student.created_at ? new Date(student.created_at).toLocaleDateString() : 'غير محدد'
                     }),
                     headers: {
@@ -66,6 +77,17 @@ exports.handler = async (event, context) => {
                 id: student._id.toString(),
                 serial_number: student.serial_number,
                 residency_number: student.residency_number,
+                document_serial_number: student.document_serial_number,
+                plate_number: student.plate_number,
+                inspection_date: student.inspection_date,
+                manufacturer: student.manufacturer,
+                inspection_expiry_date: student.inspection_expiry_date,
+                car_type: student.car_type,
+                counter_reading: student.counter_reading,
+                chassis_number: student.chassis_number,
+                vehicle_model: student.vehicle_model,
+                color: student.color,
+                serial_number_duplicate: student.serial_number_duplicate,
                 created_at: student.created_at ? new Date(student.created_at).toLocaleDateString() : 'غير محدد'
             }));
 

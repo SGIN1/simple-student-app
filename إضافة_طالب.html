@@ -25,6 +25,39 @@
             <label for="residency_number">رقم الإقامة:</label>
             <input type="text" id="residency_number" name="residency_number" required>
 
+            <label for="document_serial_number">الرقم التسلسلي للوثيقة:</label>
+            <input type="text" id="document_serial_number" name="document_serial_number">
+
+            <label for="plate_number">رقم اللوحة:</label>
+            <input type="text" id="plate_number" name="plate_number">
+
+            <label for="inspection_date">تاريخ الفحص:</label>
+            <input type="date" id="inspection_date" name="inspection_date">
+
+            <label for="manufacturer">الشركة الصانعة:</label>
+            <input type="text" id="manufacturer" name="manufacturer">
+
+            <label for="inspection_expiry_date">تاريخ انتهاء الفحص:</label>
+            <input type="date" id="inspection_expiry_date" name="inspection_expiry_date">
+
+            <label for="car_type">نوع السيارة:</label>
+            <input type="text" id="car_type" name="car_type">
+
+            <label for="counter_reading">قراءة العداد:</label>
+            <input type="number" id="counter_reading" name="counter_reading">
+
+            <label for="chassis_number">رقم الهيكل:</label>
+            <input type="text" id="chassis_number" name="chassis_number">
+
+            <label for="vehicle_model">طراز المركبة:</label>
+            <input type="text" id="vehicle_model" name="vehicle_model">
+
+            <label for="color">اللون:</label>
+            <input type="text" id="color" name="color">
+
+            <label for="serial_number_duplicate">الرقم التسلسلي:</label>
+            <input type="text" id="serial_number_duplicate" name="serial_number_duplicate">
+
             <button type="submit" class="add-button">إضافة</button>
         </form>
         <div id="message" class="message" style="display:none;"></div>
@@ -58,6 +91,17 @@
             event.preventDefault();
             const serialNumber = document.getElementById('serial_number').value;
             const residencyNumber = document.getElementById('residency_number').value;
+            const documentSerialNumber = document.getElementById('document_serial_number').value;
+            const plateNumber = document.getElementById('plate_number').value;
+            const inspectionDate = document.getElementById('inspection_date').value;
+            const manufacturer = document.getElementById('manufacturer').value;
+            const inspectionExpiryDate = document.getElementById('inspection_expiry_date').value;
+            const carType = document.getElementById('car_type').value;
+            const counterReading = document.getElementById('counter_reading').value;
+            const chassisNumber = document.getElementById('chassis_number').value;
+            const vehicleModel = document.getElementById('vehicle_model').value;
+            const color = document.getElementById('color').value;
+            const serialNumberDuplicate = document.getElementById('serial_number_duplicate').value;
             const messageDiv = document.getElementById('message');
             messageDiv.style.display = 'block';
             messageDiv.textContent = 'جاري إضافة الطالب...';
@@ -68,7 +112,21 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ serial_number: serialNumber, residency_number: residencyNumber }),
+                body: JSON.stringify({
+                    serial_number: serialNumber,
+                    residency_number: residencyNumber,
+                    document_serial_number: documentSerialNumber,
+                    plate_number: plateNumber,
+                    inspection_date: inspectionDate,
+                    manufacturer: manufacturer,
+                    inspection_expiry_date: inspectionExpiryDate,
+                    car_type: carType,
+                    counter_reading: counterReading,
+                    chassis_number: chassisNumber,
+                    vehicle_model: vehicleModel,
+                    color: color,
+                    serial_number_duplicate: serialNumberDuplicate
+                }),
             });
 
             const data = await response.json();

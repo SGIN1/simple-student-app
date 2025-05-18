@@ -20,7 +20,7 @@ body {
     max-width: 1200px;
     margin: 20px auto;
     padding: 20px;
-    
+
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -76,7 +76,7 @@ body {
 }
 
 .add-new a:hover {
-    background-color: #218838; /* لون أغمق عند التhover */
+    background-color: #218838; /* لون أغمق عند الـ hover */
 }
 
 .btn-primary-new {
@@ -129,7 +129,7 @@ body {
     /* ... التنسيقات الخاصة بحقل البحث موجودة هنا ... */
 }
 
-.search-bar-container input[type="text"] {
+.search-form input[type="text"] {
     padding: 10px;
     border: 1px solid #bdc3c7;
     border-radius: 5px;
@@ -188,16 +188,73 @@ th:first-child, td:first-child {
     border-right: none;
 }
 
-th:nth-child(5), td:nth-child(5) {
-    width: 80px;
+/* تحديد عرض الأعمدة - يمكنك تعديل هذه القيم حسب الحاجة */
+th:nth-child(1), td:nth-child(1) { /* المعرف */
+    width: 60px;
 }
 
-th:nth-child(6), td:nth-child(6) {
-    width: 80px;
+th:nth-child(2), td:nth-child(2) { /* الرقم التسلسلي */
+    width: 100px;
 }
 
-th:nth-child(7), td:nth-child(7) {
+th:nth-child(3), td:nth-child(3) { /* رقم الإقامة */
+    width: 100px;
+}
+
+th:nth-child(4), td:nth-child(4) { /* الرقم التسلسلي للوثيقة */
     width: 120px;
+}
+
+th:nth-child(5), td:nth-child(5) { /* رقم اللوحة */
+    width: 90px;
+}
+
+th:nth-child(6), td:nth-child(6) { /* تاريخ الفحص */
+    width: 100px;
+}
+
+th:nth-child(7), td:nth-child(7) { /* الشركة الصانعة */
+    width: 120px;
+}
+
+th:nth-child(8), td:nth-child(8) { /* تاريخ انتهاء الفحص */
+    width: 120px;
+}
+
+th:nth-child(9), td:nth-child(9) { /* نوع السيارة */
+    width: 100px;
+}
+
+th:nth-child(10), td:nth-child(10) { /* قراءة العداد */
+    width: 90px;
+}
+
+th:nth-child(11), td:nth-child(11) { /* رقم الهيكل */
+    width: 120px;
+}
+
+th:nth-child(12), td:nth-child(12) { /* طراز المركبة */
+    width: 100px;
+}
+
+th:nth-child(13), td:nth-child(13) { /* اللون */
+    width: 80px;
+}
+
+th:nth-child(14), td:nth-child(14) { /* الرقم التسلسلي (مكرر) */
+    width: 120px;
+}
+
+th:nth-child(15), td:nth-child(15) { /* تاريخ الإضافة */
+    width: 120px;
+}
+
+th:nth-child(16), td:nth-child(16), /* الإجراءات (تعديل) */
+th:nth-child(17), td:nth-child(17), /* الإجراءات1 (حذف) */
+th:nth-child(18), td:nth-child(18), /* عرض الشهادة الأولى */
+th:nth-child(19), td:nth-child(19)   /* عرض الشهادة الثانية */
+{
+    width: 100px; /* عرض ثابت لأعمدة الإجراءات */
 }
 
 .edit-btn {
@@ -278,7 +335,7 @@ th:nth-child(7), td:nth-child(7) {
         margin-bottom: 10px;
     }
 
-    .search-bar-container input[type="text"] {
+    .search-form input[type="text"] {
         width: 100%;
     }
 
@@ -295,5 +352,32 @@ th:nth-child(7), td:nth-child(7) {
     th, td {
         font-size: 14px;
         padding: 8px 5px;
+    }
+
+    /* جعل الجدول يتدفق أفقيًا على الشاشات الصغيرة */
+    table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    thead th {
+        white-space: nowrap;
+    }
+
+    tbody td {
+        white-space: nowrap;
+    }
+
+    /* إعادة تعيين عرض الأعمدة ليناسب المحتوى في الوضع الأفقي */
+    th:nth-child(n),
+    td:nth-child(n) {
+        width: auto;
+    }
+
+    /* تنسيقات إضافية لأزرار الإجراءات في الوضع الرأسي */
+    .edit-btn, .delete-btn, .print-btn {
+        display: inline-block;
+        margin: 5px;
+        width: auto;
     }
 }

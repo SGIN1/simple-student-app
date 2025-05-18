@@ -6,38 +6,67 @@ const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
 exports.handler = async (event, context) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
-  }
-
-  let client; // تعريف الـ client هنا عشان يكون متاح في الـ finally
-
-  try {
-    const { serial_number, residency_number } = JSON.parse(event.body);
-
-    if (!serial_number || !residency_number) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'الرقم التسلسلي ورقم الإقامة كلاهما مطلوبان.' }) };
+    if (event.httpMethod !== 'POST') {
+        return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
     }
 
-    client = new MongoClient(uri); // إنشاء الـ client
-    await client.connect();
-    const database = client.db(dbName);
-    const studentsCollection = database.collection(collectionName);
+    let client; // تعريف الـ client هنا عشان يكون متاح في الـ finally
 
-    const result = await studentsCollection.insertOne({ serial_number, residency_number });
+    try {
+        const {
+            serial_number,
+            residency_number,
+            document_serial_number,
+            plate_number,
+            inspection_date,
+            manufacturer,
+            inspection_expiry_date,
+            car_type,
+            counter_reading,
+            chassis_number,
+            vehicle_model,
+            color,
+            serial_number_duplicate
+        } = JSON.parse(event.body);
 
-    if (result.acknowledged && result.insertedId) {
-      return { statusCode: 200, body: JSON.stringify({ message: 'تم إضافة الطالب بنجاح!' }) };
-    } else {
-      return { statusCode: 500, body: JSON.stringify({ error: 'فشل في إضافة الطالب إلى قاعدة البيانات.' }) };
+        if (!serial_number || !residency_number) {
+            return { statusCode: 400, body: JSON.stringify({ error: 'الرقم التسلسلي ورقم الإقامة كلاهما مطلوبان.' }) };
+        }
+
+        client = new MongoClient(uri); // إنشاء الـ client
+        await client.connect();
+        const database = client.db(dbName);
+        const studentsCollection = database.collection(collectionName);
+
+        const result = await studentsCollection.insertOne({
+            serial_number,
+            residency_number,
+            document_serial_number,
+            plate_number,
+            inspection_date,
+            manufacturer,
+            inspection_expiry_date,
+            car_type,
+            counter_reading,
+            chassis_number,
+            vehicle_model,
+            color,
+            serial_number_duplicate,
+            created_at: new Date() // إضافة تاريخ الإنشاء التلقائي
+        });
+
+        if (result.acknowledged && result.insertedId) {
+            return { statusCode: 200, body: JSON.stringify({ message: 'تم إضافة الطالب بنجاح!' }) };
+        } else {
+            return { statusCode: 500, body: JSON.stringify({ error: 'فشل في إضافة الطالب إلى قاعدة البيانات.' }) };
+        }
+
+    } catch (error) {
+        console.error('خطأ في وظيفة إضافة الطالب:', error);
+        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+    } finally {
+        if (client) { // التأكد إن الـ client تم إنشاؤه قبل محاولة إغلاقه
+            await client.close();
+        }
     }
-
-  } catch (error) {
-    console.error('خطأ في وظيفة إضافة الطالب:', error);
-    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
-  } finally {
-    if (client) { // التأكد إن الـ client تم إنشاؤه قبل محاولة إغلاقه
-      await client.close();
-    }
-  }
 };
