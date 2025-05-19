@@ -1,15 +1,16 @@
 const { MongoClient, ObjectId } = require('mongodb');
 const Jimp = require('jimp');
+const path = require('path');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **مسار صورة الشهادة (معدل ليناسب جذر الموقع):**
-const CERTIFICATE_IMAGE_PATH = '/public/images_temp/wwee.jpg';
+// **مسار صورة الشهادة (معدل ليناسب مكان ملف الدالة):**
+const CERTIFICATE_IMAGE_PATH = path.join(__dirname, 'images_temp', 'wwee.jpg');
 
-// **مسار الخط:** تأكد إن ملف الخط arial.ttf موجود في مجلد netlify/functions/fonts/
-const FONT_PATH = './arial.ttf';
+// **مسار الخط (معدل ليناسب مكان ملف الدالة):**
+const FONT_PATH = path.join(__dirname, 'fonts', 'arial.ttf');
 
 const TEXT_STYLE = `
     position: absolute;
@@ -121,80 +122,80 @@ exports.handler = async (event, context) => {
         const otherFontSize = imageHeight * 0.035;
 
         const htmlContent = `<!DOCTYPE html>
-            <html lang="ar" style="height: 100%;">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, minimum-scale=0.1">
-                <title>الشهادة</title>
-                <style>
-                    body {
-                        margin: 0px;
-                        height: 100%;
-                        background-color: rgb(14, 14, 14);
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                    }
-                    .certificate-container {
-                        position: relative;
-                        width: ${imageWidth}px;
-                        height: ${imageHeight}px;
-                    }
-                    .certificate-image {
-                        display: block;
-                        width: 100%;
-                        height: 100%;
-                        object-fit: contain;
-                    }
-                    @font-face {
-                        font-family: 'ArabicFont';
-                        src: url('${FONT_PATH}') format('truetype');
-                    }
-                    .student-name {
-                        ${STUDENT_NAME_STYLE}
-                        top: ${nameTop}px;
-                        font-size: ${nameFontSize}px;
-                    }
-                    .serial-number {
-                        ${SERIAL_NUMBER_STYLE}
-                        top: ${serialTop}px;
-                        font-size: ${serialFontSize}px;
-                    }
-                    .document-serial-number {
-                        ${DOCUMENT_SERIAL_NUMBER_STYLE}
-                        top: ${docSerialTop}px;
-                        font-size: ${otherFontSize}px;
-                    }
-                    .plate-number {
-                        ${PLATE_NUMBER_STYLE}
-                        top: ${plateTop}px;
-                        font-size: ${otherFontSize}px;
-                    }
-                    .car-type {
-                        ${CAR_TYPE_STYLE}
-                        top: ${carTypeTop}px;
-                        font-size: ${otherFontSize}px;
-                    }
-                    .color {
-                        ${COLOR_STYLE}
-                        top: ${colorTop}px;
-                        font-size: ${otherFontSize}px;
-                    }
-                </style>
-            </head>
-            <body style="margin: 0px; height: 100%; background-color: rgb(14, 14, 14);">
-                <div class="certificate-container">
-                    <img class="certificate-image" src="${CERTIFICATE_IMAGE_PATH}" alt="الشهادة">
-                    <div class="student-name">${studentNameArabic}</div>
-                    <div class="serial-number">${serialNumber}</div>
-                    <div class="document-serial-number"> ${documentSerialNumber}</div>
-                    <div class="plate-number">رقم اللوحة: ${plateNumber}</div>
-                    <div class="car-type">نوع السيارة: ${carType}</div>
-                    <div class="color">اللون: ${color}</div>
-                </div>
-            </body>
-            </html>
-        `;
+        <html lang="ar" style="height: 100%;">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, minimum-scale=0.1">
+            <title>الشهادة</title>
+            <style>
+                body {
+                    margin: 0px;
+                    height: 100%;
+                    background-color: rgb(14, 14, 14);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                }
+                .certificate-container {
+                    position: relative;
+                    width: ${imageWidth}px;
+                    height: ${imageHeight}px;
+                }
+                .certificate-image {
+                    display: block;
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
+                }
+                @font-face {
+                    font-family: 'ArabicFont';
+                    src: url('${FONT_PATH}') format('truetype');
+                }
+                .student-name {
+                    ${STUDENT_NAME_STYLE}
+                    top: ${nameTop}px;
+                    font-size: ${nameFontSize}px;
+                }
+                .serial-number {
+                    ${SERIAL_NUMBER_STYLE}
+                    top: ${serialTop}px;
+                    font-size: ${serialFontSize}px;
+                }
+                .document-serial-number {
+                    ${DOCUMENT_SERIAL_NUMBER_STYLE}
+                    top: ${docSerialTop}px;
+                    font-size: ${otherFontSize}px;
+                }
+                .plate-number {
+                    ${PLATE_NUMBER_STYLE}
+                    top: ${plateTop}px;
+                    font-size: ${otherFontSize}px;
+                }
+                .car-type {
+                    ${CAR_TYPE_STYLE}
+                    top: ${carTypeTop}px;
+                    font-size: ${otherFontSize}px;
+                }
+                .color {
+                    ${COLOR_STYLE}
+                    top: ${colorTop}px;
+                    font-size: ${otherFontSize}px;
+                }
+            </style>
+        </head>
+        <body style="margin: 0px; height: 100%; background-color: rgb(14, 14, 14);">
+            <div class="certificate-container">
+                <img class="certificate-image" src="${CERTIFICATE_IMAGE_PATH}" alt="الشهادة">
+                <div class="student-name">${studentNameArabic}</div>
+                <div class="serial-number">${serialNumber}</div>
+                <div class="document-serial-number"> ${documentSerialNumber}</div>
+                <div class="plate-number">رقم اللوحة: ${plateNumber}</div>
+                <div class="car-type">نوع السيارة: ${carType}</div>
+                <div class="color">اللون: ${color}</div>
+            </div>
+        </body>
+        </html>
+    `;
 
         return {
             statusCode: 200,
