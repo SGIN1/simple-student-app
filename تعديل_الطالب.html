@@ -104,6 +104,24 @@
         const urlParams = new URLSearchParams(window.location.search);
         const studentId = urlParams.get('id');
 
+        // دالة لحساب تاريخ انتهاء الفحص بإضافة سنة واحدة
+        function calculateExpiryDate(inspectionDate) {
+            if (!inspectionDate) {
+                return '';
+            }
+            const date = new Date(inspectionDate);
+            date.setFullYear(date.getFullYear() + 1);
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // إضافة مستمع لحدث تغيير حقل تاريخ الفحص
+        inspectionDateInput.addEventListener('change', function() {
+            inspectionExpiryDateInput.value = calculateExpiryDate(this.value);
+        });
+
         async function fetchStudentData(id) {
             try {
                 console.log('Fetching student data for ID:', id);
