@@ -3,7 +3,7 @@
   functions = "netlify/functions"
 
 [functions.generateCertificateTwo2]
-  included_files = ["fonts/arial.ttf"]
+  included_files = ["fonts/arial.ttf", "images_temp/**"]
 
 [[redirects]]
   from = "/certificate/:id"
