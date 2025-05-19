@@ -9,8 +9,8 @@ const collectionName = 'enrolled_students_tbl';
 // **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee.jpg');
 
-// **مسار الخط:** يجب أن يكون موجودًا في مجلد netlify/functions/fonts
-const FONT_PATH = './arial.ttf';
+// **مسار الخط:** باستخدام path.join و process.cwd()
+const FONT_PATH = path.join(process.cwd(), 'netlify/functions/fonts/arial.ttf');
 
 // تعريف أنماط النصوص باستخدام Jimp
 const TEXT_COLOR = 0x000000FF; // أسود
@@ -65,8 +65,8 @@ exports.handler = async (event, context) => {
         // قراءة صورة الشهادة
         const image = await Jimp.read(CERTIFICATE_IMAGE_PATH);
 
-        // تحميل الخط
-        const font = await Jimp.loadFont(path.join(__dirname, FONT_PATH));
+        // تحميل الخط باستخدام المسار المطلق
+        const font = await Jimp.loadFont(FONT_PATH);
 
         const imageWidth = image.getWidth();
 
