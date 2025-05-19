@@ -1,5 +1,5 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const sharp = require('sharp');
+const Jimp = require('jimp');
 const path = require('path');
 
 const uri = process.env.MONGODB_URI;
@@ -9,103 +9,49 @@ const collectionName = 'enrolled_students_tbl';
 // **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee.jpg');
 
-// **مسار الخط:** يجب أن يكون موجودًا في مجلد netlify/functions/fonts
+// **مسار الخط:** استخدام المسار المطلق (سنبقيه كما هو مؤقتًا)
 const FONT_PATH = path.join(process.cwd(), 'netlify/functions/fonts/arial.ttf');
 
-async function generateTextOverlay(text, x, y, size, color, fontFamily, width, align) {
-    const svg = `
-        <svg width="${width}" height="${size * 1.2}">
-            <text x="${align === 'center' ? width / 2 : align === 'right' ? width : 0}" y="${size}"
-                  font-size="${size}" fill="${color}" font-family="${fontFamily}"
-                  text-anchor="${align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start'}">
-                ${text}
-            </text>
-        </svg>
-    `;
-    return Buffer.from(svg);
-}
+// تعريف أنماط النصوص باستخدام Jimp
+const TEXT_COLOR = 0x000000FF; // أسود
+const WHITE_COLOR = 0xFFFFFFFF;
+
+// **تعديل fontFamily لتجربة خط عربي شائع**
+const STUDENT_NAME_STYLE = { top: 150, fontSize: 48, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER, font: 'amiri' };
+const SERIAL_NUMBER_STYLE = { top: 220, fontSize: 28, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER, font: 'amiri' };
+const DOCUMENT_SERIAL_NUMBER_STYLE = { top: 280, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER, font: 'amiri' };
+const PLATE_NUMBER_STYLE = { top: 320, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER, font: 'amiri' };
+const CAR_TYPE_STYLE = { top: 360, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER, font: 'amiri' };
+const COLOR_STYLE = { top: 400, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER, font: 'amiri' };
 
 exports.handler = async (event, context) => {
-    const studentId = event.path.split('/').pop();
-    console.log('ID المستلم في وظيفة generateCertificateTwo2 باستخدام sharp:', studentId);
-
-    let client;
+    // ... (بقية الكود كما هو)
 
     try {
-        client = new MongoClient(uri);
-        await client.connect();
-        const database = client.db(dbName);
-        const studentsCollection = database.collection(collectionName);
+        // ... (بقية الكود كما هو)
 
-        let student;
-        try {
-            student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
-        } catch (objectIdError) {
-            console.error('خطأ في إنشاء ObjectId:', objectIdError);
-            return {
-                statusCode: 400,
-                body: JSON.stringify({ error: 'معرف الطالب غير صالح' }),
-                headers: { 'Content-Type': 'application/json' },
-            };
-        }
+        // قراءة صورة الشهادة
+        const image = await Jimp.read(CERTIFICATE_IMAGE_PATH);
 
-        if (!student) {
-            return {
-                statusCode: 404,
-                body: JSON.stringify({ error: `لم يتم العثور على طالب بالمعرف: ${studentId}` }),
-                headers: { 'Content-Type': 'application/json' },
-            };
-        }
+        // تحميل الخط باستخدام المسار المطلق (سنبقيه كما هو مؤقتًا)
+        const font = await Jimp.loadFont(FONT_PATH);
 
-        const serialNumber = student.serial_number;
-        const studentNameArabic = student.arabic_name || '';
-        const documentSerialNumber = student.document_serial_number || '';
-        const plateNumber = student.plate_number || '';
-        const carType = student.car_type || '';
-        const color = student.color || '';
+        const imageWidth = image.getWidth();
 
-        const image = sharp(CERTIFICATE_IMAGE_PATH);
-        const metadata = await image.metadata();
-        const imageWidth = metadata.width;
+        // كتابة النصوص على الصورة
+        image.print(font, 0, STUDENT_NAME_STYLE.top, { text: studentNameArabic, alignmentX: STUDENT_NAME_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
+        image.print(font, 0, SERIAL_NUMBER_STYLE.top, { text: serialNumber, alignmentX: SERIAL_NUMBER_STYLE.alignment, maxWidth: 180 }, 180);
+        image.print(font, 0, DOCUMENT_SERIAL_NUMBER_STYLE.top, { text: documentSerialNumber, alignmentX: DOCUMENT_SERIAL_NUMBER_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
+        image.print(font, 0, PLATE_NUMBER_STYLE.top, { text: `رقم اللوحة: ${plateNumber}`, alignmentX: PLATE_NUMBER_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
+        image.print(font, 0, CAR_TYPE_STYLE.top, { text: `نوع السيارة: ${carType}`, alignmentX: CAR_TYPE_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
+        image.print(font, 0, COLOR_STYLE.top, { text: `اللون: ${color}`, alignmentX: COLOR_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
 
-        // إنشاء طبقات النصوص SVG
-        const nameOverlay = await generateTextOverlay(studentNameArabic, 0, 150, 48, 'white', 'arial', imageWidth * 0.9, 'center');
-        const serialOverlay = await generateTextOverlay(serialNumber, 0, 220, 28, 'white', 'arial', 180, 'center');
-        const docSerialOverlay = await generateTextOverlay(documentSerialNumber, 0, 280, 20, 'black', 'arial', imageWidth * 0.9, 'center');
-        const plateOverlay = await generateTextOverlay(`رقم اللوحة: ${plateNumber}`, 0, 320, 20, 'black', 'arial', imageWidth * 0.9, 'center');
-        const carTypeOverlay = await generateTextOverlay(`نوع السيارة: ${carType}`, 0, 360, 20, 'black', 'arial', imageWidth * 0.9, 'center');
-        const colorOverlay = await generateTextOverlay(`اللون: ${color}`, 0, 400, 20, 'black', 'arial', imageWidth * 0.9, 'center');
-
-        // دمج الطبقات النصية مع الصورة الأساسية
-        const compositeImage = await image
-            .composite([
-                { input: nameOverlay, top: 150 - 48, left: Math.round(imageWidth * 0.05) }, // تعديل الموضع ليناسب النص
-                { input: serialOverlay, top: 220 - 28, left: Math.round((imageWidth - 180) / 2) },
-                { input: docSerialOverlay, top: 280 - 20, left: Math.round(imageWidth * 0.05) },
-                { input: plateOverlay, top: 320 - 20, left: Math.round(imageWidth * 0.05) },
-                { input: carTypeOverlay, top: 360 - 20, left: Math.round(imageWidth * 0.05) },
-                { input: colorOverlay, top: 400 - 20, left: Math.round(imageWidth * 0.05) },
-            ])
-            .jpeg()
-            .toBuffer();
-
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'image/jpeg',
-            },
-            body: compositeImage.toString('base64'),
-            isBase64Encoded: true,
-        };
+        // ... (بقية الكود كما هو)
 
     } catch (error) {
-        console.error('خطأ في وظيفة توليد الشهادة باستخدام sharp:', error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: 'حدث خطأ أثناء توليد الشهادة باستخدام sharp', details: error.message }),
-            headers: { 'Content-Type': 'application/json' },
-        };
+        console.error('خطأ في وظيفة توليد الشهادة:', error);
+        // ... (بقية معالجة الخطأ كما هي)
     } finally {
-        if (client) await client.close();
+        // ... (بقية finally كما هي)
     }
 };
