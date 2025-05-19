@@ -9,31 +9,63 @@ const collectionName = 'enrolled_students_tbl';
 // **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee.jpg');
 
-// **مسار الخط:** استخدام المسار المطلق (سنبقيه كما هو مؤقتًا)
-const FONT_PATH = path.join(process.cwd(), 'netlify/functions/fonts/arial.ttf');
+// **مسار الخط:** استخدام المسار النسبي لملف .fnt
+const FONT_PATH = path.join(__dirname, 'jimp_fonts', 'e6e0289bc1264f218cf23716cca11b4e-12.fnt'); // استخدم اسم أحد ملفات .fnt التي نزلتها
 
 // تعريف أنماط النصوص باستخدام Jimp
 const TEXT_COLOR = 0x000000FF; // أسود
 const WHITE_COLOR = 0xFFFFFFFF;
 
-// **تعديل fontFamily لتجربة خط عربي شائع**
-const STUDENT_NAME_STYLE = { top: 150, fontSize: 48, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER, font: 'amiri' };
-const SERIAL_NUMBER_STYLE = { top: 220, fontSize: 28, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER, font: 'amiri' };
-const DOCUMENT_SERIAL_NUMBER_STYLE = { top: 280, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER, font: 'amiri' };
-const PLATE_NUMBER_STYLE = { top: 320, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER, font: 'amiri' };
-const CAR_TYPE_STYLE = { top: 360, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER, font: 'amiri' };
-const COLOR_STYLE = { top: 400, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER, font: 'amiri' };
+const STUDENT_NAME_STYLE = { top: 150, fontSize: 48, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+const SERIAL_NUMBER_STYLE = { top: 220, fontSize: 28, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+const DOCUMENT_SERIAL_NUMBER_STYLE = { top: 280, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+const PLATE_NUMBER_STYLE = { top: 320, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+const CAR_TYPE_STYLE = { top: 360, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+const COLOR_STYLE = { top: 400, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
 
 exports.handler = async (event, context) => {
-    // ... (بقية الكود كما هو)
+    const studentId = event.path.split('/').pop();
+    console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
+
+    let client;
 
     try {
-        // ... (بقية الكود كما هو)
+        client = new MongoClient(uri);
+        await client.connect();
+        const database = client.db(dbName);
+        const studentsCollection = database.collection(collectionName);
+
+        let student;
+        try {
+            student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
+        } catch (objectIdError) {
+            console.error('خطأ في إنشاء ObjectId:', objectIdError);
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ error: 'معرف الطالب غير صالح' }),
+                headers: { 'Content-Type': 'application/json' },
+            };
+        }
+
+        if (!student) {
+            return {
+                statusCode: 404,
+                body: JSON.stringify({ error: `لم يتم العثور على طالب بالمعرف: ${studentId}` }),
+                headers: { 'Content-Type': 'application/json' },
+            };
+        }
+
+        const serialNumber = student.serial_number;
+        const studentNameArabic = student.arabic_name || '';
+        const documentSerialNumber = student.document_serial_number || '';
+        const plateNumber = student.plate_number || '';
+        const carType = student.car_type || '';
+        const color = student.color || '';
 
         // قراءة صورة الشهادة
         const image = await Jimp.read(CERTIFICATE_IMAGE_PATH);
 
-        // تحميل الخط باستخدام المسار المطلق (سنبقيه كما هو مؤقتًا)
+        // تحميل الخط باستخدام المسار النسبي لملف .fnt
         const font = await Jimp.loadFont(FONT_PATH);
 
         const imageWidth = image.getWidth();
@@ -46,12 +78,26 @@ exports.handler = async (event, context) => {
         image.print(font, 0, CAR_TYPE_STYLE.top, { text: `نوع السيارة: ${carType}`, alignmentX: CAR_TYPE_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
         image.print(font, 0, COLOR_STYLE.top, { text: `اللون: ${color}`, alignmentX: COLOR_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
 
-        // ... (بقية الكود كما هو)
+        // تحويل الصورة إلى Buffer
+        const processedImageBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+
+        return {
+            statusCode: 200,
+            headers: {
+                'Content-Type': 'image/jpeg',
+            },
+            body: processedImageBuffer.toString('base64'),
+            isBase64Encoded: true,
+        };
 
     } catch (error) {
         console.error('خطأ في وظيفة توليد الشهادة:', error);
-        // ... (بقية معالجة الخطأ كما هي)
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: 'حدث خطأ أثناء توليد الشهادة', details: error.message }),
+            headers: { 'Content-Type': 'application/json' },
+        };
     } finally {
-        // ... (بقية finally كما هي)
+        if (client) await client.close();
     }
 };

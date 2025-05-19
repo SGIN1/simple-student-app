@@ -3,7 +3,7 @@
   functions = "netlify/functions"
 
 [functions]
-  included_files = ["public/**", "netlify/functions/fonts/**"]
+  included_files = ["public/**", "netlify/functions/jimp_fonts/**"]
 
 [[redirects]]
   from = "/certificate/:id"
