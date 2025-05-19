@@ -2,8 +2,8 @@
   base = "/"
   functions = "netlify/functions"
 
-[functions.generateCertificateTwo2]
-  included_files = ["fonts/arial.ttf", "images_temp/**"]
+[functions]
+  included_files = ["public/images_temp/**", "fonts/arial.ttf"]
 
 [[redirects]]
   from = "/certificate/:id"
