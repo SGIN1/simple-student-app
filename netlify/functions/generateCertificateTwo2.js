@@ -1,145 +1,187 @@
-const fs = require('fs').promises;
-const path = require('path');
-const Jimp = require('jimp');
+const { MongoClient, ObjectId } = require('mongodb');
+const path = require('path'); // استيراد وحدة path
+
+const uri = process.env.MONGODB_URI;
+const dbName = 'Cluster0';
+const collectionName = 'enrolled_students_tbl';
+
+// **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
+const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee.jpg');
 
 // **مسار الخط:** يجب أن يكون موجودًا في مجلد netlify/functions/fonts
-const FONT_PATH = './fonts/arial.ttf';
+const FONT_PATH = './arial.ttf';
 
-// تعريف أنماط النصوص
-const TEXT_STYLE = {
-    fontSize: 24,
-    color: 0x000000FF, // أسود (RRGGBBAA)
-    textAlign: Jimp.HORIZONTAL_ALIGN_CENTER,
-    // أي خيارات أخرى للخط يمكنك إضافتها هنا
-};
+const TEXT_STYLE = `
+    position: absolute;
+    font-size: 24px;
+    color: black;
+    text-align: center;
+    width: 90%;
+    left: 50%;
+    transform: translateX(-50%);
+`;
 
-const STUDENT_NAME_STYLE = {
-    ...TEXT_STYLE,
-    top: 150,
-    fontSize: 48,
-    color: 0xFFFFFFFF, // أبيض
-};
+const STUDENT_NAME_STYLE = `
+    ${TEXT_STYLE}
+    top: 150px;
+    font-size: 48px;
+    font-family: 'ArabicFont', serif;
+    color: #fff;
+`;
 
-const SERIAL_NUMBER_STYLE = {
-    ...TEXT_STYLE,
-    top: 220,
-    fontSize: 28,
-    fontWeight: Jimp.FONT_SANS_32_BLACK, // يمكنك تجربة أحجام وأنماط أخرى
-    color: 0xFFFFFFFF, // أبيض
-};
+const SERIAL_NUMBER_STYLE = `
+    ${TEXT_STYLE}
+    top: 220px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #fff;
+    font-family: sans-serif;
+    width: 180px;
+`;
 
-const DOCUMENT_SERIAL_NUMBER_STYLE = {
-    ...TEXT_STYLE,
-    top: 280,
-    fontSize: 20,
-    color: 0x333333FF, // رمادي غامق
-};
+const DOCUMENT_SERIAL_NUMBER_STYLE = `
+    ${TEXT_STYLE}
+    top: 280px;
+    font-size: 20px;
+    color: #333;
+`;
 
-const PLATE_NUMBER_STYLE = {
-    ...TEXT_STYLE,
-    top: 320,
-    fontSize: 20,
-    color: 0x333333FF, // رمادي غامق
-};
+const PLATE_NUMBER_STYLE = `
+    ${TEXT_STYLE}
+    top: 320px;
+    font-size: 20px;
+    color: #333;
+`;
 
-const CAR_TYPE_STYLE = {
-    ...TEXT_STYLE,
-    top: 360,
-    fontSize: 20,
-    color: 0x333333FF, // رمادي غامق
-};
+const CAR_TYPE_STYLE = `
+    ${TEXT_STYLE}
+    top: 360px;
+    font-size: 20px;
+    color: #333;
+`;
 
-const COLOR_STYLE = {
-    ...TEXT_STYLE,
-    top: 400,
-    fontSize: 20,
-    color: 0x333333FF, // رمادي غامق
-};
+const COLOR_STYLE = `
+    ${TEXT_STYLE}
+    top: 400px;
+    font-size: 20px;
+    color: #333;
+`;
 
 exports.handler = async (event, context) => {
-    const studentId = event.path.split('/').pop();
+    const studentId = event.path.split('/').pop(); // استخراج المعرّف من event.path
     console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
+    let client;
+
     try {
-        // استخدام المسار المطلق لصورة الشهادة
-        const imagePath = path.join(process.cwd(), "public/images_temp/wwee.jpg");
-        console.log('محاولة قراءة الصورة من المسار المطلق:', imagePath);
-        const image = await Jimp.read(imagePath);
-        console.log('تم قراءة الصورة بنجاح.');
+        client = new MongoClient(uri);
+        await client.connect();
+        const database = client.db(dbName);
+        const studentsCollection = database.collection(collectionName);
 
-        // تحميل الخط
-        const font = await Jimp.loadFont(path.join(__dirname, FONT_PATH));
-        console.log('تم تحميل الخط بنجاح.');
+        let student;
+        try {
+            student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
+        } catch (objectIdError) {
+            console.error('خطأ في إنشاء ObjectId:', objectIdError);
+            return {
+                statusCode: 400,
+                body: '<h1>معرف الطالب غير صالح</h1><p>يجب أن يكون المعرف سلسلة نصية مكونة من 24 حرفًا سداسيًا عشريًا.</p>',
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            };
+        }
 
-        // **هنا يجب أن تسترجع بيانات الطالب من قاعدة البيانات باستخدام `studentId`**
-        // **سنفترض مؤقتًا وجود كائن `student` يحتوي على البيانات**
-        const student = {
-            arabic_name: 'اسم الطالب النموذجي',
-            serial_number: 'SN-12345',
-            document_serial_number: 'DSN-67890',
-            plate_number: 'ABC-123',
-            car_type: 'سيدان',
-            color: 'أزرق',
-        };
+        if (!student) {
+            return {
+                statusCode: 404,
+                body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`,
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            };
+        }
 
-        // تحديد عرض الصورة (يمكنك الحصول عليها من `image.getWidth()`)
-        const imageWidth = image.getWidth();
+        const serialNumber = student.serial_number;
+        const studentNameArabic = student.arabic_name || '';
+        const documentSerialNumber = student.document_serial_number || '';
+        const plateNumber = student.plate_number || '';
+        const carType = student.car_type || '';
+        const color = student.color || '';
 
-        // كتابة النصوص على الصورة
-        image.print(font, 0, STUDENT_NAME_STYLE.top, {
-            text: student.arabic_name,
-            alignmentX: STUDENT_NAME_STYLE.textAlign,
-            maxWidth: imageWidth * 0.9 // استخدام 90% من عرض الصورة
-        }, imageWidth * 0.9);
-
-        image.print(font, 0, SERIAL_NUMBER_STYLE.top, {
-            text: student.serial_number,
-            alignmentX: SERIAL_NUMBER_STYLE.textAlign,
-            maxWidth: 180 // عرض ثابت للرقم التسلسلي
-        }, 180);
-
-        image.print(font, 0, DOCUMENT_SERIAL_NUMBER_STYLE.top, {
-            text: student.document_serial_number,
-            alignmentX: DOCUMENT_SERIAL_NUMBER_STYLE.textAlign,
-            maxWidth: imageWidth * 0.9
-        }, imageWidth * 0.9);
-
-        image.print(font, 0, PLATE_NUMBER_STYLE.top, {
-            text: `رقم اللوحة: ${student.plate_number}`,
-            alignmentX: PLATE_NUMBER_STYLE.textAlign,
-            maxWidth: imageWidth * 0.9
-        }, imageWidth * 0.9);
-
-        image.print(font, 0, CAR_TYPE_STYLE.top, {
-            text: `نوع السيارة: ${student.car_type}`,
-            alignmentX: CAR_TYPE_STYLE.textAlign,
-            maxWidth: imageWidth * 0.9
-        }, imageWidth * 0.9);
-
-        image.print(font, 0, COLOR_STYLE.top, {
-            text: `اللون: ${student.color}`,
-            alignmentX: COLOR_STYLE.textAlign,
-            maxWidth: imageWidth * 0.9
-        }, imageWidth * 0.9);
-
-        const processedImageBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="ar" style="height: 100%;">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, minimum-scale=0.1">
+                <title>الشهادة</title>
+                <style>
+                    body {
+                        margin: 0px;
+                        height: 100%;
+                        background-color: rgb(14, 14, 14);
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                    }
+                    img {
+                        display: block;
+                        -webkit-user-select: none;
+                        margin: auto;
+                        cursor: zoom-in;
+                        background-color: hsl(0, 0%, 90%);
+                        transition: background-color 300ms;
+                        width: 496px;
+                        height: 607px;
+                        position: relative; /* لجعل العناصر النصية المطلقة بالنسبة لهذه الصورة */
+                    }
+                    @font-face {
+                        font-family: 'ArabicFont';
+                        src: url('${FONT_PATH}') format('truetype');
+                    }
+                    .student-name {
+                        ${STUDENT_NAME_STYLE}
+                    }
+                    .serial-number {
+                        ${SERIAL_NUMBER_STYLE}
+                    }
+                    .document-serial-number {
+                        ${DOCUMENT_SERIAL_NUMBER_STYLE}
+                    }
+                    .plate-number {
+                        ${PLATE_NUMBER_STYLE}
+                    }
+                    .car-type {
+                        ${CAR_TYPE_STYLE}
+                    }
+                    .color {
+                        ${COLOR_STYLE}
+                    }
+                </style>
+            </head>
+            <body style="margin: 0px; height: 100%; background-color: rgb(14, 14, 14);">
+                <img style="display: block;-webkit-user-select: none;margin: auto;cursor: zoom-in;background-color: hsl(0, 0%, 90%);transition: background-color 300ms;" src="${CERTIFICATE_IMAGE_PATH}" width="496" height="607">
+                <div class="student-name">${studentNameArabic}</div>
+                <div class="serial-number">${serialNumber}</div>
+                <div class="document-serial-number"> ${documentSerialNumber}</div>
+                <div class="plate-number">رقم اللوحة: ${plateNumber}</div>
+                <div class="car-type">نوع السيارة: ${carType}</div>
+                <div class="color">اللون: ${color}</div>
+            </body>
+            </html>
+        `;
 
         return {
             statusCode: 200,
-            headers: {
-                "Content-Type": "image/jpeg"
-            },
-            body: processedImageBuffer.toString('base64'),
-            isBase64Encoded: true
+            body: htmlContent,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } catch (error) {
-        console.error("Error processing image:", error);
+        console.error('خطأ في وظيفة توليد الشهادة:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: "Failed to process image", details: error.message })
+            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
-        console.log('انتهاء وظيفة generateCertificateTwo2.');
-        // **لا تنسَ إضافة كود الاتصال بقاعدة البيانات وإغلاقه هنا**
+        if (client) await client.close();
     }
 };
