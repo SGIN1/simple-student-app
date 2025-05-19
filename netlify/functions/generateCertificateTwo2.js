@@ -1,5 +1,5 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const Jimp = require('jimp');
+const sharp = require('sharp');
 const path = require('path');
 
 const uri = process.env.MONGODB_URI;
@@ -9,23 +9,25 @@ const collectionName = 'enrolled_students_tbl';
 // **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee.jpg');
 
-// **مسار الخط:** استخدام المسار المطلق
+// **مسار الخط:** يجب أن يكون موجودًا في مجلد netlify/functions/fonts
 const FONT_PATH = path.join(process.cwd(), 'netlify/functions/fonts/arial.ttf');
 
-// تعريف أنماط النصوص باستخدام Jimp
-const TEXT_COLOR = 0x000000FF; // أسود
-const WHITE_COLOR = 0xFFFFFFFF;
-
-const STUDENT_NAME_STYLE = { top: 150, fontSize: 48, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const SERIAL_NUMBER_STYLE = { top: 220, fontSize: 28, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const DOCUMENT_SERIAL_NUMBER_STYLE = { top: 280, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const PLATE_NUMBER_STYLE = { top: 320, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const CAR_TYPE_STYLE = { top: 360, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const COLOR_STYLE = { top: 400, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+async function generateTextOverlay(text, x, y, size, color, fontFamily, width, align) {
+    const svg = `
+        <svg width="${width}" height="${size * 1.2}">
+            <text x="${align === 'center' ? width / 2 : align === 'right' ? width : 0}" y="${size}"
+                  font-size="${size}" fill="${color}" font-family="${fontFamily}"
+                  text-anchor="${align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start'}">
+                ${text}
+            </text>
+        </svg>
+    `;
+    return Buffer.from(svg);
+}
 
 exports.handler = async (event, context) => {
     const studentId = event.path.split('/').pop();
-    console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
+    console.log('ID المستلم في وظيفة generateCertificateTwo2 باستخدام sharp:', studentId);
 
     let client;
 
@@ -62,39 +64,45 @@ exports.handler = async (event, context) => {
         const carType = student.car_type || '';
         const color = student.color || '';
 
-        // قراءة صورة الشهادة
-        const image = await Jimp.read(CERTIFICATE_IMAGE_PATH);
+        const image = sharp(CERTIFICATE_IMAGE_PATH);
+        const metadata = await image.metadata();
+        const imageWidth = metadata.width;
 
-        // تحميل الخط باستخدام المسار المطلق
-        const font = await Jimp.loadFont(FONT_PATH);
+        // إنشاء طبقات النصوص SVG
+        const nameOverlay = await generateTextOverlay(studentNameArabic, 0, 150, 48, 'white', 'arial', imageWidth * 0.9, 'center');
+        const serialOverlay = await generateTextOverlay(serialNumber, 0, 220, 28, 'white', 'arial', 180, 'center');
+        const docSerialOverlay = await generateTextOverlay(documentSerialNumber, 0, 280, 20, 'black', 'arial', imageWidth * 0.9, 'center');
+        const plateOverlay = await generateTextOverlay(`رقم اللوحة: ${plateNumber}`, 0, 320, 20, 'black', 'arial', imageWidth * 0.9, 'center');
+        const carTypeOverlay = await generateTextOverlay(`نوع السيارة: ${carType}`, 0, 360, 20, 'black', 'arial', imageWidth * 0.9, 'center');
+        const colorOverlay = await generateTextOverlay(`اللون: ${color}`, 0, 400, 20, 'black', 'arial', imageWidth * 0.9, 'center');
 
-        const imageWidth = image.getWidth();
-
-        // كتابة النصوص على الصورة
-        image.print(font, 0, STUDENT_NAME_STYLE.top, { text: studentNameArabic, alignmentX: STUDENT_NAME_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-        image.print(font, 0, SERIAL_NUMBER_STYLE.top, { text: serialNumber, alignmentX: SERIAL_NUMBER_STYLE.alignment, maxWidth: 180 }, 180);
-        image.print(font, 0, DOCUMENT_SERIAL_NUMBER_STYLE.top, { text: documentSerialNumber, alignmentX: DOCUMENT_SERIAL_NUMBER_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-        image.print(font, 0, PLATE_NUMBER_STYLE.top, { text: `رقم اللوحة: ${plateNumber}`, alignmentX: PLATE_NUMBER_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-        image.print(font, 0, CAR_TYPE_STYLE.top, { text: `نوع السيارة: ${carType}`, alignmentX: CAR_TYPE_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-        image.print(font, 0, COLOR_STYLE.top, { text: `اللون: ${color}`, alignmentX: COLOR_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-
-        // تحويل الصورة إلى Buffer
-        const processedImageBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+        // دمج الطبقات النصية مع الصورة الأساسية
+        const compositeImage = await image
+            .composite([
+                { input: nameOverlay, top: 150 - 48, left: Math.round(imageWidth * 0.05) }, // تعديل الموضع ليناسب النص
+                { input: serialOverlay, top: 220 - 28, left: Math.round((imageWidth - 180) / 2) },
+                { input: docSerialOverlay, top: 280 - 20, left: Math.round(imageWidth * 0.05) },
+                { input: plateOverlay, top: 320 - 20, left: Math.round(imageWidth * 0.05) },
+                { input: carTypeOverlay, top: 360 - 20, left: Math.round(imageWidth * 0.05) },
+                { input: colorOverlay, top: 400 - 20, left: Math.round(imageWidth * 0.05) },
+            ])
+            .jpeg()
+            .toBuffer();
 
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'image/jpeg',
             },
-            body: processedImageBuffer.toString('base64'),
+            body: compositeImage.toString('base64'),
             isBase64Encoded: true,
         };
 
     } catch (error) {
-        console.error('خطأ في وظيفة توليد الشهادة:', error);
+        console.error('خطأ في وظيفة توليد الشهادة باستخدام sharp:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: 'حدث خطأ أثناء توليد الشهادة', details: error.message }),
+            body: JSON.stringify({ error: 'حدث خطأ أثناء توليد الشهادة باستخدام sharp', details: error.message }),
             headers: { 'Content-Type': 'application/json' },
         };
     } finally {
