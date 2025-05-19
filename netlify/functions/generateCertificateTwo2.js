@@ -5,10 +5,9 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **مسار صورة الشهادة:** تأكد إن هذا المسار مطابق تمامًا لمكان وجود ملف wwee.jpg في مشروعك على Netlify (غالبًا بيكون داخل public/images_temp/)
+// **تأكد من هذا المسار بدقة!**
 const CERTIFICATE_IMAGE_PATH = './public/images_temp/wwee.jpg';
 
-// **مسار الخط:** تأكد إن ملف الخط arial.ttf موجود في مجلد netlify/functions/fonts/
 const FONT_PATH = './arial.ttf';
 
 const TEXT_STYLE = `
@@ -105,7 +104,7 @@ exports.handler = async (event, context) => {
             console.error('خطأ في قراءة صورة الشهادة باستخدام Jimp:', error);
             return {
                 statusCode: 500,
-                body: `<h1>حدث خطأ أثناء معالجة صورة الشهادة</h1><p>${error.message}</p><p>${error.stack}</p>`, // أضفت stack عشان نشوف تفاصيل أكتر للخطأ
+                body: `<h1>حدث خطأ أثناء معالجة صورة الشهادة</h1><p>${error.message}</p><p>${error.stack}</p>`,
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
@@ -120,8 +119,7 @@ exports.handler = async (event, context) => {
         const colorTop = imageHeight * 0.69;
         const otherFontSize = imageHeight * 0.035;
 
-        const htmlContent = `
-            <!DOCTYPE html>
+        const htmlContent = `<!DOCTYPE html>
             <html lang="ar" style="height: 100%;">
             <head>
                 <meta charset="UTF-8">
@@ -207,7 +205,7 @@ exports.handler = async (event, context) => {
         console.error('خطأ في وظيفة توليد الشهادة:', error);
         return {
             statusCode: 500,
-            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p><p>${error.stack}</p>`, // أضفت stack هنا كمان
+            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p><p>${error.stack}</p>`,
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
