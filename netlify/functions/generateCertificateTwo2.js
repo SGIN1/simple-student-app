@@ -1,5 +1,6 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const path = require('path'); // استيراد وحدة path
+const Jimp = require('jimp');
+const path = require('path');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -11,64 +12,19 @@ const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee
 // **مسار الخط:** يجب أن يكون موجودًا في مجلد netlify/functions/fonts
 const FONT_PATH = './arial.ttf';
 
-const TEXT_STYLE = `
-    position: absolute;
-    font-size: 24px;
-    color: black;
-    text-align: center;
-    width: 90%;
-    left: 50%;
-    transform: translateX(-50%);
-`;
+// تعريف أنماط النصوص باستخدام Jimp
+const TEXT_COLOR = 0x000000FF; // أسود
+const WHITE_COLOR = 0xFFFFFFFF;
 
-const STUDENT_NAME_STYLE = `
-    ${TEXT_STYLE}
-    top: 150px;
-    font-size: 48px;
-    font-family: 'ArabicFont', serif;
-    color: #fff;
-`;
-
-const SERIAL_NUMBER_STYLE = `
-    ${TEXT_STYLE}
-    top: 220px;
-    font-size: 28px;
-    font-weight: bold;
-    color: #fff;
-    font-family: sans-serif;
-    width: 180px;
-`;
-
-const DOCUMENT_SERIAL_NUMBER_STYLE = `
-    ${TEXT_STYLE}
-    top: 280px;
-    font-size: 20px;
-    color: #333;
-`;
-
-const PLATE_NUMBER_STYLE = `
-    ${TEXT_STYLE}
-    top: 320px;
-    font-size: 20px;
-    color: #333;
-`;
-
-const CAR_TYPE_STYLE = `
-    ${TEXT_STYLE}
-    top: 360px;
-    font-size: 20px;
-    color: #333;
-`;
-
-const COLOR_STYLE = `
-    ${TEXT_STYLE}
-    top: 400px;
-    font-size: 20px;
-    color: #333;
-`;
+const STUDENT_NAME_STYLE = { top: 150, fontSize: 48, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+const SERIAL_NUMBER_STYLE = { top: 220, fontSize: 28, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+const DOCUMENT_SERIAL_NUMBER_STYLE = { top: 280, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+const PLATE_NUMBER_STYLE = { top: 320, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+const CAR_TYPE_STYLE = { top: 360, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+const COLOR_STYLE = { top: 400, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
 
 exports.handler = async (event, context) => {
-    const studentId = event.path.split('/').pop(); // استخراج المعرّف من event.path
+    const studentId = event.path.split('/').pop();
     console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
     let client;
@@ -86,16 +42,16 @@ exports.handler = async (event, context) => {
             console.error('خطأ في إنشاء ObjectId:', objectIdError);
             return {
                 statusCode: 400,
-                body: '<h1>معرف الطالب غير صالح</h1><p>يجب أن يكون المعرف سلسلة نصية مكونة من 24 حرفًا سداسيًا عشريًا.</p>',
-                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+                body: JSON.stringify({ error: 'معرف الطالب غير صالح' }),
+                headers: { 'Content-Type': 'application/json' },
             };
         }
 
         if (!student) {
             return {
                 statusCode: 404,
-                body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`,
-                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+                body: JSON.stringify({ error: `لم يتم العثور على طالب بالمعرف: ${studentId}` }),
+                headers: { 'Content-Type': 'application/json' },
             };
         }
 
@@ -106,80 +62,40 @@ exports.handler = async (event, context) => {
         const carType = student.car_type || '';
         const color = student.color || '';
 
-        const htmlContent = `
-            <!DOCTYPE html>
-            <html lang="ar" style="height: 100%;">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, minimum-scale=0.1">
-                <title>الشهادة</title>
-                <style>
-                    body {
-                        margin: 0px;
-                        height: 100%;
-                        background-color: rgb(14, 14, 14);
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                    }
-                    img {
-                        display: block;
-                        -webkit-user-select: none;
-                        margin: auto;
-                        cursor: zoom-in;
-                        background-color: hsl(0, 0%, 90%);
-                        transition: background-color 300ms;
-                        width: 496px;
-                        height: 607px;
-                        position: relative; /* لجعل العناصر النصية المطلقة بالنسبة لهذه الصورة */
-                    }
-                    @font-face {
-                        font-family: 'ArabicFont';
-                        src: url('${FONT_PATH}') format('truetype');
-                    }
-                    .student-name {
-                        ${STUDENT_NAME_STYLE}
-                    }
-                    .serial-number {
-                        ${SERIAL_NUMBER_STYLE}
-                    }
-                    .document-serial-number {
-                        ${DOCUMENT_SERIAL_NUMBER_STYLE}
-                    }
-                    .plate-number {
-                        ${PLATE_NUMBER_STYLE}
-                    }
-                    .car-type {
-                        ${CAR_TYPE_STYLE}
-                    }
-                    .color {
-                        ${COLOR_STYLE}
-                    }
-                </style>
-            </head>
-            <body style="margin: 0px; height: 100%; background-color: rgb(14, 14, 14);">
-                <img style="display: block;-webkit-user-select: none;margin: auto;cursor: zoom-in;background-color: hsl(0, 0%, 90%);transition: background-color 300ms;" src="${CERTIFICATE_IMAGE_PATH}" width="496" height="607">
-                <div class="student-name">${studentNameArabic}</div>
-                <div class="serial-number">${serialNumber}</div>
-                <div class="document-serial-number"> ${documentSerialNumber}</div>
-                <div class="plate-number">رقم اللوحة: ${plateNumber}</div>
-                <div class="car-type">نوع السيارة: ${carType}</div>
-                <div class="color">اللون: ${color}</div>
-            </body>
-            </html>
-        `;
+        // قراءة صورة الشهادة
+        const image = await Jimp.read(CERTIFICATE_IMAGE_PATH);
+
+        // تحميل الخط
+        const font = await Jimp.loadFont(path.join(__dirname, FONT_PATH));
+
+        const imageWidth = image.getWidth();
+
+        // كتابة النصوص على الصورة
+        image.print(font, 0, STUDENT_NAME_STYLE.top, { text: studentNameArabic, alignmentX: STUDENT_NAME_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
+        image.print(font, 0, SERIAL_NUMBER_STYLE.top, { text: serialNumber, alignmentX: SERIAL_NUMBER_STYLE.alignment, maxWidth: 180 }, 180);
+        image.print(font, 0, DOCUMENT_SERIAL_NUMBER_STYLE.top, { text: documentSerialNumber, alignmentX: DOCUMENT_SERIAL_NUMBER_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
+        image.print(font, 0, PLATE_NUMBER_STYLE.top, { text: `رقم اللوحة: ${plateNumber}`, alignmentX: PLATE_NUMBER_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
+        image.print(font, 0, CAR_TYPE_STYLE.top, { text: `نوع السيارة: ${carType}`, alignmentX: CAR_TYPE_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
+        image.print(font, 0, COLOR_STYLE.top, { text: `اللون: ${color}`, alignmentX: COLOR_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
+
+        // تحويل الصورة إلى Buffer
+        const processedImageBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
 
         return {
             statusCode: 200,
-            body: htmlContent,
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            headers: {
+                'Content-Type': 'image/jpeg',
+            },
+            body: processedImageBuffer.toString('base64'),
+            isBase64Encoded: true,
         };
+
     } catch (error) {
         console.error('خطأ في وظيفة توليد الشهادة:', error);
         return {
             statusCode: 500,
-            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            body: JSON.stringify({ error: 'حدث خطأ أثناء توليد الشهادة', details: error.message }),
+            headers: { 'Content-Type': 'application/json' },
         };
     } finally {
         if (client) await client.close();
