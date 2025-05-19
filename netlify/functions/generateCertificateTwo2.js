@@ -5,10 +5,10 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
+// **مسار صورة الشهادة:** تأكد إن هذا المسار مطابق تمامًا لمكان وجود ملف wwee.jpg في مشروعك على Netlify (غالبًا بيكون داخل public/images_temp/)
 const CERTIFICATE_IMAGE_PATH = './public/images_temp/wwee.jpg';
 
-// **مسار الخط:** يجب أن يكون موجودًا في مجلد netlify/functions/fonts
+// **مسار الخط:** تأكد إن ملف الخط arial.ttf موجود في مجلد netlify/functions/fonts/
 const FONT_PATH = './arial.ttf';
 
 const TEXT_STYLE = `
@@ -105,14 +105,13 @@ exports.handler = async (event, context) => {
             console.error('خطأ في قراءة صورة الشهادة باستخدام Jimp:', error);
             return {
                 statusCode: 500,
-                body: `<h1>حدث خطأ أثناء معالجة صورة الشهادة</h1><p>${error.message}</p>`,
+                body: `<h1>حدث خطأ أثناء معالجة صورة الشهادة</h1><p>${error.message}</p><p>${error.stack}</p>`, // أضفت stack عشان نشوف تفاصيل أكتر للخطأ
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
 
-        // حسابات لموضع النصوص بناءً على الأبعاد الأصلية (مثال تقريبي)
-        const nameTop = imageHeight * 0.25; // 25% من الارتفاع
-        const nameFontSize = imageHeight * 0.08; // 8% من الارتفاع
+        const nameTop = imageHeight * 0.25;
+        const nameFontSize = imageHeight * 0.08;
         const serialTop = imageHeight * 0.38;
         const serialFontSize = imageHeight * 0.045;
         const docSerialTop = imageHeight * 0.48;
@@ -146,7 +145,7 @@ exports.handler = async (event, context) => {
                         display: block;
                         width: 100%;
                         height: 100%;
-                        object-fit: contain; /* للحفاظ على نسبة الأبعاد */
+                        object-fit: contain;
                     }
                     @font-face {
                         font-family: 'ArabicFont';
@@ -208,7 +207,7 @@ exports.handler = async (event, context) => {
         console.error('خطأ في وظيفة توليد الشهادة:', error);
         return {
             statusCode: 500,
-            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
+            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p><p>${error.stack}</p>`, // أضفت stack هنا كمان
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
