@@ -5,9 +5,10 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **تأكد من هذا المسار بدقة!**
-const CERTIFICATE_IMAGE_PATH = './public/images_temp/wwee.jpg';
+// **مسار صورة الشهادة (معدل ليناسب جذر الموقع):**
+const CERTIFICATE_IMAGE_PATH = '/public/images_temp/wwee.jpg';
 
+// **مسار الخط:** تأكد إن ملف الخط arial.ttf موجود في مجلد netlify/functions/fonts/
 const FONT_PATH = './arial.ttf';
 
 const TEXT_STYLE = `
