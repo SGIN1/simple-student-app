@@ -1,6 +1,9 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const Jimp = require('jimp');
+const sharp = require('sharp'); // استيراد مكتبة sharp
 const path = require('path');
+// قد تحتاج إلى مكتبة لمعالجة نصوص RTL إذا لم تتعامل Sharp معها تلقائيًا
+// const arabicReshaper = require('arabic-reshaper');
+// const bidiJs = require('bidi-js'); // مثال على مكتبة RTL
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -9,19 +12,9 @@ const collectionName = 'enrolled_students_tbl';
 // **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images_temp', 'wwee.jpg');
 
-// **مسار الخط:** استخدام المسار النسبي لملف .fnt الموجود في مجلد jimp_fonts داخل وظيفة Netlify
-const FONT_PATH = path.join(__dirname, 'jimp_fonts', 'e6e0289bc1264f218cf23716cca11b4e-12.fnt'); // استخدم اسم أحد ملفات .fnt التي نزلتها
-
-// تعريف أنماط النصوص باستخدام Jimp
-const TEXT_COLOR = 0x000000FF; // أسود
-const WHITE_COLOR = 0xFFFFFFFF;
-
-const STUDENT_NAME_STYLE = { top: 150, fontSize: 48, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const SERIAL_NUMBER_STYLE = { top: 220, fontSize: 28, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const DOCUMENT_SERIAL_NUMBER_STYLE = { top: 280, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const PLATE_NUMBER_STYLE = { top: 320, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const CAR_TYPE_STYLE = { top: 360, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const COLOR_STYLE = { top: 400, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+// **مسار الخط:** استخدام مسار خط .ttf أو .otf لـ Sharp
+// تأكد من أن هذا الخط يدعم اللغة العربية وموجود في مجلد netlify/functions/fonts/
+const FONT_PATH = path.join(__dirname, 'fonts', 'arabic_font.ttf'); // استبدل 'arabic_font.ttf' باسم خطك العربي
 
 exports.handler = async (event, context) => {
     const studentId = event.path.split('/').pop();
@@ -56,35 +49,71 @@ exports.handler = async (event, context) => {
         }
 
         const serialNumber = student.serial_number;
-        const studentNameArabic = student.arabic_name || '';
+        let studentNameArabic = student.arabic_name || '';
         const documentSerialNumber = student.document_serial_number || '';
         const plateNumber = student.plate_number || '';
         const carType = student.car_type || '';
         const color = student.color || '';
 
-        // قراءة صورة الشهادة
-        const image = await Jimp.read(CERTIFICATE_IMAGE_PATH);
+        // **هام للغة العربية:**
+        // sharp يتعامل مع الخطوط مباشرة، لكن قد تحتاج لمعالجة النص RTL إذا لم يظهر صحيحًا
+        // إذا كان الخط لا يدعم الربط التلقائي للحروف، قد تحتاج لمكتبة مثل arabic-reshaper
+        // مثال: if (arabicReshaper) studentNameArabic = arabicReshaper.reshape(studentNameArabic);
+        // ثم لتغيير الاتجاه (RTL) قد تحتاج bidi-js
+        // مثال: if (bidiJs) studentNameArabic = bidiJs.get=(studentNameArabic).reorder;
 
-        // تحميل الخط باستخدام المسار النسبي لملف .fnt الموجود في مجلد jimp_fonts داخل وظيفة Netlify
-        const font = await Jimp.loadFont(FONT_PATH);
+        // قراءة صورة الشهادة باستخدام sharp
+        const certificateBuffer = await sharp(CERTIFICATE_IMAGE_PATH).toBuffer();
+        let image = sharp(certificateBuffer);
 
-        const imageWidth = image.getWidth();
+        const metadata = await image.metadata();
+        const imageWidth = metadata.width;
+        const imageHeight = metadata.height;
 
-        // كتابة النصوص على الصورة
-        image.print(font, 0, STUDENT_NAME_STYLE.top, { text: studentNameArabic, alignmentX: STUDENT_NAME_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-        image.print(font, 0, SERIAL_NUMBER_STYLE.top, { text: serialNumber, alignmentX: SERIAL_NUMBER_STYLE.alignment, maxWidth: 180 }, 180);
-        image.print(font, 0, DOCUMENT_SERIAL_NUMBER_STYLE.top, { text: documentSerialNumber, alignmentX: DOCUMENT_SERIAL_NUMBER_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-        image.print(font, 0, PLATE_NUMBER_STYLE.top, { text: `رقم اللوحة: ${plateNumber}`, alignmentX: PLATE_NUMBER_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-        image.print(font, 0, CAR_TYPE_STYLE.top, { text: `نوع السيارة: ${carType}`, alignmentX: CAR_TYPE_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-        image.print(font, 0, COLOR_STYLE.top, { text: `اللون: ${color}`, alignmentX: COLOR_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
+        // دالة مساعدة لطباعة النص على الصورة باستخدام SVG و Sharp
+        const addTextToImage = async (baseImage, text, style) => {
+            const svgText = `
+                <svg width="${imageWidth}" height="${imageHeight}">
+                    <style>
+                        @font-face {
+                            font-family: 'CustomArabicFont';
+                            src: url('data:font/ttf;base64,${Buffer.from(await require('fs').promises.readFile(FONT_PATH)).toString('base64')}') format('truetype');
+                        }
+                        .text-style {
+                            font-family: 'CustomArabicFont';
+                            font-size: ${style.fontSize}px;
+                            fill: ${style.color === 0xFFFFFFFF ? '#FFFFFF' : '#000000'}; /* تحويل لون Jimp إلى CSS */
+                            text-anchor: middle; /* للتموضع الأفقي في المنتصف */
+                        }
+                    </style>
+                    <text x="${imageWidth / 2}" y="${style.top + style.fontSize / 2}" class="text-style">
+                        ${text}
+                    </text>
+                </svg>
+            `;
+            // تراكب SVG على الصورة الأساسية
+            return baseImage.composite([{
+                input: Buffer.from(svgText),
+                left: 0,
+                top: 0
+            }]);
+        };
+
+        // كتابة النصوص على الصورة باستخدام sharp
+        image = await addTextToImage(image, studentNameArabic, STUDENT_NAME_STYLE);
+        image = await addTextToImage(image, serialNumber, SERIAL_NUMBER_STYLE);
+        image = await addTextToImage(image, documentSerialNumber, DOCUMENT_SERIAL_NUMBER_STYLE);
+        image = await addTextToImage(image, `رقم اللوحة: ${plateNumber}`, PLATE_NUMBER_STYLE);
+        image = await addTextToImage(image, `نوع السيارة: ${carType}`, CAR_TYPE_STYLE);
+        image = await addTextToImage(image, `اللون: ${color}`, COLOR_STYLE);
 
         // تحويل الصورة إلى Buffer
-        const processedImageBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+        const processedImageBuffer = await image.jpeg().toBuffer(); // أو .png() حسب نوع الصورة المطلوب
 
         return {
             statusCode: 200,
             headers: {
-                'Content-Type': 'image/jpeg',
+                'Content-Type': 'image/jpeg', // أو image/png
             },
             body: processedImageBuffer.toString('base64'),
             isBase64Encoded: true,
