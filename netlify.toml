@@ -3,16 +3,7 @@
   functions = "netlify/functions"
 
 [functions]
-  # تضمين مجلدات المكتبات الهامة بما في ذلك sharp وتبعياتها الأصلية
-  included_files = [
-    "public/**",
-    "netlify/functions/fonts/**", # تأكد أن هذا المسار يحتوي على خطوط .ttf أو .otf لـ Sharp
-    "node_modules/sharp/**",
-    "node_modules/sharp-linux-x64/**", # هذا مهم لبيئة Netlify Linux
-    "node_modules/@img/sharp-linux-x64/**" # قد تكون هناك حاجة لهذا المسار أيضًا حسب إصدار Sharp
-  ]
-  # زيادة مهلة الوظيفة إذا كانت معالجة الصور تستغرق وقتًا طويلاً (اختياري، 10 ثوانٍ كحد أدنى)
-  # timeout = 30 
+  included_files = ["public/**", "netlify/functions/fonts/**"]
 
 [[redirects]]
   from = "/certificate/:id"
