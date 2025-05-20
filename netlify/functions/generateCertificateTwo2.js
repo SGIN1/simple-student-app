@@ -7,9 +7,9 @@ const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
 // **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
-const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee.jpg');
+const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images_temp', 'wwee.jpg');
 
-// **مسار الخط:** استخدام المسار النسبي لملف .fnt
+// **مسار الخط:** استخدام المسار النسبي لملف .fnt الموجود في مجلد jimp_fonts داخل وظيفة Netlify
 const FONT_PATH = path.join(__dirname, 'jimp_fonts', 'e6e0289bc1264f218cf23716cca11b4e-12.fnt'); // استخدم اسم أحد ملفات .fnt التي نزلتها
 
 // تعريف أنماط النصوص باستخدام Jimp
@@ -65,7 +65,7 @@ exports.handler = async (event, context) => {
         // قراءة صورة الشهادة
         const image = await Jimp.read(CERTIFICATE_IMAGE_PATH);
 
-        // تحميل الخط باستخدام المسار النسبي لملف .fnt
+        // تحميل الخط باستخدام المسار النسبي لملف .fnt الموجود في مجلد jimp_fonts داخل وظيفة Netlify
         const font = await Jimp.loadFont(FONT_PATH);
 
         const imageWidth = image.getWidth();

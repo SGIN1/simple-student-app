@@ -13,7 +13,7 @@
     "jimp": "^0.22.11",
     "mongodb": "^6.16.0",
     "qrcode": "^1.5.3",
-    "sharp": "^0.30.0"
+    "sharp": "^0.34.1"
   },
   "devDependencies": {
     "esbuild": "^0.25.3"
