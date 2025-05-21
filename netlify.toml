@@ -1,9 +1,10 @@
 [build]
   base = "/"
+  publish = "public"
   functions = "netlify/functions"
 
 [functions]
-  included_files = ["public/**", "netlify/functions/fonts/**"]
+  included_files = ["public/**"]
 
 [[redirects]]
   from = "/certificate/:id"
