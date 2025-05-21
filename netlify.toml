@@ -2,16 +2,8 @@
   base = "/"
   functions = "netlify/functions"
 
-# هذا هو الجزء الجديد الذي يضيف plugin Sharp
-[[plugins]]
-package = "@netlify/plugin-sharp"
-
 [functions]
-  # لا يزال من الجيد تضمين مجلد public ومجلد fonts إذا كان هناك أي ملفات أخرى غير الخطوط
-  # ولكن لم تعد هناك حاجة لـ "netlify/functions/fonts/**" لتضمين الخط arial.ttf المحدد
-  # إذا كان لديك خطوط أخرى يتم استخدامها بطرق مختلفة، فاتركها.
-  # إذا لم يكن لديك أي ملفات أخرى في مجلد fonts سوى arial.ttf (الذي لم يعد مستخدمًا)، فيمكنك إزالة هذا السطر.
-  
+  included_files = ["public/**", "netlify/functions/fonts/**"]
 
 [[redirects]]
   from = "/certificate/:id"
