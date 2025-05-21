@@ -4,7 +4,8 @@
   functions = "netlify/functions"
 
 [functions]
-  included_files = ["public/**"]
+  # هذا المسار يضمن أن مجلد fonts داخل netlify/functions سيتم تضمينه
+  included_files = ["public/**", "netlify/functions/fonts/**"]
 
 [[redirects]]
   from = "/certificate/:id"

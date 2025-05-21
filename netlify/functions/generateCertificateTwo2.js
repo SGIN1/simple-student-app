@@ -1,23 +1,25 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const sharp = require('sharp'); // استبدال Jimp بـ sharp
+const sharp = require('sharp');
 const path = require('path');
-// لم نعد بحاجة إلى fs/promises لقراءة الخط إذا لم نقم بتضمينه
+const fs = require('fs/promises'); // هذا سيمكننا من قراءة ملف الخط
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee.jpg');
 
-// مسار الخط لم يعد ضروريًا بنفس الطريقة
+// ***مسار الخط***
+// تأكد أن المسار صحيح نسبة إلى جذر مجلد مشروعك في Netlify
+// إذا كان ملف الدالة generateCertificateTwo2.js موجود في netlify/functions/generateCertificateTwo2.js
+// ومجلد fonts موجود في netlify/functions/fonts
+// فإن المسار الصحيح للخط هو:
+const ARABIC_FONT_PATH = path.join(process.cwd(), 'netlify/functions/fonts/arial.ttf');
 
-// تعريف أنماط النصوص باستخدام قيم Jimp الأصلية (يمكن تعديلها لتناسب sharp)
-const TEXT_COLOR_HEX = '#000000'; // أسود
-const WHITE_COLOR_HEX = '#FFFFFF'; // أبيض
 
-// تعريف إحداثيات النصوص (سيتطلب الأمر بعض التعديل الدقيق بناءً على حجم الخط وتصميمه)
-// هذه القيم تقريبية وقد تحتاج إلى تعديل بناءً على الخط وحجم الصورة
+const TEXT_COLOR_HEX = '#000000';
+const WHITE_COLOR_HEX = '#FFFFFF';
+
 const TEXT_POSITIONS = {
     STUDENT_NAME: { x: 300, y: 150, fontSize: 48, color: WHITE_COLOR_HEX, alignment: 'middle' },
     SERIAL_NUMBER: { x: 90, y: 220, fontSize: 28, color: WHITE_COLOR_HEX, alignment: 'middle' },
@@ -29,24 +31,25 @@ const TEXT_POSITIONS = {
 
 
 // دالة مساعدة لإنشاء نص SVG
-// تم تبسيط هذه الدالة لعدم تضمين ملف الخط كـ base64
 async function createTextSVG(text, fontSize, color, imageWidth) {
+    // قراءة ملف الخط وتحويله إلى Base64
+    const fontData = await fs.readFile(ARABIC_FONT_PATH);
+    const fontBase64 = fontData.toString('base64');
+
     const svgWidth = imageWidth;
     const svgHeight = fontSize * 1.5;
 
     const svg = `
         <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" xmlns="http://www.w3.org/2000/svg">
-            <style>
-                /* استخدام خط نظامي شائع (مثل Arial أو Helvetica أو أي خط sans-serif) */
-                text {
-                    font-family: 'Arial', sans-serif; /* يمكن تجربة Helvetica أو "DejaVu Sans" أو أي خط شائع على Linux */
-                    font-size: ${fontSize}px;
-                    fill: ${color};
-                    text-anchor: middle; /* للمحاذاة الأفقية */
-                    dominant-baseline: central; /* للمحاذاة الرأسية */
-                }
-            </style>
-            <text x="${svgWidth / 2}" y="${svgHeight / 2}">${text}</text>
+            <defs>
+                <style type="text/css">
+                    @font-face {
+                        font-family: 'ArialCustom'; /* اسم خاص للخط لضمان عدم تضاربه */
+                        src: url(data:font/ttf;base64,${fontBase64}) format('truetype');
+                    }
+                </style>
+            </defs>
+            <text style="font-family: 'ArialCustom', sans-serif; font-size: ${fontSize}px; fill: ${color}; text-anchor: middle; dominant-baseline: central;" x="${svgWidth / 2}" y="${svgHeight / 2}">${text}</text>
         </svg>
     `;
     return Buffer.from(svg);
@@ -92,12 +95,10 @@ exports.handler = async (event, context) => {
         const carType = student.car_type || '';
         const color = student.color || '';
 
-        // قراءة صورة الشهادة باستخدام sharp
         const baseImage = sharp(CERTIFICATE_IMAGE_PATH);
         const metadata = await baseImage.metadata();
         const imageWidth = metadata.width;
 
-        // إنشاء النصوص كـ SVG وتركيبها على الصورة
         const overlays = [];
 
         // اسم الطالب
@@ -154,10 +155,9 @@ exports.handler = async (event, context) => {
         );
         overlays.push({ input: colorSVG, top: TEXT_POSITIONS.COLOR.y, left: TEXT_POSITIONS.COLOR.x, blend: 'overlay' });
 
-        // تركيب النصوص على الصورة
         const processedImageBuffer = await baseImage
             .composite(overlays)
-            .jpeg() // يمكنك استخدام .png() أو .webp() حسب الحاجة
+            .jpeg()
             .toBuffer();
 
         return {
