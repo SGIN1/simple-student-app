@@ -1,9 +1,9 @@
 import { ImageResponse } from '@vercel/og';
-import sharp from 'sharp'; // استخدام sharp لتركيب الصورة النهائية
-import { MongoClient, ObjectId } from 'mongodb'; // MongoDB سيظل كما هو
+import sharp from 'sharp';
+import { MongoClient, ObjectId } from 'mongodb';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import fs from 'fs/promises'; // لقراءة ملف الخط
+import fs from 'fs/promises';
 
 // تحديد المسار الصحيح للملفات
 const __filename = fileURLToPath(import.meta.url);
@@ -13,25 +13,11 @@ const __dirname = dirname(__filename);
 const ARABIC_FONT_PATH = join(__dirname, 'fonts', 'arial.ttf');
 
 // مسار صورة الشهادة الأساسية
-// بما أن Edge Functions لا ترى مجلد public مباشرة بنفس طريقة Functions العادية،
-// سنحتاج إلى تحميلها من مسارها المطلق إذا كانت منشورة في public
-// أو الأفضل، ضعها بجانب الوظيفة أو قم بتحميلها من URL إذا كانت متاحة علناً
-// لتسهيل الأمور الآن، سأفترض أنها ستكون داخل مجلد edge-functions/images
-// ********* انتبه هنا! *********
-// إذا كانت صورة wwee.jpg ستبقى في public/images_temp
-// فسنحتاج إلى طريقة مختلفة لتحميلها في Edge Function.
-// حالياً، لأغراض الاختبار، سأضعها في مسار نسبي داخل edge-functions.
-// الحل الأفضل هو تحميلها من URL العام بعد النشر، أو تضمينها كـ base64 إذا كانت صغيرة.
-// لكن بما أن sharp يحتاج لـ path، سنضعها مؤقتاً هنا.
-const CERTIFICATE_IMAGE_PATH = join(__dirname, 'images', 'wwee.jpg'); // يجب أن يكون لديك مجلد images داخل edge-functions وبه الصورة
-
-// تأكد من أنك قمت بتضمين صورة wwee.jpg في مسار:
-// C:\wamp64\www\simple-student-app\netlify\edge-functions\images\wwee.jpg
-// (قم بإنشاء مجلد images وانسخ الصورة إليه)
-
+const CERTIFICATE_IMAGE_PATH = join(__dirname, 'images', 'wwee.jpg'); // تأكد أن المجلد اسمه 'images'
 
 // متغيرات MongoDB
-const uri = Deno.env.get('MONGODB_URI'); // Edge Functions تستخدم Deno.env.get
+// Edge Functions تستخدم Deno.env.get وليس process.env
+const uri = Deno.env.get('MONGODB_URI');
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
@@ -40,9 +26,6 @@ const TEXT_COLOR_HEX = '#000000'; // أسود
 const WHITE_COLOR_HEX = '#FFFFFF'; // أبيض
 
 // تعريف إحداثيات النصوص (سيتطلب الأمر بعض التعديل الدقيق بناءً على حجم الخط وتصميمه)
-// هذه القيم تقريبية وقد تحتاج إلى تعديل بناءً على الخط وحجم الصورة
-// تذكر: ImageResponse يستخدم نظام إحداثيات مختلف قليلاً عن sharp
-// 'top' و 'left' هنا هي إحداثيات CSS عادية.
 const TEXT_POSITIONS = {
     STUDENT_NAME: { x: 300, y: 150, fontSize: 48, color: WHITE_COLOR_HEX, alignment: 'center' },
     SERIAL_NUMBER: { x: 90, y: 220, fontSize: 28, color: WHITE_COLOR_HEX, alignment: 'center' },
@@ -62,6 +45,9 @@ export default async (request, context) => {
     let student;
 
     try {
+        if (!uri) {
+            throw new Error("MONGODB_URI is not set in environment variables.");
+        }
         client = new MongoClient(uri);
         await client.connect();
         const database = client.db(dbName);
@@ -95,11 +81,14 @@ export default async (request, context) => {
         const arabicFontData = await fs.readFile(ARABIC_FONT_PATH);
 
         // 2. قراءة صورة الشهادة الأساسية باستخدام sharp
-        const baseImageBuffer = await fs.readFile(CERTIFICATE_IMAGE_PATH);
-        const baseImage = sharp(baseImageBuffer);
+        // قم بتحويل الصورة إلى ArrayBuffer أولاً، ثم إلى Uint8Array لـ sharp
+        const baseImageBufferRaw = await fs.readFile(CERTIFICATE_IMAGE_PATH);
+        const baseImageUint8Array = new Uint8Array(baseImageBufferRaw.buffer); // تحويل Buffer إلى Uint8Array
+
+        const baseImage = sharp(baseImageUint8Array);
         const metadata = await baseImage.metadata();
         const imageWidth = metadata.width;
-        const imageHeight = metadata.height; // احصل على ارتفاع الصورة
+        const imageHeight = metadata.height;
 
         // 3. إنشاء النصوص كـ SVG باستخدام ImageResponse
         const textOverlays = [];
@@ -127,58 +116,58 @@ export default async (request, context) => {
                     break;
             }
 
-            const textSvg = await new ImageResponse(
+            const textSvgArrayBuffer = await new ImageResponse(
                 (
                     <div style={{
                         display: 'flex',
                         position: 'absolute',
-                        top: `${pos.y}px`, // استخدام pos.y لتحديد الموضع الرأسي
-                        left: `${pos.x}px`, // استخدام pos.x لتحديد الموضع الأفقي
+                        top: `${pos.y}px`,
+                        left: `${pos.x}px`,
                         fontSize: `${pos.fontSize}px`,
                         color: pos.color,
                         fontFamily: 'ArialCustom',
-                        justifyContent: pos.alignment === 'center' ? 'center' : pos.alignment === 'left' ? 'flex-start' : 'flex-end',
+                        justifyContent: pos.alignment === 'center' ? 'center' : (pos.alignment === 'left' ? 'flex-start' : 'flex-end'),
                         alignItems: 'center',
-                        width: 'auto', // جعل العرض تلقائي للنص
-                        whiteSpace: 'nowrap', // منع التفاف النص
+                        width: 'auto',
+                        whiteSpace: 'nowrap',
                     }}>
                         {textContent}
                     </div>
                 ),
                 {
-                    width: imageWidth, // عرض الـ SVG الكلي كعرض الصورة الأساسية
-                    height: imageHeight, // ارتفاع الـ SVG الكلي كارتفاع الصورة الأساسية
+                    width: imageWidth,
+                    height: imageHeight,
                     fonts: [
                         {
                             name: 'ArialCustom',
                             data: arabicFontData,
                             style: 'normal',
-                            weight: 400, // يمكن تحديد الوزن (عادي)
+                            weight: 400,
                         },
                     ],
                 }
-            ).arrayBuffer(); // احصل على SVG كـ ArrayBuffer
+            ).arrayBuffer();
 
+            // تحويل ArrayBuffer إلى Uint8Array لـ sharp
             textOverlays.push({
-                input: Buffer.from(textSvg), // تحويل ArrayBuffer إلى Buffer لـ sharp
-                top: 0, // وضع الـ SVG على الأصل (0,0) لأننا تحكمنا في الموضع داخله
+                input: new Uint8Array(textSvgArrayBuffer),
+                top: 0,
                 left: 0,
-                blend: 'overlay', // أو 'atop' أو 'over' حسب التأثير المطلوب
+                blend: 'overlay',
             });
         }
-
 
         // 4. تركيب الـ SVG على الصورة الأساسية باستخدام sharp
         const processedImageBuffer = await baseImage
             .composite(textOverlays)
-            .jpeg({ quality: 90 }) // يمكنك تعديل جودة الصورة هنا
+            .jpeg({ quality: 90 })
             .toBuffer();
 
         // 5. إرجاع الصورة
         return new Response(processedImageBuffer, {
             headers: {
                 'Content-Type': 'image/jpeg',
-                'Cache-Control': 'public, max-age=3600', // تحسين التخزين المؤقت
+                'Cache-Control': 'public, max-age=3600',
             },
         });
 
