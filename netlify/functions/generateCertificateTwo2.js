@@ -2,7 +2,6 @@ const { MongoClient, ObjectId } = require('mongodb');
 const sharp = require('sharp'); // استبدال Jimp بـ sharp
 const path = require('path');
 // لم نعد بحاجة إلى fs/promises لقراءة الخط إذا لم نقم بتضمينه
-// const fs = require('fs/promises');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -12,7 +11,6 @@ const collectionName = 'enrolled_students_tbl';
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee.jpg');
 
 // مسار الخط لم يعد ضروريًا بنفس الطريقة
-// const FONT_PATH = path.join(process.cwd(), 'netlify/functions/fonts/arial.ttf'); // هذا السطر لن نحتاجه بعد الآن
 
 // تعريف أنماط النصوص باستخدام قيم Jimp الأصلية (يمكن تعديلها لتناسب sharp)
 const TEXT_COLOR_HEX = '#000000'; // أسود
@@ -33,9 +31,6 @@ const TEXT_POSITIONS = {
 // دالة مساعدة لإنشاء نص SVG
 // تم تبسيط هذه الدالة لعدم تضمين ملف الخط كـ base64
 async function createTextSVG(text, fontSize, color, imageWidth) {
-    // لم نعد نقرأ الخط كـ Buffer
-    // const fontBuffer = await fs.readFile(fontPath);
-
     const svgWidth = imageWidth;
     const svgHeight = fontSize * 1.5;
 
@@ -101,7 +96,6 @@ exports.handler = async (event, context) => {
         const baseImage = sharp(CERTIFICATE_IMAGE_PATH);
         const metadata = await baseImage.metadata();
         const imageWidth = metadata.width;
-        // const imageHeight = metadata.height; // لم تعد بحاجة لـ imageHeight بشكل مباشر
 
         // إنشاء النصوص كـ SVG وتركيبها على الصورة
         const overlays = [];
@@ -111,7 +105,7 @@ exports.handler = async (event, context) => {
             studentNameArabic,
             TEXT_POSITIONS.STUDENT_NAME.fontSize,
             TEXT_POSITIONS.STUDENT_NAME.color,
-            imageWidth // لم يعد يحتاج FONT_PATH هنا
+            imageWidth
         );
         overlays.push({ input: studentNameSVG, top: TEXT_POSITIONS.STUDENT_NAME.y, left: TEXT_POSITIONS.STUDENT_NAME.x, blend: 'overlay' });
 
@@ -120,7 +114,7 @@ exports.handler = async (event, context) => {
             serialNumber,
             TEXT_POSITIONS.SERIAL_NUMBER.fontSize,
             TEXT_POSITIONS.SERIAL_NUMBER.color,
-            imageWidth // لم يعد يحتاج FONT_PATH هنا
+            imageWidth
         );
         overlays.push({ input: serialNumberSVG, top: TEXT_POSITIONS.SERIAL_NUMBER.y, left: TEXT_POSITIONS.SERIAL_NUMBER.x, blend: 'overlay' });
 
@@ -129,7 +123,7 @@ exports.handler = async (event, context) => {
             documentSerialNumber,
             TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.fontSize,
             TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.color,
-            imageWidth // لم يعد يحتاج FONT_PATH هنا
+            imageWidth
         );
         overlays.push({ input: documentSerialNumberSVG, top: TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.y, left: TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.x, blend: 'overlay' });
 
@@ -138,7 +132,7 @@ exports.handler = async (event, context) => {
             `رقم اللوحة: ${plateNumber}`,
             TEXT_POSITIONS.PLATE_NUMBER.fontSize,
             TEXT_POSITIONS.PLATE_NUMBER.color,
-            imageWidth // لم يعد يحتاج FONT_PATH هنا
+            imageWidth
         );
         overlays.push({ input: plateNumberSVG, top: TEXT_POSITIONS.PLATE_NUMBER.y, left: TEXT_POSITIONS.PLATE_NUMBER.x, blend: 'overlay' });
 
@@ -147,7 +141,7 @@ exports.handler = async (event, context) => {
             `نوع السيارة: ${carType}`,
             TEXT_POSITIONS.CAR_TYPE.fontSize,
             TEXT_POSITIONS.CAR_TYPE.color,
-            imageWidth // لم يعد يحتاج FONT_PATH هنا
+            imageWidth
         );
         overlays.push({ input: carTypeSVG, top: TEXT_POSITIONS.CAR_TYPE.y, left: TEXT_POSITIONS.CAR_TYPE.x, blend: 'overlay' });
 
@@ -156,7 +150,7 @@ exports.handler = async (event, context) => {
             `اللون: ${color}`,
             TEXT_POSITIONS.COLOR.fontSize,
             TEXT_POSITIONS.COLOR.color,
-            imageWidth // لم يعد يحتاج FONT_PATH هنا
+            imageWidth
         );
         overlays.push({ input: colorSVG, top: TEXT_POSITIONS.COLOR.y, left: TEXT_POSITIONS.COLOR.x, blend: 'overlay' });
 
