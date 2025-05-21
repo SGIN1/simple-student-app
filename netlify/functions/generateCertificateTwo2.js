@@ -1,7 +1,8 @@
 const { MongoClient, ObjectId } = require('mongodb');
 const sharp = require('sharp'); // استبدال Jimp بـ sharp
 const path = require('path');
-const fs = require('fs/promises'); // لاستخدام fs.promises لقراءة الخط بشكل غير متزامن
+// لم نعد بحاجة إلى fs/promises لقراءة الخط إذا لم نقم بتضمينه
+// const fs = require('fs/promises');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -10,13 +11,10 @@ const collectionName = 'enrolled_students_tbl';
 // **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee.jpg');
 
-// **مسار الخط:** استخدام المسار المطلق
-// sharp لا يدعم تحميل الخطوط مباشرة مثل Jimp، سنقوم بقراءة الخط واستخدامه كبيانات
-// ستحتاج إلى إنشاء نص SVG لكل حقل.
-const FONT_PATH = path.join(process.cwd(), 'netlify/functions/fonts/arial.ttf');
+// مسار الخط لم يعد ضروريًا بنفس الطريقة
+// const FONT_PATH = path.join(process.cwd(), 'netlify/functions/fonts/arial.ttf'); // هذا السطر لن نحتاجه بعد الآن
 
 // تعريف أنماط النصوص باستخدام قيم Jimp الأصلية (يمكن تعديلها لتناسب sharp)
-// sharp لا يدعم أنماطًا مباشرة مثل Jimp، سنقوم بإنشاء SVG للنصوص.
 const TEXT_COLOR_HEX = '#000000'; // أسود
 const WHITE_COLOR_HEX = '#FFFFFF'; // أبيض
 
@@ -24,7 +22,7 @@ const WHITE_COLOR_HEX = '#FFFFFF'; // أبيض
 // هذه القيم تقريبية وقد تحتاج إلى تعديل بناءً على الخط وحجم الصورة
 const TEXT_POSITIONS = {
     STUDENT_NAME: { x: 300, y: 150, fontSize: 48, color: WHITE_COLOR_HEX, alignment: 'middle' },
-    SERIAL_NUMBER: { x: 90, y: 220, fontSize: 28, color: WHITE_COLOR_HEX, alignment: 'middle' }, // قد تحتاج لتعديل x
+    SERIAL_NUMBER: { x: 90, y: 220, fontSize: 28, color: WHITE_COLOR_HEX, alignment: 'middle' },
     DOCUMENT_SERIAL_NUMBER: { x: 300, y: 280, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'middle' },
     PLATE_NUMBER: { x: 300, y: 320, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'middle' },
     CAR_TYPE: { x: 300, y: 360, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'middle' },
@@ -33,32 +31,20 @@ const TEXT_POSITIONS = {
 
 
 // دالة مساعدة لإنشاء نص SVG
-async function createTextSVG(text, fontSize, color, fontPath, imageWidth) {
-    // قراءة الخط كـ Buffer
-    const fontBuffer = await fs.readFile(fontPath);
-    // يمكننا تضمين الخط كـ base64 في SVG أو الاعتماد على الخطوط المثبتة
-    // لتجنب تعقيد تضمين الخطوط، سنفترض وجود الخط في النظام أو سنستخدم خطًا شائعًا.
-    // لكن الأفضل هو تضمين الخط لضمان التوافق.
+// تم تبسيط هذه الدالة لعدم تضمين ملف الخط كـ base64
+async function createTextSVG(text, fontSize, color, imageWidth) {
+    // لم نعد نقرأ الخط كـ Buffer
+    // const fontBuffer = await fs.readFile(fontPath);
 
-    const svgWidth = imageWidth; // أو عرض ثابت أكبر من أقصى طول متوقع للنص
-    const svgHeight = fontSize * 1.5; // ارتفاع كافٍ للنص
+    const svgWidth = imageWidth;
+    const svgHeight = fontSize * 1.5;
 
-    // لتحديد عرض النص بشكل دقيق، قد تحتاج إلى مكتبة لقياس النص
-    // مثل "text-width" أو "canvas" (التي تكون أثقل).
-    // لأغراض التوضيح، سنستخدم عرضًا افتراضيًا ونعتمد على المحاذاة.
-    // إذا كنت تحتاج إلى قياس دقيق، قد تحتاج إلى إضافة مكتبة مثل 'canvas' ورسم النص عليها ثم قياسه.
-
-    // مثال بسيط لـ SVG. لاحظ أن الخط يجب أن يكون متاحًا لنظام التشغيل أو مضمنًا.
-    // لتضمين الخط، سيكون الكود أكثر تعقيدًا.
     const svg = `
         <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" xmlns="http://www.w3.org/2000/svg">
             <style>
-                @font-face {
-                    font-family: 'ArialCustom';
-                    src: url('data:font/ttf;base64,${fontBuffer.toString('base64')}') format('truetype');
-                }
+                /* استخدام خط نظامي شائع (مثل Arial أو Helvetica أو أي خط sans-serif) */
                 text {
-                    font-family: 'ArialCustom', sans-serif;
+                    font-family: 'Arial', sans-serif; /* يمكن تجربة Helvetica أو "DejaVu Sans" أو أي خط شائع على Linux */
                     font-size: ${fontSize}px;
                     fill: ${color};
                     text-anchor: middle; /* للمحاذاة الأفقية */
@@ -115,7 +101,7 @@ exports.handler = async (event, context) => {
         const baseImage = sharp(CERTIFICATE_IMAGE_PATH);
         const metadata = await baseImage.metadata();
         const imageWidth = metadata.width;
-        const imageHeight = metadata.height;
+        // const imageHeight = metadata.height; // لم تعد بحاجة لـ imageHeight بشكل مباشر
 
         // إنشاء النصوص كـ SVG وتركيبها على الصورة
         const overlays = [];
@@ -125,8 +111,7 @@ exports.handler = async (event, context) => {
             studentNameArabic,
             TEXT_POSITIONS.STUDENT_NAME.fontSize,
             TEXT_POSITIONS.STUDENT_NAME.color,
-            FONT_PATH,
-            imageWidth
+            imageWidth // لم يعد يحتاج FONT_PATH هنا
         );
         overlays.push({ input: studentNameSVG, top: TEXT_POSITIONS.STUDENT_NAME.y, left: TEXT_POSITIONS.STUDENT_NAME.x, blend: 'overlay' });
 
@@ -135,30 +120,25 @@ exports.handler = async (event, context) => {
             serialNumber,
             TEXT_POSITIONS.SERIAL_NUMBER.fontSize,
             TEXT_POSITIONS.SERIAL_NUMBER.color,
-            FONT_PATH,
-            imageWidth
+            imageWidth // لم يعد يحتاج FONT_PATH هنا
         );
         overlays.push({ input: serialNumberSVG, top: TEXT_POSITIONS.SERIAL_NUMBER.y, left: TEXT_POSITIONS.SERIAL_NUMBER.x, blend: 'overlay' });
-
 
         // رقم الوثيقة التسلسلي
         const documentSerialNumberSVG = await createTextSVG(
             documentSerialNumber,
             TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.fontSize,
             TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.color,
-            FONT_PATH,
-            imageWidth
+            imageWidth // لم يعد يحتاج FONT_PATH هنا
         );
         overlays.push({ input: documentSerialNumberSVG, top: TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.y, left: TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.x, blend: 'overlay' });
-
 
         // رقم اللوحة
         const plateNumberSVG = await createTextSVG(
             `رقم اللوحة: ${plateNumber}`,
             TEXT_POSITIONS.PLATE_NUMBER.fontSize,
             TEXT_POSITIONS.PLATE_NUMBER.color,
-            FONT_PATH,
-            imageWidth
+            imageWidth // لم يعد يحتاج FONT_PATH هنا
         );
         overlays.push({ input: plateNumberSVG, top: TEXT_POSITIONS.PLATE_NUMBER.y, left: TEXT_POSITIONS.PLATE_NUMBER.x, blend: 'overlay' });
 
@@ -167,8 +147,7 @@ exports.handler = async (event, context) => {
             `نوع السيارة: ${carType}`,
             TEXT_POSITIONS.CAR_TYPE.fontSize,
             TEXT_POSITIONS.CAR_TYPE.color,
-            FONT_PATH,
-            imageWidth
+            imageWidth // لم يعد يحتاج FONT_PATH هنا
         );
         overlays.push({ input: carTypeSVG, top: TEXT_POSITIONS.CAR_TYPE.y, left: TEXT_POSITIONS.CAR_TYPE.x, blend: 'overlay' });
 
@@ -177,11 +156,9 @@ exports.handler = async (event, context) => {
             `اللون: ${color}`,
             TEXT_POSITIONS.COLOR.fontSize,
             TEXT_POSITIONS.COLOR.color,
-            FONT_PATH,
-            imageWidth
+            imageWidth // لم يعد يحتاج FONT_PATH هنا
         );
         overlays.push({ input: colorSVG, top: TEXT_POSITIONS.COLOR.y, left: TEXT_POSITIONS.COLOR.x, blend: 'overlay' });
-
 
         // تركيب النصوص على الصورة
         const processedImageBuffer = await baseImage
