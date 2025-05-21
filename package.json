@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@vercel/og": "^0.6.8",
     "jimp": "^0.22.11",
     "mongodb": "^6.16.0",
     "qrcode": "^1.5.3",
