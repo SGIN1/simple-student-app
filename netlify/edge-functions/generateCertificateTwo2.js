@@ -1,4 +1,4 @@
-import { ImageResponse } from '@vercel/og';
+import { ImageResponse, html } from '@vercel/og'; // استيراد html tag function
 import sharp from 'sharp';
 import { MongoClient, ObjectId } from 'mongodb';
 import { fileURLToPath } from 'url';
@@ -16,7 +16,6 @@ const ARABIC_FONT_PATH = join(__dirname, 'fonts', 'arial.ttf');
 const CERTIFICATE_IMAGE_PATH = join(__dirname, 'images', 'wwee.jpg'); // تأكد أن المجلد اسمه 'images'
 
 // متغيرات MongoDB
-// Edge Functions تستخدم Deno.env.get وليس process.env
 const uri = Deno.env.get('MONGODB_URI');
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
@@ -81,9 +80,8 @@ export default async (request, context) => {
         const arabicFontData = await fs.readFile(ARABIC_FONT_PATH);
 
         // 2. قراءة صورة الشهادة الأساسية باستخدام sharp
-        // قم بتحويل الصورة إلى ArrayBuffer أولاً، ثم إلى Uint8Array لـ sharp
         const baseImageBufferRaw = await fs.readFile(CERTIFICATE_IMAGE_PATH);
-        const baseImageUint8Array = new Uint8Array(baseImageBufferRaw.buffer); // تحويل Buffer إلى Uint8Array
+        const baseImageUint8Array = new Uint8Array(baseImageBufferRaw.buffer);
 
         const baseImage = sharp(baseImageUint8Array);
         const metadata = await baseImage.metadata();
@@ -117,23 +115,21 @@ export default async (request, context) => {
             }
 
             const textSvgArrayBuffer = await new ImageResponse(
-                (
-                    <div style={{
-                        display: 'flex',
-                        position: 'absolute',
-                        top: `${pos.y}px`,
-                        left: `${pos.x}px`,
-                        fontSize: `${pos.fontSize}px`,
-                        color: pos.color,
-                        fontFamily: 'ArialCustom',
-                        justifyContent: pos.alignment === 'center' ? 'center' : (pos.alignment === 'left' ? 'flex-start' : 'flex-end'),
-                        alignItems: 'center',
-                        width: 'auto',
-                        whiteSpace: 'nowrap',
-                    }}>
-                        {textContent}
-                    </div>
-                ),
+                html`<div style="
+                        display: flex;
+                        position: absolute;
+                        top: ${pos.y}px;
+                        left: ${pos.x}px;
+                        font-size: ${pos.fontSize}px;
+                        color: ${pos.color};
+                        font-family: 'ArialCustom';
+                        justify-content: ${pos.alignment === 'center' ? 'center' : (pos.alignment === 'left' ? 'flex-start' : 'flex-end')};
+                        align-items: center;
+                        width: auto;
+                        white-space: nowrap;
+                    ">
+                        ${textContent}
+                    </div>`,
                 {
                     width: imageWidth,
                     height: imageHeight,
@@ -148,7 +144,6 @@ export default async (request, context) => {
                 }
             ).arrayBuffer();
 
-            // تحويل ArrayBuffer إلى Uint8Array لـ sharp
             textOverlays.push({
                 input: new Uint8Array(textSvgArrayBuffer),
                 top: 0,
