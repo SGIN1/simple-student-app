@@ -1,24 +1,12 @@
-# netlify.toml
-
 [build]
   base = "/"
-  publish = "public"
-  functions = "netlify/functions" # ابقِ هذا كما هو للوظائف العادية إن وجدت
+  functions = "netlify/functions"
 
 [functions]
-  # لم نعد بحاجة لهذا لـ generateCertificateTwo2 لأنها ستكون Edge Function
-  # ولكن أبقِها إذا كنت تخطط لوظائف Netlify Functions أخرى
-  included_files = ["public/**"]
+  included_files = ["public/**", "netlify/functions/fonts/**"]
 
-
-[[edge_functions]]
-  function = "generateCertificateTwo2" # اسم ملف وظيفة Edge Function الخاصة بك (بدون .js)
-  path = "/.netlify/functions/generateCertificateTwo2/:id" # المسار الذي ستستمع إليه الوظيفة
-
-# سنقوم بإنشاء redirect جديد لوظيفة Edge Function
-# هذا الـ redirect سيحول الطلب من /certificate/:id إلى Edge Function
 [[redirects]]
   from = "/certificate/:id"
-  to = "/.netlify/edge-functions/generateCertificateTwo2/:id" # لاحظ التغيير هنا إلى edge-functions
+  to = "/.netlify/functions/generateCertificateTwo2/:id"
   status = 200
   force = true
