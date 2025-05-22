@@ -1,187 +1,127 @@
-// netlify/functions/generateCertificateTwo2.js
-
-const { MongoClient, ObjectId } = require('mongodb');
-const Jimp = require('jimp');
-const path = require('path');
-
-// متغيرات MongoDB
-const uri = process.env.MONGODB_URI; // تأكد أن هذا المتغير موجود في إعدادات Netlify
-const dbName = 'Cluster0';
-const collectionName = 'enrolled_students_tbl';
-
-// **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
-// هذا المسار تم تعديله ليكون صحيحًا في بيئة Netlify Functions
-const CERTIFICATE_IMAGE_PATH = path.join(__dirname, '..', '..', 'public', 'images_temp', 'wwee.jpg');
-
-// **مسارات الخطوط:** يجب استبدال هذه بأسماء ملفات .fnt التي ولدتها بـ BMFont
-// تأكد من أن ملفات .fnt و .png/.tga موجودة في مجلد 'netlify/functions/fonts/'
-const FONT_FNT_PATH_48 = path.join(__dirname, 'fonts', 'arial-48.fnt'); // اسم خط حجم 48
-const FONT_FNT_PATH_28 = path.join(__dirname, 'fonts', 'arial-28.fnt'); // اسم خط حجم 28
-const FONT_FNT_PATH_20 = path.join(__dirname, 'fonts', 'arial-20.fnt'); // اسم خط حجم 20
-
-// تعريف ألوان النصوص (باستخدام صيغة Jimp: 0xRRGGBBAA)
-const BLACK_COLOR = 0x000000FF; // أسود مع شفافية كاملة
-const WHITE_COLOR = 0xFFFFFFFF; // أبيض مع شفافية كاملة
-
-// تعريف أنماط النصوص وإحداثياتها الدقيقة (X, Y)
-// **مهم:** قم بتعديل قيم 'x' و 'y' لتناسب تصميم شهادتك
-const TEXT_POSITIONS = {
-    STUDENT_NAME: { x: 489, y: 150, fontPath: FONT_FNT_PATH_48, color: WHITE_COLOR, alignment: Jimp.FONT_ALIGN_CENTER, maxWidth: 600 },
-    SERIAL_NUMBER: { x: 180, y: 220, fontPath: FONT_FNT_PATH_28, color: WHITE_COLOR, alignment: Jimp.FONT_ALIGN_LEFT, maxWidth: 300 },
-    DOCUMENT_SERIAL_NUMBER: { x: 489, y: 280, fontPath: FONT_FNT_PATH_20, color: BLACK_COLOR, alignment: Jimp.FONT_ALIGN_CENTER, maxWidth: 600 },
-    PLATE_NUMBER: { x: 489, y: 320, fontPath: FONT_FNT_PATH_20, color: BLACK_COLOR, alignment: Jimp.FONT_ALIGN_CENTER, maxWidth: 600 },
-    CAR_TYPE: { x: 489, y: 360, fontPath: FONT_FNT_PATH_20, color: BLACK_COLOR, alignment: Jimp.FONT_ALIGN_CENTER, maxWidth: 600 },
-    COLOR: { x: 489, y: 400, fontPath: FONT_FNT_PATH_20, color: BLACK_COLOR, alignment: Jimp.FONT_ALIGN_CENTER, maxWidth: 600 },
-};
-
-// تعريف متغيرات الخطوط لتحميلها مرة واحدة عند أول استدعاء للوظيفة
-let loadedFonts = {};
-
-exports.handler = async (event, context) => {
-    const studentId = event.path.split('/').pop();
-    console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
-
-    let client;
-
-    try {
-        if (!uri) {
-            throw new Error("MONGODB_URI is not set in environment variables. Please set it in Netlify.");
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شهادة</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* هنا يمكنك وضع CSS الخاص بالشهادة مباشرة أو في ملف styles.css */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
         }
-        client = new MongoClient(uri);
-        await client.connect();
-        const database = client.db(dbName);
-        const studentsCollection = database.collection(collectionName);
-
-        let student;
-        try {
-            student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
-        } catch (objectIdError) {
-            console.error('خطأ في إنشاء ObjectId:', objectIdError);
-            return {
-                statusCode: 400,
-                body: JSON.stringify({ error: 'معرف الطالب غير صالح' }),
-                headers: { 'Content-Type': 'application/json' },
-            };
+        .certificate-container {
+            position: relative;
+            width: 1000px; /* عرض الشهادة الخاص بك */
+            height: 700px; /* ارتفاع الشهادة الخاص بك */
+            background-image: url('/images_temp/wwee.jpg'); /* مسار صورة الشهادة */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            font-family: 'Arial', sans-serif; /* هنا تختار الخط الذي تريده */
+            color: black; /* لون النصوص الافتراضي */
         }
-
-        if (!student) {
-            return {
-                statusCode: 404,
-                body: JSON.stringify({ error: `لم يتم العثور على طالب بالمعرف: ${studentId}` }),
-                headers: { 'Content-Type': 'application/json' },
-            };
+        .text-overlay {
+            position: absolute;
+            text-align: center;
+            width: 100%;
+            /* يمكنك استخدام top, left, transform لضبط المواقع بدقة */
+        }
+        #student-name {
+            top: 150px; /* مثال لموقع اسم الطالب */
+            font-size: 48px;
+            color: white;
+        }
+        #serial-number {
+            top: 220px;
+            left: 180px; /* مثال لموقع الرقم التسلسلي */
+            text-align: left;
+            font-size: 28px;
+            color: white;
+            width: 300px; /* لتحديد عرض المنطقة */
+        }
+        /* أضف المزيد من الأنماط لكل حقل نصي هنا */
+        #document-serial-number {
+            top: 280px;
+            font-size: 20px;
+            color: black;
+        }
+        #plate-number {
+            top: 320px;
+            font-size: 20px;
+            color: black;
+        }
+        #car-type {
+            top: 360px;
+            font-size: 20px;
+            color: black;
+        }
+        #color {
+            top: 400px;
+            font-size: 20px;
+            color: black;
         }
 
-        const serialNumber = student.serial_number;
-        const studentNameArabic = student.arabic_name || '';
-        const documentSerialNumber = student.document_serial_number || '';
-        const plateNumber = student.plate_number || '';
-        const carType = student.car_type || '';
-        const color = student.color || '';
-
-        // قراءة صورة الشهادة
-        const image = await Jimp.read(CERTIFICATE_IMAGE_PATH);
-        const imageWidth = image.getWidth();
-        const imageHeight = image.getHeight();
-
-        // **تحميل الخطوط (إذا لم تكن محملة بعد)**
-        for (const key in TEXT_POSITIONS) {
-            const fontPath = TEXT_POSITIONS[key].fontPath;
-            if (!loadedFonts[fontPath]) {
-                loadedFonts[fontPath] = await Jimp.loadFont(fontPath);
+        /* إذا أردت طباعة الشهادة، يمكنك استخدام Media Queries للطباعة */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background: none;
+            }
+            .certificate-container {
+                box-shadow: none;
+                background-image: url('/images_temp/wwee.jpg'); /* تأكد من المسار لكي تطبع الخلفية */
+                -webkit-print-color-adjust: exact; /* لطباعة الألوان والخلفيات */
+                color-adjust: exact;
             }
         }
+    </style>
+</head>
+<body>
+    <div class="certificate-container">
+        <div id="student-name" class="text-overlay"></div>
+        <div id="serial-number" class="text-overlay"></div>
+        <div id="document-serial-number" class="text-overlay"></div>
+        <div id="plate-number" class="text-overlay"></div>
+        <div id="car-type" class="text-overlay"></div>
+        <div id="color" class="text-overlay"></div>
+    </div>
 
-        // وظيفة مساعدة لكتابة النص وتطبيق اللون والمحاذاة
-        const printText = (img, font, textData, textContent, imgWidth, imgHeight) => {
-            const { x, y, alignment, maxWidth, color } = textData;
-            
-            const textOptions = {
-                text: textContent,
-                alignmentX: alignment,
-                maxWidth: maxWidth
-            };
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const studentId = window.location.pathname.split('/').pop();
+            if (!studentId) {
+                console.error("معرف الطالب غير موجود في الرابط.");
+                return;
+            }
 
-            let finalX = x;
+            try {
+                // ستقوم هذه الـ fetch بطلب البيانات من وظيفة Netlify التي ترجع JSON
+                const response = await fetch(`/.netlify/functions/generateCertificateTwo2/${studentId}`);
+                const data = await response.json();
 
-            if (alignment === Jimp.FONT_ALIGN_CENTER) {
-                const textWidth = Jimp.measureText(font, textContent, maxWidth);
-                if (maxWidth && textWidth > maxWidth) {
-                    finalX = (imgWidth / 2) - (maxWidth / 2);
+                if (response.ok) {
+                    document.getElementById('student-name').textContent = data.studentNameArabic;
+                    document.getElementById('serial-number').textContent = data.serialNumber;
+                    document.getElementById('document-serial-number').textContent = data.documentSerialNumber;
+                    document.getElementById('plate-number').textContent = `رقم اللوحة: ${data.plateNumber}`;
+                    document.getElementById('car-type').textContent = `نوع السيارة: ${data.carType}`;
+                    document.getElementById('color').textContent = `اللون: ${data.color}`;
                 } else {
-                    finalX = (imgWidth / 2) - (textWidth / 2);
+                    console.error("خطأ في جلب البيانات:", data.error);
+                    alert(`حدث خطأ: ${data.error}`);
                 }
-            } else if (alignment === Jimp.FONT_ALIGN_RIGHT) {
-                // Jimp لا يتعامل جيدًا مع المحاذاة لليمين للنص العربي مباشرة
-                // لذا يفضل استخدام FONT_ALIGN_CENTER أو FONT_ALIGN_LEFT وتحديد x يدوياً
-                // أو تحديد maxWidth والاعتماد على Jimp لعمل wrap
+            } catch (error) {
+                console.error("خطأ غير متوقع:", error);
+                alert("حدث خطأ غير متوقع أثناء جلب البيانات.");
             }
-
-            // لطباعة النص بلون محدد، يمكن استخدام هذا الأسلوب:
-            // Jimp.print() يقوم بطباعة النص بلونه الأصلي (الموجود في ملف الـ PNG الخاص بالخط).
-            // إذا أردت تغيير اللون، يجب أن يكون ملف الخط (.fnt/.png) نفسه بالأبيض أو الرمادي الشفاف،
-            // ثم يمكنك تطبيق اللون على المنطقة قبل الطباعة.
-            // ولكن الطريقة الأكثر شيوعًا مع Jimp هي أن الخط نفسه يكون ملونًا أو ألفا فقط.
-            // إذا كان خطك باللون الأسود، سيبقى أسود. إذا كان أبيض، يمكنك جعله أي لون.
-            // الكود التالي لتلوين الخطوط البيضاء:
-            // img.composite(
-            //     new Jimp(Jimp.measureText(font, textContent, maxWidth), Jimp.measureTextHeight(font, textContent, maxWidth), color),
-            //     finalX, y,
-            //     {
-            //         mode: Jimp.BLEND_SOURCE_OVER,
-            //         opacitySource: 1,
-            //         opacityDest: 1
-            //     }
-            // ).print(font, finalX, y, textOptions, imgWidth, imgHeight);
-
-            // لتجنب التعقيد، سأفترض أن الخط نفسه (الملف الذي ولّدته) تم إنشاؤه باللون المطلوب أو أبيض يمكن تلوينه لاحقًا.
-            // Jimp.print سيستخدم اللون الأصلي للخط من ملف الـ PNG الخاص بالخط.
-            // إذا كنت تريد تطبيق لون ثابت، فمن الأفضل توليد الخط نفسه باللون الأبيض في BMFont، ثم يمكنك استخدام
-            // image.color([ { apply: 'xor', params: [ color ] } ]);
-            // لكن هذا يؤثر على الصورة كلها، لذا أفضل إزالة هذا السطر هنا.
-
-            img.print(font, finalX, y, textOptions, imgWidth, imageHeight);
-        };
-
-        // طباعة اسم الطالب
-        printText(image, loadedFonts[TEXT_POSITIONS.STUDENT_NAME.fontPath], TEXT_POSITIONS.STUDENT_NAME, studentNameArabic, imageWidth, imageHeight);
-
-        // طباعة الرقم التسلسلي
-        printText(image, loadedFonts[TEXT_POSITIONS.SERIAL_NUMBER.fontPath], TEXT_POSITIONS.SERIAL_NUMBER, serialNumber, imageWidth, imageHeight);
-
-        // طباعة رقم المستند التسلسلي
-        printText(image, loadedFonts[TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.fontPath], TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER, documentSerialNumber, imageWidth, imageHeight);
-
-        // طباعة رقم اللوحة
-        printText(image, loadedFonts[TEXT_POSITIONS.PLATE_NUMBER.fontPath], TEXT_POSITIONS.PLATE_NUMBER, `رقم اللوحة: ${plateNumber}`, imageWidth, imageHeight);
-
-        // طباعة نوع السيارة
-        printText(image, loadedFonts[TEXT_POSITIONS.CAR_TYPE.fontPath], TEXT_POSITIONS.CAR_TYPE, `نوع السيارة: ${carType}`, imageWidth, imageHeight);
-
-        // طباعة اللون
-        printText(image, loadedFonts[TEXT_POSITIONS.COLOR.fontPath], TEXT_POSITIONS.COLOR, `اللون: ${color}`, imageWidth, imageHeight);
-
-        // تحويل الصورة إلى Buffer وإرجاعها كـ Base64
-        const processedImageBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
-
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'image/jpeg',
-                'Cache-Control': 'no-cache, no-store, must-revalidate'
-            },
-            body: processedImageBuffer.toString('base64'),
-            isBase64Encoded: true,
-        };
-
-    } catch (error) {
-        console.error('خطأ في وظيفة توليد الشهادة:', error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: 'حدث خطأ أثناء توليد الشهادة', details: error.message }),
-            headers: { 'Content-Type': 'application/json' },
-        };
-    } finally {
-        if (client) await client.close();
-    }
-};
+        });
+    </script>
+</body>
+</html>

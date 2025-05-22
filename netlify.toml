@@ -1,19 +1,9 @@
-# netlify.toml
-
 [build]
   base = "/"
-  publish = "public"
   functions = "netlify/functions"
 
 [functions]
-  included_files = [
-    "public/**",                          # يضم مجلد public بالكامل بما فيه 'public/images_temp/wwee.jpg'
-    "netlify/functions/fonts/**",         # يضم مجلد الخطوط الذي يحتوي على ملفات .fnt و .png/.tga
-    "node_modules/jimp/**",               # لتضمين مكتبة Jimp
-    "node_modules/mongodb/**",            # لتضمين مكتبة MongoDB
-    "node_modules/bson/**"                # MongoDB تعتمد على BSON
-  ]
-
+  included_files = ["public/**", "netlify/functions/fonts/**"]
 
 [[redirects]]
   from = "/certificate/:id"
