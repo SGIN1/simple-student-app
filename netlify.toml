@@ -1,9 +1,17 @@
+# netlify.toml
+
 [build]
   base = "/"
+  publish = "public"
   functions = "netlify/functions"
 
 [functions]
-  included_files = ["public/**", "netlify/functions/fonts/**"]
+  included_files = [
+    "public/**", # لتضمين مجلد public بالكامل (لصورة wwee.jpg)
+    "netlify/functions/arial.ttf", # لتضمين ملف الخط arial.ttf
+    "node_modules/mongodb/**",
+    "node_modules/bson/**"
+  ]
 
 [[redirects]]
   from = "/certificate/:id"
