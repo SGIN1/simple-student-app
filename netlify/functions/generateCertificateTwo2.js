@@ -1,127 +1,130 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>شهادة</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        /* هنا يمكنك وضع CSS الخاص بالشهادة مباشرة أو في ملف styles.css */
-        body {
+const { MongoClient, ObjectId } = require('mongodb');
+
+const uri = process.env.MONGODB_URI;
+const dbName = 'Cluster0';
+const collectionName = 'enrolled_students_tbl';
+
+// **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
+const CERTIFICATE_IMAGE_PATH = '/public/images_temp/wwee.jpg';
+
+// **مسار الخط:** يجب أن يكون موجودًا في مجلد netlify/functions/fonts
+const FONT_PATH = './arial.ttf';
+
+const SERIAL_NUMBER_STYLE = `
+  position: absolute;
+  top: 180px;
+  left: 50px;
+  font-size: 28px;
+  font-weight: bold;
+  color: black;
+  text-align: center;
+  width: 180px;
+`;
+
+exports.handler = async (event, context) => {
+  const studentId = event.path.split('/').pop(); // استخراج المعرّف من event.path
+  console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
+
+  let client;
+
+  try {
+    client = new MongoClient(uri);
+    await client.connect();
+    const database = client.db(dbName);
+    const studentsCollection = database.collection(collectionName);
+
+    let student;
+    try {
+      student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
+    } catch (objectIdError) {
+      console.error('خطأ في إنشاء ObjectId:', objectIdError);
+      return {
+        statusCode: 400,
+        body: '<h1>معرف الطالب غير صالح</h1><p>يجب أن يكون المعرف سلسلة نصية مكونة من 24 حرفًا سداسيًا عشريًا.</p>',
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      };
+    }
+
+    if (!student) {
+      return {
+        statusCode: 404,
+        body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      };
+    }
+
+    const serialNumber = student.serial_number;
+    const studentNameArabic = student.arabic_name || '';
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="ar" style="height: 100%;">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=0.1">
+        <title>الشهادة</title>
+        <style>
+          body {
+            margin: 0px;
+            height: 100%;
+            background-color: rgb(14, 14, 14);
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-        }
-        .certificate-container {
-            position: relative;
-            width: 1000px; /* عرض الشهادة الخاص بك */
-            height: 700px; /* ارتفاع الشهادة الخاص بك */
-            background-image: url('/images_temp/wwee.jpg'); /* مسار صورة الشهادة */
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            font-family: 'Arial', sans-serif; /* هنا تختار الخط الذي تريده */
-            color: black; /* لون النصوص الافتراضي */
-        }
-        .text-overlay {
-            position: absolute;
-            text-align: center;
-            width: 100%;
-            /* يمكنك استخدام top, left, transform لضبط المواقع بدقة */
-        }
-        #student-name {
-            top: 150px; /* مثال لموقع اسم الطالب */
+          }
+          img {
+            display: block;
+            -webkit-user-select: none;
+            margin: auto;
+            cursor: zoom-in;
+            background-color: hsl(0, 0%, 90%);
+            transition: background-color 300ms;
+            width: 496px;
+            height: 607px;
+          }
+          @font-face {
+            font-family: 'ArabicFont';
+            src: url('${FONT_PATH}') format('truetype');
+          }
+          .student-name {
+            font-family: 'ArabicFont', serif;
             font-size: 48px;
-            color: white;
-        }
-        #serial-number {
-            top: 220px;
-            left: 180px; /* مثال لموقع الرقم التسلسلي */
-            text-align: left;
-            font-size: 28px;
-            color: white;
-            width: 300px; /* لتحديد عرض المنطقة */
-        }
-        /* أضف المزيد من الأنماط لكل حقل نصي هنا */
-        #document-serial-number {
-            top: 280px;
-            font-size: 20px;
-            color: black;
-        }
-        #plate-number {
-            top: 320px;
-            font-size: 20px;
-            color: black;
-        }
-        #car-type {
-            top: 360px;
-            font-size: 20px;
-            color: black;
-        }
-        #color {
-            top: 400px;
-            font-size: 20px;
-            color: black;
-        }
+            color: #fff;
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            width: 90%;
+          }
+          .serial-number {
+            ${SERIAL_NUMBER_STYLE}
+            font-family: sans-serif;
+            color: #fff;
+          }
+        </style>
+      </head>
+      <body style="margin: 0px; height: 100%; background-color: rgb(14, 14, 14);">
+        <img style="display: block;-webkit-user-select: none;margin: auto;cursor: zoom-in;background-color: hsl(0, 0%, 90%);transition: background-color 300ms;" src="${CERTIFICATE_IMAGE_PATH}" width="496" height="607">
+        <div class="student-name">${studentNameArabic}</div>
+        <div class="serial-number">${serialNumber}</div>
+      </body>
+      </html>
+    `;
 
-        /* إذا أردت طباعة الشهادة، يمكنك استخدام Media Queries للطباعة */
-        @media print {
-            body {
-                margin: 0;
-                padding: 0;
-                background: none;
-            }
-            .certificate-container {
-                box-shadow: none;
-                background-image: url('/images_temp/wwee.jpg'); /* تأكد من المسار لكي تطبع الخلفية */
-                -webkit-print-color-adjust: exact; /* لطباعة الألوان والخلفيات */
-                color-adjust: exact;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="certificate-container">
-        <div id="student-name" class="text-overlay"></div>
-        <div id="serial-number" class="text-overlay"></div>
-        <div id="document-serial-number" class="text-overlay"></div>
-        <div id="plate-number" class="text-overlay"></div>
-        <div id="car-type" class="text-overlay"></div>
-        <div id="color" class="text-overlay"></div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const studentId = window.location.pathname.split('/').pop();
-            if (!studentId) {
-                console.error("معرف الطالب غير موجود في الرابط.");
-                return;
-            }
-
-            try {
-                // ستقوم هذه الـ fetch بطلب البيانات من وظيفة Netlify التي ترجع JSON
-                const response = await fetch(`/.netlify/functions/generateCertificateTwo2/${studentId}`);
-                const data = await response.json();
-
-                if (response.ok) {
-                    document.getElementById('student-name').textContent = data.studentNameArabic;
-                    document.getElementById('serial-number').textContent = data.serialNumber;
-                    document.getElementById('document-serial-number').textContent = data.documentSerialNumber;
-                    document.getElementById('plate-number').textContent = `رقم اللوحة: ${data.plateNumber}`;
-                    document.getElementById('car-type').textContent = `نوع السيارة: ${data.carType}`;
-                    document.getElementById('color').textContent = `اللون: ${data.color}`;
-                } else {
-                    console.error("خطأ في جلب البيانات:", data.error);
-                    alert(`حدث خطأ: ${data.error}`);
-                }
-            } catch (error) {
-                console.error("خطأ غير متوقع:", error);
-                alert("حدث خطأ غير متوقع أثناء جلب البيانات.");
-            }
-        });
-    </script>
-</body>
-</html>
+    return {
+      statusCode: 200,
+      body: htmlContent,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    };
+  } catch (error) {
+    console.error('خطأ في وظيفة توليد الشهادة:', error);
+    return {
+      statusCode: 500,
+      body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    };
+  } finally {
+    if (client) await client.close();
+  }
+};
