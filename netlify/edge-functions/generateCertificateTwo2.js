@@ -1,39 +1,32 @@
-import { ImageResponse, html } from '@vercel/og'; // استيراد html tag function
-import sharp from 'sharp';
+import { ImageResponse, html } from '@vercel/og';
 import { MongoClient, ObjectId } from 'mongodb';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import fs from 'fs/promises';
 
-// تحديد المسار الصحيح للملفات
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// مسار ملف الخطوط داخل مجلد Edge Function
-const ARABIC_FONT_PATH = join(__dirname, 'fonts', 'arial.ttf');
-
-// مسار صورة الشهادة الأساسية
-const CERTIFICATE_IMAGE_PATH = join(__dirname, 'images', 'wwee.jpg'); // تأكد أن المجلد اسمه 'images'
+// استيراد كود Base64 للصورة من الملف المنفصل
+import { CERTIFICATE_IMAGE_BASE64 } from './assets/certificateImage.js';
 
 // متغيرات MongoDB
-const uri = Deno.env.get('MONGODB_URI');
+const uri = Deno.env.get('MONGODB_URI'); // تأكد أن هذا المتغير موجود في إعدادات Netlify
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
+// أبعاد صورة الشهادة الخلفية (تم تحديثها بناءً على 978x1280)
+const CERTIFICATE_WIDTH = 978;
+const CERTIFICATE_HEIGHT = 1280;
 
+// الألوان المستخدمة للنصوص
 const TEXT_COLOR_HEX = '#000000'; // أسود
 const WHITE_COLOR_HEX = '#FFFFFF'; // أبيض
 
-// تعريف إحداثيات النصوص (سيتطلب الأمر بعض التعديل الدقيق بناءً على حجم الخط وتصميمه)
+// تعريف إحداثيات النصوص (سيتطلب منك التعديل الدقيق بناءً على تصميم شهادتك)
+// هذه القيم هي إحداثيات (x=left, y=top) ومقاسات الخطوط وألوانها
 const TEXT_POSITIONS = {
-    STUDENT_NAME: { x: 300, y: 150, fontSize: 48, color: WHITE_COLOR_HEX, alignment: 'center' },
-    SERIAL_NUMBER: { x: 90, y: 220, fontSize: 28, color: WHITE_COLOR_HEX, alignment: 'center' },
-    DOCUMENT_SERIAL_NUMBER: { x: 300, y: 280, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'center' },
-    PLATE_NUMBER: { x: 300, y: 320, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'center' },
-    CAR_TYPE: { x: 300, y: 360, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'center' },
-    COLOR: { x: 300, y: 400, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'center' },
+    STUDENT_NAME: { x: 400, y: 150, fontSize: 48, color: WHITE_COLOR_HEX, alignment: 'center' },
+    SERIAL_NUMBER: { x: 90, y: 220, fontSize: 28, color: WHITE_COLOR_HEX, alignment: 'left' },
+    DOCUMENT_SERIAL_NUMBER: { x: 400, y: 280, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'center' },
+    PLATE_NUMBER: { x: 400, y: 320, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'center' },
+    CAR_TYPE: { x: 400, y: 360, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'center' },
+    COLOR: { x: 400, y: 400, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'center' },
 };
-
 
 export default async (request, context) => {
     const url = new URL(request.url);
@@ -69,6 +62,7 @@ export default async (request, context) => {
             });
         }
 
+        // جلب بيانات الطالب من قاعدة البيانات
         const serialNumber = student.serial_number;
         const studentNameArabic = student.arabic_name || '';
         const documentSerialNumber = student.document_serial_number || '';
@@ -76,93 +70,116 @@ export default async (request, context) => {
         const carType = student.car_type || '';
         const color = student.color || '';
 
-        // 1. قراءة الخط
-        const arabicFontData = await fs.readFile(ARABIC_FONT_PATH);
+        // بناء محتوى HTML الذي سيتم تحويله إلى صورة
+        const certificateHtmlContent = html`
+            <div style="
+                position: relative;
+                width: ${CERTIFICATE_WIDTH}px;
+                height: ${CERTIFICATE_HEIGHT}px;
+                background-image: url('${CERTIFICATE_IMAGE_BASE64}');
+                background-size: cover;
+                background-repeat: no-repeat;
+                background-position: center center;
+                font-family: 'sans-serif'; /* استخدام خط افتراضي مؤقتًا */
+                color: ${TEXT_COLOR_HEX}; /* لون افتراضي للنصوص إذا لم يتم تحديده */
+                display: flex; /* لجعل العناصر تتكدس عموديًا */
+                flex-direction: column;
+                align-items: flex-start; /* محاذاة كل شيء إلى اليسار افتراضيًا */
+                justify-content: flex-start; /* محاذاة كل شيء إلى الأعلى افتراضيًا */
+            ">
+                <div style="
+                    position: absolute;
+                    top: ${TEXT_POSITIONS.STUDENT_NAME.y}px;
+                    ${TEXT_POSITIONS.STUDENT_NAME.alignment === 'center' ? `left: 50%; transform: translateX(-50%); text-align: center;` : `left: ${TEXT_POSITIONS.STUDENT_NAME.x}px; text-align: ${TEXT_POSITIONS.STUDENT_NAME.alignment};`}
+                    font-size: ${TEXT_POSITIONS.STUDENT_NAME.fontSize}px;
+                    color: ${TEXT_POSITIONS.STUDENT_NAME.color};
+                    white-space: nowrap; /* منع النص من الالتفاف */
+                    width: auto; /* يجعل الـ div يأخذ عرض النص فقط */
+                ">
+                    ${studentNameArabic}
+                </div>
 
-        // 2. قراءة صورة الشهادة الأساسية باستخدام sharp
-        const baseImageBufferRaw = await fs.readFile(CERTIFICATE_IMAGE_PATH);
-        const baseImageUint8Array = new Uint8Array(baseImageBufferRaw.buffer);
+                <div style="
+                    position: absolute;
+                    top: ${TEXT_POSITIONS.SERIAL_NUMBER.y}px;
+                    ${TEXT_POSITIONS.SERIAL_NUMBER.alignment === 'center' ? `left: 50%; transform: translateX(-50%); text-align: center;` : `left: ${TEXT_POSITIONS.SERIAL_NUMBER.x}px; text-align: ${TEXT_POSITIONS.SERIAL_NUMBER.alignment};`}
+                    font-size: ${TEXT_POSITIONS.SERIAL_NUMBER.fontSize}px;
+                    color: ${TEXT_POSITIONS.SERIAL_NUMBER.color};
+                    white-space: nowrap;
+                    width: auto;
+                ">
+                    ${serialNumber}
+                </div>
 
-        const baseImage = sharp(baseImageUint8Array);
-        const metadata = await baseImage.metadata();
-        const imageWidth = metadata.width;
-        const imageHeight = metadata.height;
+                <div style="
+                    position: absolute;
+                    top: ${TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.y}px;
+                    ${TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.alignment === 'center' ? `left: 50%; transform: translateX(-50%); text-align: center;` : `left: ${TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.x}px; text-align: ${TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.alignment};`}
+                    font-size: ${TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.fontSize}px;
+                    color: ${TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.color};
+                    white-space: nowrap;
+                    width: auto;
+                ">
+                    ${documentSerialNumber}
+                </div>
 
-        // 3. إنشاء النصوص كـ SVG باستخدام ImageResponse
-        const textOverlays = [];
+                <div style="
+                    position: absolute;
+                    top: ${TEXT_POSITIONS.PLATE_NUMBER.y}px;
+                    ${TEXT_POSITIONS.PLATE_NUMBER.alignment === 'center' ? `left: 50%; transform: translateX(-50%); text-align: center;` : `left: ${TEXT_POSITIONS.PLATE_NUMBER.x}px; text-align: ${TEXT_POSITIONS.PLATE_NUMBER.alignment};`}
+                    font-size: ${TEXT_POSITIONS.PLATE_NUMBER.fontSize}px;
+                    color: ${TEXT_POSITIONS.PLATE_NUMBER.color};
+                    white-space: nowrap;
+                    width: auto;
+                ">
+                    رقم اللوحة: ${plateNumber}
+                </div>
 
-        for (const [key, pos] of Object.entries(TEXT_POSITIONS)) {
-            let textContent = '';
-            switch (key) {
-                case 'STUDENT_NAME':
-                    textContent = studentNameArabic;
-                    break;
-                case 'SERIAL_NUMBER':
-                    textContent = serialNumber;
-                    break;
-                case 'DOCUMENT_SERIAL_NUMBER':
-                    textContent = documentSerialNumber;
-                    break;
-                case 'PLATE_NUMBER':
-                    textContent = `رقم اللوحة: ${plateNumber}`;
-                    break;
-                case 'CAR_TYPE':
-                    textContent = `نوع السيارة: ${carType}`;
-                    break;
-                case 'COLOR':
-                    textContent = `اللون: ${color}`;
-                    break;
+                <div style="
+                    position: absolute;
+                    top: ${TEXT_POSITIONS.CAR_TYPE.y}px;
+                    ${TEXT_POSITIONS.CAR_TYPE.alignment === 'center' ? `left: 50%; transform: translateX(-50%); text-align: center;` : `left: ${TEXT_POSITIONS.CAR_TYPE.x}px; text-align: ${TEXT_POSITIONS.CAR_TYPE.alignment};`}
+                    font-size: ${TEXT_POSITIONS.CAR_TYPE.fontSize}px;
+                    color: ${TEXT_POSITIONS.CAR_TYPE.color};
+                    white-space: nowrap;
+                    width: auto;
+                ">
+                    نوع السيارة: ${carType}
+                </div>
+
+                <div style="
+                    position: absolute;
+                    top: ${TEXT_POSITIONS.COLOR.y}px;
+                    ${TEXT_POSITIONS.COLOR.alignment === 'center' ? `left: 50%; transform: translateX(-50%); text-align: center;` : `left: ${TEXT_POSITIONS.COLOR.x}px; text-align: ${TEXT_POSITIONS.COLOR.alignment};`}
+                    font-size: ${TEXT_POSITIONS.COLOR.fontSize}px;
+                    color: ${TEXT_POSITIONS.COLOR.color};
+                    white-space: nowrap;
+                    width: auto;
+                ">
+                    اللون: ${color}
+                </div>
+            </div>
+        `;
+
+        // توليد الصورة النهائية باستخدام ImageResponse
+        const finalImageBuffer = await new ImageResponse(
+            certificateHtmlContent,
+            {
+                width: CERTIFICATE_WIDTH,
+                height: CERTIFICATE_HEIGHT,
+                // لا نستخدم الخطوط هنا حاليًا
+                // fonts: [ ... ],
+                headers: {
+                    'Content-Type': 'image/jpeg', // تأكد أن النوع صحيح
+                },
             }
+        ).arrayBuffer();
 
-            const textSvgArrayBuffer = await new ImageResponse(
-                html`<div style="
-                        display: flex;
-                        position: absolute;
-                        top: ${pos.y}px;
-                        left: ${pos.x}px;
-                        font-size: ${pos.fontSize}px;
-                        color: ${pos.color};
-                        font-family: 'ArialCustom';
-                        justify-content: ${pos.alignment === 'center' ? 'center' : (pos.alignment === 'left' ? 'flex-start' : 'flex-end')};
-                        align-items: center;
-                        width: auto;
-                        white-space: nowrap;
-                    ">
-                        ${textContent}
-                    </div>`,
-                {
-                    width: imageWidth,
-                    height: imageHeight,
-                    fonts: [
-                        {
-                            name: 'ArialCustom',
-                            data: arabicFontData,
-                            style: 'normal',
-                            weight: 400,
-                        },
-                    ],
-                }
-            ).arrayBuffer();
-
-            textOverlays.push({
-                input: new Uint8Array(textSvgArrayBuffer),
-                top: 0,
-                left: 0,
-                blend: 'overlay',
-            });
-        }
-
-        // 4. تركيب الـ SVG على الصورة الأساسية باستخدام sharp
-        const processedImageBuffer = await baseImage
-            .composite(textOverlays)
-            .jpeg({ quality: 90 })
-            .toBuffer();
-
-        // 5. إرجاع الصورة
-        return new Response(processedImageBuffer, {
+        // إرجاع الصورة
+        return new Response(finalImageBuffer, {
             headers: {
                 'Content-Type': 'image/jpeg',
-                'Cache-Control': 'public, max-age=3600',
+                'Cache-Control': 'public, max-age=3600', // إعدادات التخزين المؤقت
             },
         });
 
