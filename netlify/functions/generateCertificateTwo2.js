@@ -1,27 +1,42 @@
+// netlify/functions/generateCertificateTwo2.js
+
 const { MongoClient, ObjectId } = require('mongodb');
 const Jimp = require('jimp');
 const path = require('path');
 
-const uri = process.env.MONGODB_URI;
+// متغيرات MongoDB
+const uri = process.env.MONGODB_URI; // تأكد أن هذا المتغير موجود في إعدادات Netlify
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **مسار صورة الشهادة:** يجب أن يكون موجودًا في مجلد public/images_temp
-const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee.jpg');
+// **مسارات الملفات (باستخدام __dirname لضمان المسار الصحيح في Netlify Functions)**
+// تأكد أن 'wwee.jpg' موجودة في مجلد 'netlify/functions/images/'
+const CERTIFICATE_IMAGE_PATH = path.join(__dirname, 'images', 'wwee.jpg');
 
-// **مسار الخط:** استخدام المسار المطلق
-const FONT_PATH = path.join(process.cwd(), 'netlify/functions/fonts/arial.ttf');
+// **مسارات الخطوط (يجب استبدالها بأسماء ملفات .fnt التي ولدتها بـ BMFont)**
+// مثال: إذا ولّدت خط بحجم 48 واسمه 'myfont-48.fnt' و 'myfont-48_0.png'
+const FONT_FNT_PATH_48 = path.join(__dirname, 'fonts', 'arial-48.fnt'); // اسم خط حجم 48
+// مثال: إذا ولّدت خط بحجم 28 واسمه 'myfont-28.fnt' و 'myfont-28_0.png'
+const FONT_FNT_PATH_28 = path.join(__dirname, 'fonts', 'arial-28.fnt'); // اسم خط حجم 28
+const FONT_FNT_PATH_20 = path.join(__dirname, 'fonts', 'arial-20.fnt'); // اسم خط حجم 20
 
-// تعريف أنماط النصوص باستخدام Jimp
-const TEXT_COLOR = 0x000000FF; // أسود
-const WHITE_COLOR = 0xFFFFFFFF;
 
-const STUDENT_NAME_STYLE = { top: 150, fontSize: 48, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const SERIAL_NUMBER_STYLE = { top: 220, fontSize: 28, color: WHITE_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const DOCUMENT_SERIAL_NUMBER_STYLE = { top: 280, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const PLATE_NUMBER_STYLE = { top: 320, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const CAR_TYPE_STYLE = { top: 360, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
-const COLOR_STYLE = { top: 400, fontSize: 20, color: TEXT_COLOR, alignment: Jimp.HORIZONTAL_ALIGN_CENTER };
+// تعريف أنماط النصوص وإحداثياتها الدقيقة (X, Y)
+// قم بتعديل قيم X و Y لتناسب تصميم شهادتك
+const TEXT_COLOR = 0x000000FF; // أسود مع شفافية كاملة (RRGGBBAA)
+const WHITE_COLOR = 0xFFFFFFFF; // أبيض مع شفافية كاملة (RRGGBBAA)
+
+const TEXT_POSITIONS = {
+    STUDENT_NAME: { x: 489, y: 150, fontPath: FONT_FNT_PATH_48, color: WHITE_COLOR, alignment: Jimp.FONT_ALIGN_CENTER, maxWidth: 600 },
+    SERIAL_NUMBER: { x: 180, y: 220, fontPath: FONT_FNT_PATH_28, color: WHITE_COLOR, alignment: Jimp.FONT_ALIGN_LEFT, maxWidth: 300 },
+    DOCUMENT_SERIAL_NUMBER: { x: 489, y: 280, fontPath: FONT_FNT_PATH_20, color: TEXT_COLOR, alignment: Jimp.FONT_ALIGN_CENTER, maxWidth: 600 },
+    PLATE_NUMBER: { x: 489, y: 320, fontPath: FONT_FNT_PATH_20, color: TEXT_COLOR, alignment: Jimp.FONT_ALIGN_CENTER, maxWidth: 600 },
+    CAR_TYPE: { x: 489, y: 360, fontPath: FONT_FNT_PATH_20, color: TEXT_COLOR, alignment: Jimp.FONT_ALIGN_CENTER, maxWidth: 600 },
+    COLOR: { x: 489, y: 400, fontPath: FONT_FNT_PATH_20, color: TEXT_COLOR, alignment: Jimp.FONT_ALIGN_CENTER, maxWidth: 600 },
+};
+
+// تعريف متغيرات الخطوط لتحميلها مرة واحدة
+let loadedFonts = {};
 
 exports.handler = async (event, context) => {
     const studentId = event.path.split('/').pop();
@@ -30,6 +45,9 @@ exports.handler = async (event, context) => {
     let client;
 
     try {
+        if (!uri) {
+            throw new Error("MONGODB_URI is not set in environment variables. Please set it in Netlify.");
+        }
         client = new MongoClient(uri);
         await client.connect();
         const database = client.db(dbName);
@@ -64,27 +82,58 @@ exports.handler = async (event, context) => {
 
         // قراءة صورة الشهادة
         const image = await Jimp.read(CERTIFICATE_IMAGE_PATH);
-
-        // تحميل الخط باستخدام المسار المطلق
-        const font = await Jimp.loadFont(FONT_PATH);
-
         const imageWidth = image.getWidth();
 
-        // كتابة النصوص على الصورة
-        image.print(font, 0, STUDENT_NAME_STYLE.top, { text: studentNameArabic, alignmentX: STUDENT_NAME_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-        image.print(font, 0, SERIAL_NUMBER_STYLE.top, { text: serialNumber, alignmentX: SERIAL_NUMBER_STYLE.alignment, maxWidth: 180 }, 180);
-        image.print(font, 0, DOCUMENT_SERIAL_NUMBER_STYLE.top, { text: documentSerialNumber, alignmentX: DOCUMENT_SERIAL_NUMBER_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-        image.print(font, 0, PLATE_NUMBER_STYLE.top, { text: `رقم اللوحة: ${plateNumber}`, alignmentX: PLATE_NUMBER_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-        image.print(font, 0, CAR_TYPE_STYLE.top, { text: `نوع السيارة: ${carType}`, alignmentX: CAR_TYPE_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
-        image.print(font, 0, COLOR_STYLE.top, { text: `اللون: ${color}`, alignmentX: COLOR_STYLE.alignment, maxWidth: imageWidth * 0.9 }, imageWidth);
+        // **تحميل الخطوط (إذا لم تكن محملة بعد)**
+        // هذه الطريقة تضمن أن الخطوط لا يتم تحميلها في كل مرة يتم فيها استدعاء الوظيفة
+        for (const key in TEXT_POSITIONS) {
+            const fontPath = TEXT_POSITIONS[key].fontPath;
+            if (!loadedFonts[fontPath]) {
+                loadedFonts[fontPath] = await Jimp.loadFont(fontPath);
+            }
+        }
 
-        // تحويل الصورة إلى Buffer
+        // كتابة النصوص على الصورة
+        // وظيفة مساعدة لكتابة النص مع حساب المحاذاة المركزية
+        const printText = (img, font, textData, textContent, imgWidth) => {
+            const { x, y, alignment, maxWidth, color } = textData;
+            let finalX = x;
+            img.color([ { apply: 'xor', params: [ color ] } ]); // لتطبيق اللون على النص
+
+            if (alignment === Jimp.FONT_ALIGN_CENTER) {
+                const textWidth = Jimp.measureText(font, textContent);
+                finalX = (imgWidth / 2) - (textWidth / 2);
+            }
+            // Jimp.print(font, x, y, { text, alignmentX, alignmentY, maxWidth, maxHeight }, [containerWidth], [containerHeight])
+            img.print(font, finalX, y, { text: textContent, alignmentX: alignment, maxWidth: maxWidth }, imgWidth);
+        };
+
+        // طباعة اسم الطالب
+        printText(image, loadedFonts[TEXT_POSITIONS.STUDENT_NAME.fontPath], TEXT_POSITIONS.STUDENT_NAME, studentNameArabic, imageWidth);
+
+        // طباعة الرقم التسلسلي
+        printText(image, loadedFonts[TEXT_POSITIONS.SERIAL_NUMBER.fontPath], TEXT_POSITIONS.SERIAL_NUMBER, serialNumber, imageWidth);
+
+        // طباعة رقم المستند التسلسلي
+        printText(image, loadedFonts[TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.fontPath], TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER, documentSerialNumber, imageWidth);
+
+        // طباعة رقم اللوحة
+        printText(image, loadedFonts[TEXT_POSITIONS.PLATE_NUMBER.fontPath], TEXT_POSITIONS.PLATE_NUMBER, `رقم اللوحة: ${plateNumber}`, imageWidth);
+
+        // طباعة نوع السيارة
+        printText(image, loadedFonts[TEXT_POSITIONS.CAR_TYPE.fontPath], TEXT_POSITIONS.CAR_TYPE, `نوع السيارة: ${carType}`, imageWidth);
+
+        // طباعة اللون
+        printText(image, loadedFonts[TEXT_POSITIONS.COLOR.fontPath], TEXT_POSITIONS.COLOR, `اللون: ${color}`, imageWidth);
+
+        // تحويل الصورة إلى Buffer وإرجاعها كـ Base64
         const processedImageBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
 
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'image/jpeg',
+                'Cache-Control': 'no-cache, no-store, must-revalidate' // لضمان عدم التخزين المؤقت للشهادات المتغيرة
             },
             body: processedImageBuffer.toString('base64'),
             isBase64Encoded: true,

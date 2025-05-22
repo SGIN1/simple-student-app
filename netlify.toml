@@ -1,12 +1,28 @@
+# netlify.toml
+
 [build]
   base = "/"
-  functions = "netlify/functions"
+  publish = "public" # تأكد من أن هذا هو مجلد ملفاتك الثابتة (مثل index.html)
+  functions = "netlify/functions" # مجلد وظائف Node.js العادية
 
 [functions]
-  included_files = ["public/**", "netlify/functions/fonts/**"]
+  # يجب تضمين جميع الملفات والمجلدات والمكتبات التي تحتاجها وظائفك.
+  # المسارات هنا نسبية للمجلد الجذري للمشروع.
+  included_files = [
+    "public/**",                          # إذا كان لديك أي ملفات ثابتة أخرى في مجلد public
+    "netlify/functions/fonts/**",         # مهم جداً: لتضمين ملفات .fnt و .png/tga للخطوط
+    "netlify/functions/images/**",        # مهم جداً: لتضمين صورة الشهادة الخلفية wwee.jpg
+    "node_modules/jimp/**",               # لتضمين مكتبة Jimp
+    "node_modules/mongodb/**",            # لتضمين مكتبة MongoDB
+    "node_modules/bson/**"                # MongoDB تعتمد على BSON
+    # إذا كنت تستخدم أي مكتبات أخرى في وظائفك، يجب إضافتها هنا
+  ]
+  # يمكن تحديد مهلة أطول للوظيفة إذا كنت تتوقع أنها قد تستغرق وقتاً طويلاً
+  # timeout = 30 # بالثواني، الافتراضي هو 10 ثواني (يمكن زيادته حتى 26 ثانية للخطة المجانية)
+
 
 [[redirects]]
   from = "/certificate/:id"
   to = "/.netlify/functions/generateCertificateTwo2/:id"
-  status = 200
-  force = true
+  status = 200 # status 200 يعني أن الوظيفة ستعرض المحتوى مباشرة (صورة الشهادة)
+  force = true # يضمن أن التحويل يتم بغض النظر عن وجود ملفات أخرى
