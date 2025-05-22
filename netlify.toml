@@ -2,22 +2,17 @@
 
 [build]
   base = "/"
-  publish = "public" # تأكد من أن هذا هو مجلد ملفاتك الثابتة (مثل index.html)
-  functions = "netlify/functions" # مجلد وظائف Node.js العادية
+  publish = "public"
+  functions = "netlify/functions"
 
 [functions]
-  # يجب تضمين جميع الملفات والمجلدات والمكتبات التي تحتاجها وظائفك.
-  # المسارات هنا نسبية للمجلد الجذري للمشروع.
   included_files = [
-    "public/**",                          # تم تضمين هذا المسار بالكامل ليتوافق مع مسارك الأصلي
-    "netlify/functions/fonts/**",         # مهم جداً: لتضمين ملفات .fnt و .png/tga للخطوط
-    "netlify/functions/images/**",        # لتضمين صورة الشهادة الخلفية wwee.jpg (حتى لو كانت في public، هذا لا يضر)
+    "public/**",                          # يضم مجلد public بالكامل بما فيه 'public/images_temp/wwee.jpg'
+    "netlify/functions/fonts/**",         # يضم مجلد الخطوط الذي يحتوي على ملفات .fnt و .png/.tga
     "node_modules/jimp/**",               # لتضمين مكتبة Jimp
     "node_modules/mongodb/**",            # لتضمين مكتبة MongoDB
     "node_modules/bson/**"                # MongoDB تعتمد على BSON
-    # أضف أي مكتبات أخرى إذا كنت تستخدمها
   ]
-  # timeout = 30 # بالثواني، الافتراضي هو 10 ثواني (يمكن زيادته حتى 26 ثانية للخطة المجانية)
 
 
 [[redirects]]
