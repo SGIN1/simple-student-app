@@ -9,16 +9,15 @@ const uri = process.env.MONGODB_URI; // تأكد أن هذا المتغير مو
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **مسارات الملفات (باستخدام __dirname لضمان المسار الصحيح في Netlify Functions)**
-// تأكد أن 'wwee.jpg' موجودة في مجلد 'netlify/functions/images/'
-const CERTIFICATE_IMAGE_PATH = path.join(__dirname, 'images', 'wwee.jpg');
+// **مسار صورة الشهادة (مسارك الأصلي):**
+// يجب أن يكون موجودًا في مجلد 'public/images_temp/' بالنسبة لجذر المشروع
+const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee.jpg');
 
-// **مسارات الخطوط (يجب استبدالها بأسماء ملفات .fnt التي ولدتها بـ BMFont)**
-// مثال: إذا ولّدت خط بحجم 48 واسمه 'myfont-48.fnt' و 'myfont-48_0.png'
-const FONT_FNT_PATH_48 = path.join(__dirname, 'fonts', 'arial-48.fnt'); // اسم خط حجم 48
-// مثال: إذا ولّدت خط بحجم 28 واسمه 'myfont-28.fnt' و 'myfont-28_0.png'
-const FONT_FNT_PATH_28 = path.join(__dirname, 'fonts', 'arial-28.fnt'); // اسم خط حجم 28
-const FONT_FNT_PATH_20 = path.join(__dirname, 'fonts', 'arial-20.fnt'); // اسم خط حجم 20
+// **مسارات الخطوط (مسارك الأصلي):**
+// تأكد من استبدالها بأسماء ملفات .fnt التي ولدتها بـ BMFont
+const FONT_FNT_PATH_48 = path.join(process.cwd(), 'netlify/functions/fonts/arial-48.fnt'); // اسم خط حجم 48
+const FONT_FNT_PATH_28 = path.join(process.cwd(), 'netlify/functions/fonts/arial-28.fnt'); // اسم خط حجم 28
+const FONT_FNT_PATH_20 = path.join(process.cwd(), 'netlify/functions/fonts/arial-20.fnt'); // اسم خط حجم 20
 
 
 // تعريف أنماط النصوص وإحداثياتها الدقيقة (X, Y)
@@ -85,7 +84,6 @@ exports.handler = async (event, context) => {
         const imageWidth = image.getWidth();
 
         // **تحميل الخطوط (إذا لم تكن محملة بعد)**
-        // هذه الطريقة تضمن أن الخطوط لا يتم تحميلها في كل مرة يتم فيها استدعاء الوظيفة
         for (const key in TEXT_POSITIONS) {
             const fontPath = TEXT_POSITIONS[key].fontPath;
             if (!loadedFonts[fontPath]) {
@@ -94,17 +92,15 @@ exports.handler = async (event, context) => {
         }
 
         // كتابة النصوص على الصورة
-        // وظيفة مساعدة لكتابة النص مع حساب المحاذاة المركزية
         const printText = (img, font, textData, textContent, imgWidth) => {
             const { x, y, alignment, maxWidth, color } = textData;
             let finalX = x;
-            img.color([ { apply: 'xor', params: [ color ] } ]); // لتطبيق اللون على النص
+            img.color([ { apply: 'xor', params: [ color ] } ]);
 
             if (alignment === Jimp.FONT_ALIGN_CENTER) {
                 const textWidth = Jimp.measureText(font, textContent);
                 finalX = (imgWidth / 2) - (textWidth / 2);
             }
-            // Jimp.print(font, x, y, { text, alignmentX, alignmentY, maxWidth, maxHeight }, [containerWidth], [containerHeight])
             img.print(font, finalX, y, { text: textContent, alignmentX: alignment, maxWidth: maxWidth }, imgWidth);
         };
 
@@ -133,7 +129,7 @@ exports.handler = async (event, context) => {
             statusCode: 200,
             headers: {
                 'Content-Type': 'image/jpeg',
-                'Cache-Control': 'no-cache, no-store, must-revalidate' // لضمان عدم التخزين المؤقت للشهادات المتغيرة
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
             },
             body: processedImageBuffer.toString('base64'),
             isBase64Encoded: true,
