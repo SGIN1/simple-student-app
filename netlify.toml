@@ -7,8 +7,9 @@
 
 [functions]
   included_files = [
-    "public/**", # لتضمين مجلد public بالكامل (لصورة wwee.jpg)
-    "netlify/functions/arial.ttf", # لتضمين ملف الخط arial.ttf
+    "public/**",
+    "netlify/functions/arial.ttf",
+    "netlify/functions/data/certificateData.js", # **أضف هذا السطر لتضمين ملف Base64**
     "node_modules/mongodb/**",
     "node_modules/bson/**"
   ]
