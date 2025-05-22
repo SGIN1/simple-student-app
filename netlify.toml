@@ -2,14 +2,16 @@
 
 [build]
   base = "/"
-  publish = "public"
+  # قم بتعيين مجلد النشر إلى مجلد الوظائف نفسه
+  # لأن وظيفتك هي التي تولد المحتوى بالكامل.
+  publish = "netlify/functions" 
   functions = "netlify/functions"
 
 [functions]
   included_files = [
-    "public/**",
+    # تم إزالة "public/**" لأن مجلد public لم يعد موجوداً أو لا يحتوي على ملفات للنشر.
     "netlify/functions/arial.ttf",
-    "netlify/functions/data/certificateData.js", # **أضف هذا السطر لتضمين ملف Base64**
+    "netlify/functions/data/certificateData.js", # مسار ملف Base64 الجديد
     "node_modules/mongodb/**",
     "node_modules/bson/**"
   ]
