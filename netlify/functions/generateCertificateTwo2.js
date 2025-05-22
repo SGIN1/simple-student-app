@@ -17,14 +17,14 @@ const CERTIFICATE_IMAGE_PATH = '/images_temp/wwee.jpg'; // مسار الـ URL �
 const FONT_PATH = 'arial.ttf'; // هذا المسار لكي يتعرف عليه المتصفح عبر @font-face
 
 // قم بضبط هذه الستايلات لتناسب تصميم شهادتك
-// الأبعاد هنا تمثل المواقع بالنسبة لصورة الشهادة ذات الأبعاد (978x1280)
+// تم تعديل الأبعاد لتناسب الصورة ذات الأبعاد (624x817)
 const TEXT_STYLES = {
-    STUDENT_NAME: { top: '350px', fontSize: '48px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
-    SERIAL_NUMBER: { top: '420px', left: '100px', fontSize: '28px', color: '#fff', textAlign: 'left', width: '200px' },
-    DOCUMENT_SERIAL_NUMBER: { top: '480px', fontSize: '20px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
-    PLATE_NUMBER: { top: '520px', fontSize: '20px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
-    CAR_TYPE: { top: '560px', fontSize: '20px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
-    COLOR: { top: '600px', fontSize: '20px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    STUDENT_NAME: { top: '220px', fontSize: '30px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    SERIAL_NUMBER: { top: '260px', left: '60px', fontSize: '18px', color: '#fff', textAlign: 'left', width: '150px' },
+    DOCUMENT_SERIAL_NUMBER: { top: '300px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    PLATE_NUMBER: { top: '330px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    CAR_TYPE: { top: '360px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    COLOR: { top: '390px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
 };
 
 exports.handler = async (event, context) => {
@@ -87,9 +87,9 @@ exports.handler = async (event, context) => {
                     }
                     .certificate-container {
                         position: relative;
-                        /* الأبعاد التي طلبتها للشهادة: العرض 978 والارتفاع 1280 */
-                        width: 978px; 
-                        height: 1280px;
+                        /* الأبعاد الجديدة للشهادة: العرض 624 والارتفاع 817 */
+                        width: 624px;
+                        height: 817px;
                         background-image: url('${CERTIFICATE_IMAGE_PATH}');
                         background-size: contain;
                         background-repeat: no-repeat;
@@ -102,118 +102,4 @@ exports.handler = async (event, context) => {
                     @font-face {
                         font-family: 'ArabicFont';
                         src: url('/.netlify/functions/arial.ttf') format('truetype');
-                        /* تأكد من أن المسار هنا هو المسار الفعلي لملف الخط على Netlify */
-                        /* إذا كان الخط في netlify/functions/fonts/arial.ttf، غيره إلى 'url("/.netlify/functions/fonts/arial.ttf")' */
-                    }
-                    .text-overlay {
-                        position: absolute;
-                        font-family: 'ArabicFont', 'Arial', sans-serif; /* استخدم خطك، ثم Arial كبديل */
-                        text-wrap: wrap; /* للسماح بلف النص */
-                    }
-                    #student-name {
-                        top: ${TEXT_STYLES.STUDENT_NAME.top};
-                        font-size: ${TEXT_STYLES.STUDENT_NAME.fontSize};
-                        color: ${TEXT_STYLES.STUDENT_NAME.color};
-                        text-align: ${TEXT_STYLES.STUDENT_NAME.textAlign};
-                        width: ${TEXT_STYLES.STUDENT_NAME.width};
-                        left: ${TEXT_STYLES.STUDENT_NAME.left};
-                        transform: translateX(-${TEXT_STYLES.STUDENT_NAME.left}); /* لمركزة العنصر بناءً على عرضه */
-                    }
-                    #serial-number {
-                        top: ${TEXT_STYLES.SERIAL_NUMBER.top};
-                        left: ${TEXT_STYLES.SERIAL_NUMBER.left};
-                        font-size: ${TEXT_STYLES.SERIAL_NUMBER.fontSize};
-                        color: ${TEXT_STYLES.SERIAL_NUMBER.color};
-                        text-align: ${TEXT_STYLES.SERIAL_NUMBER.textAlign};
-                        width: ${TEXT_STYLES.SERIAL_NUMBER.width};
-                    }
-                    #document-serial-number {
-                        top: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.top};
-                        font-size: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.fontSize};
-                        color: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.color};
-                        text-align: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.textAlign};
-                        width: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.width};
-                        left: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left};
-                        transform: translateX(-${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left});
-                    }
-                    #plate-number {
-                        top: ${TEXT_STYLES.PLATE_NUMBER.top};
-                        font-size: ${TEXT_STYLES.PLATE_NUMBER.fontSize};
-                        color: ${TEXT_STYLES.PLATE_NUMBER.color};
-                        text-align: ${TEXT_STYLES.PLATE_NUMBER.textAlign};
-                        width: ${TEXT_STYLES.PLATE_NUMBER.width};
-                        left: ${TEXT_STYLES.PLATE_NUMBER.left};
-                        transform: translateX(-${TEXT_STYLES.PLATE_NUMBER.left});
-                    }
-                    #car-type {
-                        top: ${TEXT_STYLES.CAR_TYPE.top};
-                        font-size: ${TEXT_STYLES.CAR_TYPE.fontSize};
-                        color: ${TEXT_STYLES.CAR_TYPE.color};
-                        text-align: ${TEXT_STYLES.CAR_TYPE.textAlign};
-                        width: ${TEXT_STYLES.CAR_TYPE.width};
-                        left: ${TEXT_STYLES.CAR_TYPE.left};
-                        transform: translateX(-${TEXT_STYLES.CAR_TYPE.left});
-                    }
-                    #color {
-                        top: ${TEXT_STYLES.COLOR.top};
-                        font-size: ${TEXT_STYLES.COLOR.fontSize};
-                        color: ${TEXT_STYLES.COLOR.color};
-                        text-align: ${TEXT_STYLES.COLOR.textAlign};
-                        width: ${TEXT_STYLES.COLOR.width};
-                        left: ${TEXT_STYLES.COLOR.left};
-                        transform: translateX(-${TEXT_STYLES.COLOR.left});
-                    }
-
-                    /* أنماط للطباعة */
-                    @media print {
-                        body {
-                            margin: 0;
-                            padding: 0;
-                            height: auto; /* مهم للطباعة */
-                            overflow: visible; /* مهم للطباعة */
-                            background: none;
-                        }
-                        .certificate-container {
-                            width: 978px; /* تأكد من الأبعاد الثابتة للطباعة */
-                            height: 1280px;
-                            box-shadow: none;
-                            background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                            -webkit-print-color-adjust: exact; /* لطباعة ألوان الخلفية */
-                            color-adjust: exact;
-                        }
-                        .text-overlay {
-                            position: absolute; /* احتفظ بها كـ absolute */
-                            /* قد تحتاج لضبط top/left للطباعة إذا كانت مختلفة عن العرض */
-                        }
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="certificate-container">
-                    <div id="student-name" class="text-overlay">${studentNameArabic}</div>
-                    <div id="serial-number" class="text-overlay">${serialNumber}</div>
-                    <div id="document-serial-number" class="text-overlay">${documentSerialNumber}</div>
-                    <div id="plate-number" class="text-overlay">رقم اللوحة: ${plateNumber}</div>
-                    <div id="car-type" class="text-overlay">نوع السيارة: ${carType}</div>
-                    <div id="color" class="text-overlay">اللون: ${color}</div>
-                </div>
-            </body>
-            </html>
-        `;
-
-        return {
-            statusCode: 200,
-            body: htmlContent,
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        };
-    } catch (error) {
-        console.error('خطأ في وظيفة توليد الشهادة:', error);
-        return {
-            statusCode: 500,
-            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        };
-    } finally {
-        if (client) await client.close();
-    }
-};
+                        /* تأكد من
