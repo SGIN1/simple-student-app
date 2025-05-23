@@ -1,30 +1,24 @@
 # netlify.toml
 
 [build]
-  # المسار الأساسي لمشروعك (عادةً جذر المستودع)
   base = "/"
-  # المجلد الذي يحتوي على ملفات موقعك الثابتة التي سيتم نشرها
   publish = "public"
-  # المجلد الذي يحتوي على دوال Netlify الخاصة بك
   functions = "netlify/functions"
 
 [functions]
-  # هذا الجزء مهم جداً: يخبر Netlify بتضمين هذه الملفات والمجلدات في حزمة الدالة
-  # حتى تتمكن الدالة من الوصول إليها (خاصة صورة الشهادة وملف الخط).
   included_files = [
-    "public/images/full/wwee.jpg", # تضمين ملف الصورة المحدد لقالب الشهادة
-    "public/fonts/arial.ttf",     # تضمين ملف الخط العربي
-    "node_modules/mongodb/**",    # تضمين مكتبة MongoDB وجميع تبعياتها
-    "node_modules/bson/**"        # تضمين مكتبة BSON وجميع تبعياتها (ضرورية لـ MongoDB)
+    "public/images/full/wwee.jpg", # لتضمين ملف الصورة لقالب الشهادة
+    "public/fonts/arial.ttf",     # لتضمين ملف الخط العربي
+    "node_modules/mongodb/**",    # لتضمين مكتبة MongoDB
+    "node_modules/bson/**",        # لتضمين مكتبة BSON (تبعية لـ MongoDB)
+    "node_modules/chrome-aws-lambda/**", # لتضمين مكتبة chrome-aws-lambda وجميع تبعياتها
+    "node_modules/puppeteer-core/**" # لتضمين مكتبة puppeteer-core
   ]
   # يمكنك أيضاً تحديد وقت انتهاء صلاحية الدوال بالثواني (اختياري)
   # timeout = 60 # الافتراضي هو 10 ثوانٍ للدوال المجانية، قد تحتاج لزيادته إذا استغرقت الدالة وقتاً طويلاً
 
-# قسم إعادة التوجيه (Redirects)
-# قاعدة إعادة التوجيه هذه تسمح لك بالوصول إلى دالة Netlify Function برابط سهل وودود.
-# بدلاً من استخدام الرابط الطويل لـ Netlify Function، يمكنك استخدام رابط أقصر وواضح.
 [[redirects]]
-  from = "/certificate/:id" # الرابط الذي سيستخدمه المستخدم (مثال: yoursite.netlify.app/certificate/some_id)
-  to = "/.netlify/functions/generateCertificateTwo2/:id" # الرابط الفعلي لدالة Netlify Function
-  status = 200 # رمز الحالة HTTP (200 OK يعني أن الطلب نجح)
-  force = true # يفرض إعادة التوجيه حتى لو كان هناك ملف ثابت بنفس المسار
+  from = "/certificate/:id"
+  to = "/.netlify/functions/generateCertificateTwo2/:id"
+  status = 200
+  force = true

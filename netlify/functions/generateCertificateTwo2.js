@@ -1,20 +1,14 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const puppeteer = require('puppeteer-core'); // مهم: استخدام puppeteer-core
+const puppeteer = require('puppeteer-core');
+const chromium = require('chrome-aws-lambda'); // استيراد مكتبة chrome-aws-lambda
 
-const uri = process.env.MONGODB_URI; // تأكد من إعداد هذا المتغير في Netlify
+const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **مسار صورة الشهادة:**
-// تأكد من وجود ملف wwee.jpg في مجلد public/images/full/
 const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
-
-// **مسار الخط:**
-// تأكد من وجود ملف arial.ttf في مجلد public/fonts/
 const FONT_PATH_RELATIVE = '/fonts/arial.ttf';
 
-// قم بضبط هذه الستايلات لتناسب تصميم شهادتك ومواقع النصوص على الشهادة
-// الأبعاد هنا بالبكسل، والقيم 'top' و 'left' تحدد موقع النص من أعلى ويسار الحاوية.
 const TEXT_STYLES = {
     STUDENT_NAME: { top: '220px', fontSize: '30px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
     SERIAL_NUMBER: { top: '260px', left: '60px', fontSize: '18px', color: '#fff', textAlign: 'left', width: '150px' },
@@ -22,24 +16,19 @@ const TEXT_STYLES = {
     PLATE_NUMBER: { top: '330px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
     CAR_TYPE: { top: '360px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
     COLOR: { top: '390px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
-    // يمكنك إضافة المزيد من الحقول هنا وقم بضبط أماكنها وأحجامها وألوانها
 };
 
 exports.handler = async (event, context) => {
-    // استخراج معرف الطالب من مسار الطلب
     const studentId = event.path.split('/').pop();
     console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
     let client;
-    let browser = null; // تعريف متغير المتصفح لضمان إغلاقه دائمًا في finally
+    let browser = null;
 
     try {
-        // التحقق من وجود متغير بيئة MongoDB URI
         if (!uri) {
             throw new Error("MONGODB_URI is not set in environment variables. Please set it in Netlify.");
         }
-
-        // الاتصال بقاعدة بيانات MongoDB
         client = new MongoClient(uri);
         await client.connect();
         const database = client.db(dbName);
@@ -47,7 +36,6 @@ exports.handler = async (event, context) => {
 
         let student;
         try {
-            // البحث عن الطالب باستخدام المعرف. استخدام try-catch للتعامل مع المعرفات غير الصالحة.
             student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
         } catch (objectIdError) {
             console.error('خطأ في إنشاء ObjectId (معرف طالب غير صالح):', objectIdError);
@@ -58,7 +46,6 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // إذا لم يتم العثور على الطالب
         if (!student) {
             return {
                 statusCode: 404,
@@ -67,7 +54,6 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // استخراج بيانات الطالب مع قيم افتراضية لمنع الأخطاء في حال كانت بعض الحقول فارغة
         const serialNumber = student.serial_number || '';
         const studentNameArabic = student.arabic_name || '';
         const documentSerialNumber = student.document_serial_number || '';
@@ -76,19 +62,14 @@ exports.handler = async (event, context) => {
         const color = student.color || '';
 
         // **هنا يبدأ جزء Puppeteer **
-        // تهيئة المتصفح (Chromium) في بيئة Netlify Functions
+        // تهيئة المتصفح (Chromium) باستخدام chrome-aws-lambda
         browser = await puppeteer.launch({
-            // يحدد هذا المسار أين يجب أن يجد Puppeteer متصفح Chromium في بيئة Netlify.
-            // Netlify توفر Chromium في هذا المسار بشكل افتراضي.
-            executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
-            headless: true, // تشغيل المتصفح في الخلفية بدون واجهة مرئية
-            // هذه الوسائط ضرورية لتشغيل Chromium في بيئات الخادم اللامركزية (serverless)
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            args: chromium.args, // استخدام وسائط Chromium التي توفرها المكتبة
+            executablePath: await chromium.executablePath, // مسار Chromium الذي توفره المكتبة
+            headless: chromium.headless, // استخدام وضع headless الذي توفره المكتبة (قد يكون true أو 'new')
         });
         const page = await browser.newPage();
 
-        // محتوى HTML للصفحة التي سيلتقط Puppeteer لقطة شاشة لها
-        // هذا المحتوى مصمم ليحتوي الشهادة فقط بأبعادها الثابتة والنصوص المدمجة
         const htmlContentForScreenshot = `
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
@@ -97,41 +78,36 @@ exports.handler = async (event, context) => {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>الشهادة للقطة الشاشة</title>
                 <style>
-                    /* الأنماط الأساسية للصفحة لضمان الأبعاد الثابتة وعدم التمرير */
                     html, body {
-                        width: 624px; /* الأبعاد الأساسية للشهادة */
+                        width: 624px;
                         height: 817px;
                         margin: 0;
                         padding: 0;
-                        background-color: transparent; /* مهم: اجعل الخلفية شفافة لكي تظهر صورة الخلفية */
-                        overflow: hidden; /* إخفاء أي أشرطة تمرير */
-                        display: block; /* للتحكم المباشر بالأبعاد */
+                        background-color: transparent;
+                        overflow: hidden;
+                        display: block;
                     }
-                    /* حاوية الشهادة مع صورة الخلفية */
                     .certificate-container {
                         position: relative;
                         width: 624px;
                         height: 817px;
-                        background-image: url('${CERTIFICATE_IMAGE_PATH}'); /* مسار صورة الخلفية */
-                        background-size: 100% 100%; /* لملء الحاوية بالكامل */
+                        background-image: url('${CERTIFICATE_IMAGE_PATH}');
+                        background-size: 100% 100%;
                         background-repeat: no-repeat;
                         background-position: center;
-                        background-color: transparent; /* تأكد من الشفافية هنا أيضًا */
-                        box-shadow: none; /* لا نريد الظل في الصورة الناتجة */
+                        background-color: transparent;
+                        box-shadow: none;
                     }
-                    /* تعريف الخط العربي المخصص */
                     @font-face {
                         font-family: 'ArabicFont';
                         src: url('${FONT_PATH_RELATIVE}') format('truetype');
                     }
-                    /* أنماط عامة لطبقات النصوص */
                     .text-overlay {
                         position: absolute;
-                        font-family: 'ArabicFont', 'Arial', sans-serif; /* استخدم خطك المخصص أولاً ثم الخطوط الاحتياطية */
-                        text-wrap: wrap; /* للسماح بلف النص إذا كان طويلاً */
-                        line-height: 1.2; /* لضبط تباعد الأسطر إذا كان النص يلتف */
+                        font-family: 'ArabicFont', 'Arial', sans-serif;
+                        text-wrap: wrap;
+                        line-height: 1.2;
                     }
-                    /* أنماط كل حقل نصي بناءً على إعدادات TEXT_STYLES */
                     #student-name {
                         top: ${TEXT_STYLES.STUDENT_NAME.top};
                         font-size: ${TEXT_STYLES.STUDENT_NAME.fontSize};
@@ -195,26 +171,19 @@ exports.handler = async (event, context) => {
             </html>
         `;
 
-        // تعيين محتوى HTML للصفحة وانتظار تحميل جميع موارد الشبكة
         await page.setContent(htmlContentForScreenshot, { waitUntil: 'networkidle0' });
-
-        // تحديد العنصر (حاوية الشهادة) الذي نريد التقاط لقطة شاشة له
         const certificateElement = await page.$('.certificate-container');
-
-        // التقاط لقطة الشاشة كصورة PNG مشفرة بنظام Base64
         const imageBuffer = await certificateElement.screenshot({
-            type: 'png', // يمكن تغييرها إلى 'jpeg' إذا كنت تفضل حجماً أصغر على حساب الجودة
-            encoding: 'base64', // لإرجاع البيانات كـ Base64 بدلاً من Buffer
+            type: 'png',
+            encoding: 'base64',
         });
 
-        // إرجاع الصورة كاستجابة HTTP
         return {
             statusCode: 200,
             body: imageBuffer,
-            isBase64Encoded: true, // مهم: لإخبار Netlify بأن الـ body مشفر بـ Base64
+            isBase64Encoded: true,
             headers: {
-                'Content-Type': 'image/png', // تحديد نوع المحتوى كصورة PNG
-                // التحكم في تخزين الشهادة مؤقتاً لضمان الحصول على أحدث نسخة دائماً
+                'Content-Type': 'image/png',
                 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
                 'Pragma': 'no-cache',
                 'Expires': '0',
@@ -222,14 +191,12 @@ exports.handler = async (event, context) => {
         };
     } catch (error) {
         console.error('خطأ في وظيفة توليد الشهادة:', error);
-        // إرجاع رسالة خطأ واضحة للمستخدم
         return {
             statusCode: 500,
             body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
-        // إغلاق اتصال MongoDB والمتصفح في جميع الأحوال (سواء نجحت العملية أو فشلت)
         if (client) await client.close();
         if (browser) await browser.close();
     }
