@@ -1,28 +1,12 @@
-# netlify.toml
+<a href="/.netlify/functions/generateCertificateTwo2/معرف_الطالب_هنا" target="_blank" class="print-btn">
+    عرض الشهادة (نافذة جديدة)
+</a>
 
-[build]
-  base = "/"
-  publish = "public"
-  functions = "netlify/functions"
+<button onclick="openCertificate()">عرض الشهادة</button>
 
-[functions]
-  included_files = [
-    "public/**", # لتضمين مجلد public بالكامل (لصورة wwee.jpg)
-    "netlify/functions/arial.ttf", # لتضمين ملف الخط arial.ttf
-    "node_modules/mongodb/**",
-    "node_modules/bson/**"
-  ]
-
-# قاعدة إعادة التوجيه لوظيفة Netlify Function
-[[redirects]]
-  from = "/certificate/:id"
-  to = "/.netlify/functions/generateCertificateTwo2/:id"
-  status = 200
-  force = true
-
-# قاعدة إعادة التوجيه الجديدة لصورة الشهادة بحجمها الأساسي عبر Netlify Image CDN
-# هذا يضمن أن الصورة wwee.jpg سيتم جلبها بحجمها الأصلي
-[[redirects]]
-  from = "/images/full/wwee.jpg"
-  to = "/.netlify/images?url=/images_temp/wwee.jpg"
-  status = 200
+<script>
+function openCertificate() {
+    const studentId = 'معرف_الطالب_الحالي'; // يجب أن تحصل على معرف الطالب من مكان ما في صفحتك
+    window.open(`/.netlify/functions/generateCertificateTwo2/${studentId}`, '_blank');
+}
+</script>
