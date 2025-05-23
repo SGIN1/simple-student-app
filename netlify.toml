@@ -2,22 +2,27 @@
 
 [build]
   base = "/"
-  # قم بتعيين مجلد النشر إلى مجلد الوظائف نفسه
-  # لأن وظيفتك هي التي تولد المحتوى بالكامل.
-  publish = "netlify/functions" 
+  publish = "public"
   functions = "netlify/functions"
 
 [functions]
   included_files = [
-    # تم إزالة "public/**" لأن مجلد public لم يعد موجوداً أو لا يحتوي على ملفات للنشر.
-    "netlify/functions/arial.ttf",
-    "netlify/functions/data/certificateData.js", # مسار ملف Base64 الجديد
+    "public/**", # لتضمين مجلد public بالكامل (لصورة wwee.jpg)
+    "netlify/functions/arial.ttf", # لتضمين ملف الخط arial.ttf
     "node_modules/mongodb/**",
     "node_modules/bson/**"
   ]
 
+# قاعدة إعادة التوجيه لوظيفة Netlify Function
 [[redirects]]
   from = "/certificate/:id"
   to = "/.netlify/functions/generateCertificateTwo2/:id"
   status = 200
   force = true
+
+# قاعدة إعادة التوجيه الجديدة لصورة الشهادة بحجمها الأساسي عبر Netlify Image CDN
+# هذا يضمن أن الصورة wwee.jpg سيتم جلبها بحجمها الأصلي
+[[redirects]]
+  from = "/images/full/wwee.jpg"
+  to = "/.netlify/images?url=/images_temp/wwee.jpg"
+  status = 200

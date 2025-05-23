@@ -2,27 +2,28 @@
 
 const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
-// استيراد متغير Base64 من الملف الجديد
-const { BASE64_CERTIFICATE_IMAGE } = require('./data/certificateData'); // لاحظ المسار النسبي
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// لم نعد نحتاج CERTIFICATE_IMAGE_PATH إذا كنا نستخدم Base64
-// const CERTIFICATE_IMAGE_PATH = '/images_temp/wwee.jpg';
+// **مسار صورة الشهادة:**
+// تم تغيير هذا المسار لاستخدام مسار Netlify Image CDN الجديد الذي يضمن الحجم الأصلي.
+// هذا المسار يتوافق مع قاعدة إعادة التوجيه الجديدة في netlify.toml
+const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg'; // تم التعديل هنا
 
-// مسار الخط يبقى كما هو
+// **مسار الخط:** هذا المسار هو نسبي لموقع ملف الوظيفة نفسه (generateCertificateTwo2.js)
+// تأكد أن arial.ttf موجود في 'netlify/functions/arial.ttf'
 const FONT_PATH = 'arial.ttf';
 
-// قم بضبط هذه الستايلات لتناسب تصميم شهادتك (القيم النسبية المقترحة سابقاً)
+// قم بضبط هذه الستايلات لتناسب تصميم شهادتك
 const TEXT_STYLES = {
-    STUDENT_NAME: { top: '26.9%', fontSize: '3.6vh', color: '#000', textAlign: 'center', width: '80%', left: '50%'  }, // مثال بقيم نسبية وتوسيط
-    SERIAL_NUMBER: { top: '31.8%', left: '9.6%', fontSize: '2.2vh', color: '#fff', textAlign: 'left', width: '24%'  },
-    DOCUMENT_SERIAL_NUMBER: { top: '36.7%', fontSize: '1.9vh', color: '#000', textAlign: 'center', width: '80%', left: '50%'  },
-    PLATE_NUMBER: { top: '40.4%', fontSize: '1.9vh', color: '#000', textAlign: 'center', width: '80%', left: '50%'  },
-    CAR_TYPE: { top: '44.1%', fontSize: '1.9vh', color: '#000', textAlign: 'center', width: '80%', left: '50%'  },
-    COLOR: { top: '47.7%', fontSize: '1.9vh', color: '#000', textAlign: 'center', width: '80%', left: '50%'  },
+    STUDENT_NAME: { top: '220px', fontSize: '30px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    SERIAL_NUMBER: { top: '260px', left: '60px', fontSize: '18px', color: '#fff', textAlign: 'left', width: '150px' },
+    DOCUMENT_SERIAL_NUMBER: { top: '300px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    PLATE_NUMBER: { top: '330px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    CAR_TYPE: { top: '360px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    COLOR: { top: '390px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
 };
 
 exports.handler = async (event, context) => {
@@ -85,13 +86,10 @@ exports.handler = async (event, context) => {
                     }
                     .certificate-container {
                         position: relative;
-                        width: min(80vh * (624 / 817), 90vw);
-                        height: min(80vh, 90vw * (817 / 624));
-                        
-                        /* هنا نستخدم متغير Base64 */
-                        background-image: url('${BASE64_CERTIFICATE_IMAGE}');
-                        
-                        background-size: 100% 100%;
+                        width: 624px;
+                        height: 817px;
+                        background-image: url('${CERTIFICATE_IMAGE_PATH}');
+                        background-size: contain;
                         background-repeat: no-repeat;
                         background-position: center;
                         background-color: #eee;
@@ -106,9 +104,7 @@ exports.handler = async (event, context) => {
                         position: absolute;
                         font-family: 'ArabicFont', 'Arial', sans-serif;
                         text-wrap: wrap;
-                        box-sizing: border-box;
                     }
-                    /* الأنماط تستخدم القيم النسبية من TEXT_STYLES */
                     #student-name {
                         top: ${TEXT_STYLES.STUDENT_NAME.top};
                         font-size: ${TEXT_STYLES.STUDENT_NAME.fontSize};
@@ -116,7 +112,7 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.STUDENT_NAME.textAlign};
                         width: ${TEXT_STYLES.STUDENT_NAME.width};
                         left: ${TEXT_STYLES.STUDENT_NAME.left};
-                        transform: translateX(-50%); 
+                        transform: translateX(-${TEXT_STYLES.STUDENT_NAME.left});
                     }
                     #serial-number {
                         top: ${TEXT_STYLES.SERIAL_NUMBER.top};
@@ -133,7 +129,7 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.textAlign};
                         width: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.width};
                         left: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left};
-                        transform: translateX(-50%);
+                        transform: translateX(-${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left});
                     }
                     #plate-number {
                         top: ${TEXT_STYLES.PLATE_NUMBER.top};
@@ -142,7 +138,7 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.PLATE_NUMBER.textAlign};
                         width: ${TEXT_STYLES.PLATE_NUMBER.width};
                         left: ${TEXT_STYLES.PLATE_NUMBER.left};
-                        transform: translateX(-50%);
+                        transform: translateX(-${TEXT_STYLES.PLATE_NUMBER.left});
                     }
                     #car-type {
                         top: ${TEXT_STYLES.CAR_TYPE.top};
@@ -151,7 +147,7 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.CAR_TYPE.textAlign};
                         width: ${TEXT_STYLES.CAR_TYPE.width};
                         left: ${TEXT_STYLES.CAR_TYPE.left};
-                        transform: translateX(-50%);
+                        transform: translateX(-${TEXT_STYLES.CAR_TYPE.left});
                     }
                     #color {
                         top: ${TEXT_STYLES.COLOR.top};
@@ -160,10 +156,9 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.COLOR.textAlign};
                         width: ${TEXT_STYLES.COLOR.width};
                         left: ${TEXT_STYLES.COLOR.left};
-                        transform: translateX(-50%);
+                        transform: translateX(-${TEXT_STYLES.COLOR.left});
                     }
 
-                    /* أنماط للطباعة */
                     @media print {
                         body {
                             margin: 0;
@@ -173,17 +168,15 @@ exports.handler = async (event, context) => {
                             background: none;
                         }
                         .certificate-container {
-                            width: 150mm;
-                            height: calc(150mm * (817 / 624));
+                            width: 624px;
+                            height: 817px;
                             box-shadow: none;
-                            background-image: url('${BASE64_CERTIFICATE_IMAGE}'); // استخدام Base64 للطباعة أيضاً
-                            background-size: 100% 100%;
+                            background-image: url('${CERTIFICATE_IMAGE_PATH}');
                             -webkit-print-color-adjust: exact;
                             color-adjust: exact;
                         }
                         .text-overlay {
                             position: absolute;
-                            /* هنا ستحتاج لضبط مواقع النصوص للطباعة يدوياً إذا كانت الأبعاد المطبوعة مختلفة */
                         }
                     }
                 </style>
