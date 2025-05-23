@@ -1,24 +1,34 @@
+// netlify/functions/generateCertificateTwo2.js
+
 const { MongoClient, ObjectId } = require('mongodb');
-const puppeteer = require('puppeteer-core');
-const chromium = require('chrome-aws-lambda'); // هذا السطر هو الأهم: استخدام chrome-aws-lambda
+const path = require('path');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// ******** انتبه هنا: تأكد من المسار الفعلي لصورتك ********
-// إذا كانت صورتك في public/images/full/wwee.jpg، اتركها كما هي.
-// إذا كانت صورتك في public/images_temp/wwee.jpg، غيّرها إلى '/images_temp/wwee.jpg'
-const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg'; 
-const FONT_PATH_RELATIVE = '/fonts/arial.ttf';
+// **مسار صورة الشهادة:**
+// تم تغيير هذا المسار لاستخدام مسار Netlify Image CDN الجديد الذي يضمن الحجم الأصلي.
+// هذا المسار يتوافق مع قاعدة إعادة التوجيه الجديدة في netlify.toml
+const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg'; // تم التعديل هنا
 
+// **مسار الخط:** هذا المسار هو نسبي لموقع ملف الوظيفة نفسه (generateCertificateTwo2.js)
+// تأكد أن arial.ttf موجود في 'netlify/functions/arial.ttf'
+const FONT_PATH = 'arial.ttf';
+
+// **هنا نقوم بضبط هذه الستايلات لتناسب تصميم شهادتك بدقة.**
+// هذه القيم (top, left, width) يجب أن تضبطها بعناية فائقة
+// لتتناسب مع المواقع الدقيقة للنصوص في صورة الشهادة wwee.jpg التي لديك.
+// استخدم أداة قياس البكسل (مثل فتح الصورة في برنامج رسومي أو حتى استخدام متصفح المطور)
+// لمعرفة المواقع الدقيقة (بالبكسل) لكل نص في الشهادة الأصلية.
 const TEXT_STYLES = {
-    STUDENT_NAME: { top: '220px', fontSize: '30px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
-    SERIAL_NUMBER: { top: '260px', left: '60px', fontSize: '18px', color: '#fff', textAlign: 'left', width: '150px' },
-    DOCUMENT_SERIAL_NUMBER: { top: '300px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
-    PLATE_NUMBER: { top: '330px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
-    CAR_TYPE: { top: '360px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
-    COLOR: { top: '390px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    // الأبعاد الكلية للشهادة 978px عرض × 1280px ارتفاع
+    STUDENT_NAME: { top: '380px', fontSize: '42px', color: '#000', textAlign: 'center', width: '70%', left: '15%' }, // مثال: اسم الطالب في منتصف الشهادة تقريباً
+    SERIAL_NUMBER: { top: '150px', left: '100px', fontSize: '20px', color: '#333', textAlign: 'left', width: '200px' }, // مثال: رقم تسلسلي في أعلى اليسار
+    DOCUMENT_SERIAL_NUMBER: { top: '480px', fontSize: '24px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    PLATE_NUMBER: { top: '550px', fontSize: '24px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    CAR_TYPE: { top: '620px', fontSize: '24px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    COLOR: { top: '690px', fontSize: '24px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
 };
 
 exports.handler = async (event, context) => {
@@ -26,7 +36,6 @@ exports.handler = async (event, context) => {
     console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
     let client;
-    let browser = null;
 
     try {
         if (!uri) {
@@ -41,10 +50,10 @@ exports.handler = async (event, context) => {
         try {
             student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
         } catch (objectIdError) {
-            console.error('خطأ في إنشاء ObjectId (معرف طالب غير صالح):', objectIdError);
+            console.error('خطأ في إنشاء ObjectId:', objectIdError);
             return {
                 statusCode: 400,
-                body: '<h1>معرف الطالب غير صالح</h1><p>يجب أن يكون المعرف سلسلة نصية صالحة.</p>',
+                body: '<h1>معرف الطالب غير صالح</h1><p>يجب أن يكون المعرف سلسلة نصية مكونة من 24 حرفًا سداسيًا عشريًا.</p>',
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
@@ -64,52 +73,68 @@ exports.handler = async (event, context) => {
         const carType = student.car_type || '';
         const color = student.color || '';
 
-        // تهيئة المتصفح (Chromium) باستخدام chrome-aws-lambda
-        browser = await puppeteer.launch({
-            args: [...chromium.args, '--hide-scrollbars'],
-            executablePath: await chromium.executablePath, // هنا التغيير: لا نمرر true لـ chrome-aws-lambda
-            headless: chromium.headless,
-        });
-        const page = await browser.newPage();
-
-        const htmlContentForScreenshot = `
+        const htmlContent = `
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>الشهادة للقطة الشاشة</title>
+                <title>الشهادة الديناميكية</title>
                 <style>
-                    html, body {
-                        width: 624px;
-                        height: 817px;
+                    /* ------------------------------------------------------------- */
+                    /* الأنماط العامة للصفحة لعرض الشهادة في المنتصف */
+                    /* ------------------------------------------------------------- */
+                    body {
                         margin: 0;
                         padding: 0;
-                        background-color: transparent;
-                        overflow: hidden;
-                        display: block;
+                        height: 100vh;
+                        background-color: #f0f0f0; /* لون خلفية فاتح لراحة العين */
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        overflow: auto; /* للسماح بالتمرير إذا كانت الشهادة أكبر من الشاشة */
                     }
+                    /* ------------------------------------------------------------- */
+                    /* خصائص حاوية الشهادة - الأبعاد الثابتة والمهمة */
+                    /* ------------------------------------------------------------- */
                     .certificate-container {
                         position: relative;
-                        width: 624px;
-                        height: 817px;
+                        /* الأبعاد الحقيقية لملف wwee.jpg */
+                        width: 978px;  
+                        height: 1280px;
                         background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                        background-size: 100% 100%;
+                        /* لضمان تغطية الصورة للحاوية بالكامل بدقة دون تكرار */
+                        background-size: 100% 100%; 
                         background-repeat: no-repeat;
                         background-position: center;
-                        background-color: transparent;
-                        box-shadow: none;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.3); /* ظل جميل لإبراز الشهادة */
+                        overflow: hidden; /* لإخفاء أي محتوى يتجاوز الحدود */
+                        flex-shrink: 0; /* يمنع الحاوية من الانكماش على الشاشات الصغيرة */
                     }
+
+                    /* ------------------------------------------------------------- */
+                    /* تعريف الخط العربي - مهم جداً للثبات البصري */
+                    /* ------------------------------------------------------------- */
                     @font-face {
                         font-family: 'ArabicFont';
-                        src: url('${FONT_PATH_RELATIVE}') format('truetype');
+                        src: url('/.netlify/functions/arial.ttf') format('truetype');
+                        font-weight: normal;
+                        font-style: normal;
                     }
+                    /* ------------------------------------------------------------- */
+                    /* الأنماط العامة لطبقة النصوص العلوية */
+                    /* ------------------------------------------------------------- */
                     .text-overlay {
                         position: absolute;
-                        font-family: 'ArabicFont', 'Arial', sans-serif;
-                        text-wrap: wrap;
-                        line-height: 1.2;
+                        font-family: 'ArabicFont', 'Arial', sans-serif; /* استخدام الخط العربي أولاً */
+                        /* يمكن إضافة خصائص عامة للنصوص هنا مثل line-height أو text-shadow */
+                        white-space: pre-wrap; /* للحفاظ على تنسيق النصوص (مثل فواصل الأسطر) */
+                        box-sizing: border-box; /* لضمان أن العرض لا يتأثر بالبادينج */
+                        /* background-color: rgba(255, 0, 0, 0.2); /* استخدم هذا لتصحيح المواقع مؤقتًا */ */
                     }
+                    /* ------------------------------------------------------------- */
+                    /* أنماط كل حقل نصي بناءً على المتغيرات المحددة في TEXT_STYLES */
+                    /* ------------------------------------------------------------- */
                     #student-name {
                         top: ${TEXT_STYLES.STUDENT_NAME.top};
                         font-size: ${TEXT_STYLES.STUDENT_NAME.fontSize};
@@ -117,6 +142,9 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.STUDENT_NAME.textAlign};
                         width: ${TEXT_STYLES.STUDENT_NAME.width};
                         left: ${TEXT_STYLES.STUDENT_NAME.left};
+                        /* هذا التحويل يضمن التوسيط الأفقي عندما يكون text-align: center و left: 50% */
+                        transform: translateX(${TEXT_STYLES.STUDENT_NAME.textAlign === 'center' ? '-50%' : '0'});
+                        /* يمكن إضافة font-weight: bold; إذا كان مطلوبًا */
                     }
                     #serial-number {
                         top: ${TEXT_STYLES.SERIAL_NUMBER.top};
@@ -125,6 +153,8 @@ exports.handler = async (event, context) => {
                         color: ${TEXT_STYLES.SERIAL_NUMBER.color};
                         text-align: ${TEXT_STYLES.SERIAL_NUMBER.textAlign};
                         width: ${TEXT_STYLES.SERIAL_NUMBER.width};
+                        /* لضمان ثبات الموضع الأفقي لليسار */
+                        right: auto;
                     }
                     #document-serial-number {
                         top: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.top};
@@ -133,6 +163,7 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.textAlign};
                         width: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.width};
                         left: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left};
+                        transform: translateX(${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.textAlign === 'center' ? '-50%' : '0'});
                     }
                     #plate-number {
                         top: ${TEXT_STYLES.PLATE_NUMBER.top};
@@ -141,6 +172,7 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.PLATE_NUMBER.textAlign};
                         width: ${TEXT_STYLES.PLATE_NUMBER.width};
                         left: ${TEXT_STYLES.PLATE_NUMBER.left};
+                        transform: translateX(${TEXT_STYLES.PLATE_NUMBER.textAlign === 'center' ? '-50%' : '0'});
                     }
                     #car-type {
                         top: ${TEXT_STYLES.CAR_TYPE.top};
@@ -149,6 +181,7 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.CAR_TYPE.textAlign};
                         width: ${TEXT_STYLES.CAR_TYPE.width};
                         left: ${TEXT_STYLES.CAR_TYPE.left};
+                        transform: translateX(${TEXT_STYLES.CAR_TYPE.textAlign === 'center' ? '-50%' : '0'});
                     }
                     #color {
                         top: ${TEXT_STYLES.COLOR.top};
@@ -157,6 +190,33 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.COLOR.textAlign};
                         width: ${TEXT_STYLES.COLOR.width};
                         left: ${TEXT_STYLES.COLOR.left};
+                        transform: translateX(${TEXT_STYLES.COLOR.textAlign === 'center' ? '-50%' : '0'});
+                    }
+
+                    /* ------------------------------------------------------------- */
+                    /* أنماط الطباعة (Print Styles) */
+                    /* ------------------------------------------------------------- */
+                    @media print {
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            height: auto;
+                            overflow: visible;
+                            background: none;
+                        }
+                        .certificate-container {
+                            width: 978px;  /* تأكيد الأبعاد للطباعة */
+                            height: 1280px;
+                            box-shadow: none; /* إزالة الظل عند الطباعة */
+                            background-image: url('${CERTIFICATE_IMAGE_PATH}');
+                            background-size: 100% 100%; /* تأكيد تغطية الصورة للحاوية بالكامل عند الطباعة */
+                            -webkit-print-color-adjust: exact; /* لضمان طباعة الألوان والخلفيات بدقة */
+                            color-adjust: exact; /* نفس الخاصية للمتصفحات الأخرى */
+                        }
+                        .text-overlay {
+                            position: absolute;
+                            /* لا حاجة لإعادة تعريف معظم الخصائص هنا إلا إذا أردت تغييرها للطباعة فقط */
+                        }
                     }
                 </style>
             </head>
@@ -173,23 +233,10 @@ exports.handler = async (event, context) => {
             </html>
         `;
 
-        await page.setContent(htmlContentForScreenshot, { waitUntil: 'networkidle0' });
-        const certificateElement = await page.$('.certificate-container');
-        const imageBuffer = await certificateElement.screenshot({
-            type: 'png',
-            encoding: 'base64',
-        });
-
         return {
             statusCode: 200,
-            body: imageBuffer,
-            isBase64Encoded: true,
-            headers: {
-                'Content-Type': 'image/png',
-                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0',
-            },
+            body: htmlContent,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } catch (error) {
         console.error('خطأ في وظيفة توليد الشهادة:', error);
@@ -200,6 +247,5 @@ exports.handler = async (event, context) => {
         };
     } finally {
         if (client) await client.close();
-        if (browser) await browser.close();
     }
 };

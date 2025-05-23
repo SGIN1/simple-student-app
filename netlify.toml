@@ -7,19 +7,22 @@
 
 [functions]
   included_files = [
-    # ******** انتبه هنا: تأكد من المسار الفعلي لصورتك ********
-    # يجب أن يكون هذا المسار هو نفسه الذي وضعته في generateCertificateTwo2.js
-    "public/images/full/wwee.jpg", 
-    "public/fonts/arial.ttf",
+    "public/**", # لتضمين مجلد public بالكامل (لصورة wwee.jpg)
+    "netlify/functions/arial.ttf", # لتضمين ملف الخط arial.ttf
     "node_modules/mongodb/**",
-    "node_modules/bson/**",
-    "node_modules/chrome-aws-lambda/**", # تضمين chrome-aws-lambda
-    "node_modules/puppeteer-core/**",
-    "node_modules/qrcode/**" # تضمين qrcode
+    "node_modules/bson/**"
   ]
 
+# قاعدة إعادة التوجيه لوظيفة Netlify Function
 [[redirects]]
   from = "/certificate/:id"
   to = "/.netlify/functions/generateCertificateTwo2/:id"
   status = 200
   force = true
+
+# قاعدة إعادة التوجيه الجديدة لصورة الشهادة بحجمها الأساسي عبر Netlify Image CDN
+# هذا يضمن أن الصورة wwee.jpg سيتم جلبها بحجمها الأصلي
+[[redirects]]
+  from = "/images/full/wwee.jpg"
+  to = "/.netlify/images?url=/images_temp/wwee.jpg"
+  status = 200
