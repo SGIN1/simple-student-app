@@ -75,21 +75,25 @@ exports.handler = async (event, context) => {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>الشهادة</title>
                 <style>
-                    body {
+                    /* ضبط الـ HTML والـ Body لجعل الشهادة هي من تحدد أبعاد العرض */
+                    html, body {
+                        width: 100%; /* اجعلهم 100% ليحتووا المحتوى */
+                        height: 100%;
                         margin: 0;
                         padding: 0;
-                        height: 100vh;
-                        background-color: #0e0e0e;
-                        display: flex;
+                        display: flex; /* استخدم فليكس بوكس لتوسيط الشهادة */
                         justify-content: center;
                         align-items: center;
-                        overflow: auto; /* السماح بالتمرير إذا كانت الشهادة أكبر من الشاشة */
+                        background-color: #0e0e0e;
+                        overflow: auto; /* للسماح بظهور أشرطة التمرير إذا كانت الشهادة أكبر من الشاشة */
                     }
+                    
                     .certificate-container {
                         position: relative;
                         /* تعيين الأبعاد الثابتة لضمان عرضها بحجمها الأساسي دائمًا */
                         width: 624px;
                         height: 817px;
+                        flex-shrink: 0; /* مهم: يمنع الحاوية من الانكماش إذا كانت الشاشة أصغر */
                         
                         background-image: url('${CERTIFICATE_IMAGE_PATH}');
                         background-size: 100% 100%; /* لتغطية الحاوية بالكامل بدقة */
@@ -163,10 +167,14 @@ exports.handler = async (event, context) => {
 
                     /* أنماط الطباعة ستبقى كما هي لأنها تستخدم نفس الأبعاد الثابتة */
                     @media print {
+                        html, body {
+                            width: auto; /* السماح للمحتوى بتحديد العرض */
+                            height: auto; /* السماح للمحتوى بتحديد الارتفاع */
+                            display: block; /* إلغاء الفليكس بوكس للطباعة */
+                        }
                         body {
                             margin: 0;
                             padding: 0;
-                            height: auto;
                             overflow: visible;
                             background: none;
                         }
