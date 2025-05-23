@@ -1,12 +1,28 @@
-<a href="/.netlify/functions/generateCertificateTwo2/معرف_الطالب_هنا" target="_blank" class="print-btn">
-    عرض الشهادة (نافذة جديدة)
-</a>
+# netlify.toml
 
-<button onclick="openCertificate()">عرض الشهادة</button>
+[build]
+  base = "/"
+  publish = "public"
+  functions = "netlify/functions"
 
-<script>
-function openCertificate() {
-    const studentId = 'معرف_الطالب_الحالي'; // يجب أن تحصل على معرف الطالب من مكان ما في صفحتك
-    window.open(`/.netlify/functions/generateCertificateTwo2/${studentId}`, '_blank');
-}
-</script>
+[functions]
+  # هذا الجزء يضمن تضمين الملفات والمجلدات الضرورية لوظائفك
+  included_files = [
+    "public/images/full/wwee.jpg", # لتضمين ملف الصورة المحدد بدقة
+    "public/fonts/arial.ttf",     # لتضمين ملف الخط المحدد بدقة
+    "node_modules/mongodb/**",    # لتضمين جميع ملفات مكتبة mongodb
+    "node_modules/bson/**"        # لتضمين جميع ملفات مكتبة bson (تبعية لـ mongodb)
+  ]
+  # يمكنك أيضاً تحديد وقت انتهاء صلاحية الدوال إذا كانت تستغرق وقتاً طويلاً
+  # timeout = 60 # بالثواني، الافتراضي هو 10 ثوانٍ للدوال المجانية
+
+# قاعدة إعادة التوجيه لربط مسار سهل بدالة Netlify Function
+[[redirects]]
+  from = "/certificate/:id"
+  to = "/.netlify/functions/generateCertificateTwo2/:id"
+  status = 200
+  force = true
+
+# ملاحظة: لا نحتاج لقاعدة إعادة التوجيه لـ Netlify Image CDN هنا
+# لأن Puppeteer سيصل إلى الصورة مباشرةً من مجلد public/images/full/
+# الذي تم تضمينه عبر `included_files` داخل بيئة الدالة.

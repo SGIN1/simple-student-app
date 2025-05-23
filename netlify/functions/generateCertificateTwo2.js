@@ -1,19 +1,20 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const path = require('path');
+const puppeteer = require('puppeteer'); // تم تحديث الاستيراد إلى puppeteer الرسمي
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
 // **مسار صورة الشهادة:**
-// هذا المسار يستخدم قاعدة إعادة التوجيه في netlify.toml لضمان الحجم الأصلي عبر Image CDN
+// تأكد من وجود ملف wwee.jpg في مجلد public/images/full/
 const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
 
 // **مسار الخط:**
-// تأكد أن arial.ttf موجود الآن في 'public/fonts/arial.ttf'
+// تأكد من وجود ملف arial.ttf في مجلد public/fonts/
+// هذا المسار افتراضي، قد تحتاج لضبطه إذا كان لديك إعدادات مختلفة للخطوط
 const FONT_PATH_RELATIVE = '/fonts/arial.ttf';
 
-// قم بضبط هذه الستايلات لتناسب تصميم شهادتك
+// قم بضبط هذه الستايلات لتناسب تصميم شهادتك ومواقع النصوص على الشهادة
 const TEXT_STYLES = {
     STUDENT_NAME: { top: '220px', fontSize: '30px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
     SERIAL_NUMBER: { top: '260px', left: '60px', fontSize: '18px', color: '#fff', textAlign: 'left', width: '150px' },
@@ -21,6 +22,7 @@ const TEXT_STYLES = {
     PLATE_NUMBER: { top: '330px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
     CAR_TYPE: { top: '360px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
     COLOR: { top: '390px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    // أضف المزيد من الحقول هنا وقم بضبط أماكنها وأحجامها وألوانها
 };
 
 exports.handler = async (event, context) => {
@@ -28,6 +30,7 @@ exports.handler = async (event, context) => {
     console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
     let client;
+    let browser = null; // تعريف متغير المتصفح لضمان إغلاقه في finally
 
     try {
         if (!uri) {
@@ -40,12 +43,13 @@ exports.handler = async (event, context) => {
 
         let student;
         try {
+            // استخدام try-catch هنا للتعامل مع معرّفات MongoDB غير الصالحة
             student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
         } catch (objectIdError) {
-            console.error('خطأ في إنشاء ObjectId:', objectIdError);
+            console.error('خطأ في إنشاء ObjectId (معرف طالب غير صالح):', objectIdError);
             return {
                 statusCode: 400,
-                body: '<h1>معرف الطالب غير صالح</h1><p>يجب أن يكون المعرف سلسلة نصية مكونة من 24 حرفًا سداسيًا عشريًا.</p>',
+                body: '<h1>معرف الطالب غير صالح</h1><p>يجب أن يكون المعرف سلسلة نصية صالحة.</p>',
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
@@ -58,6 +62,7 @@ exports.handler = async (event, context) => {
             };
         }
 
+        // استخراج بيانات الطالب مع قيم افتراضية لمنع الأخطاء
         const serialNumber = student.serial_number || '';
         const studentNameArabic = student.arabic_name || '';
         const documentSerialNumber = student.document_serial_number || '';
@@ -65,53 +70,60 @@ exports.handler = async (event, context) => {
         const carType = student.car_type || '';
         const color = student.color || '';
 
-        const htmlContent = `
+        // **هنا يبدأ جزء Puppeteer **
+        // تهيئة المتصفح (Chromium) في بيئة Netlify Functions
+        browser = await puppeteer.launch({
+            headless: true, // أو 'new' للإصدارات الأحدث من Puppeteer (إذا لم يعمل true)
+            args: ['--no-sandbox', '--disable-setuid-sandbox'], // ضروري لتشغيل Chromium في بيئات serverless
+        });
+        const page = await browser.newPage();
+
+        // **محتوى HTML للصفحة التي سيلتقط Puppeteer لقطة شاشة لها**
+        // هذا المحتوى مصمم ليحتوي الشهادة فقط بأبعادها الثابتة
+        const htmlContentForScreenshot = `
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>الشهادة</title>
+                <title>الشهادة للقطة الشاشة</title>
                 <style>
                     /*
-                    تعديلات هنا: جعل الـ HTML والـ Body يشغلان كامل الشاشة
-                    وإزالة الهوامش الافتراضية وتطبيق خلفية سوداء واستخدام Flexbox للتوسيط.
+                    هذه الأنماط هي لصفحة Puppeteer، وهي التي تضمن الأبعاد الثابتة ودمج النصوص.
+                    لا نحتاج هنا للتوسيط بالـ Flexbox لأننا سنلتقط صورة للعنصر نفسه.
                     */
                     html, body {
-                        height: 100%;
-                        width: 100%;
+                        width: 624px; /* الأبعاد الأساسية للشهادة */
+                        height: 817px;
                         margin: 0;
                         padding: 0;
-                        display: flex; /* استخدام Flexbox لتوسيط الحاوية */
-                        justify-content: center; /* توسيط أفقي */
-                        align-items: center; /* توسيط عمودي */
-                        background-color: black; /* تغيير لون الخلفية إلى الأسود */
-                        overflow: auto; /* السماح بظهور أشرطة التمرير إذا كانت الشهادة أكبر من الشاشة */
+                        background-color: transparent; /* مهم: اجعل الخلفية شفافة لكي تظهر صورة الخلفية */
+                        overflow: hidden; /* إخفاء أي أشرطة تمرير */
+                        display: block; /* للتحكم المباشر بالأبعاد */
                     }
-                    
                     .certificate-container {
                         position: relative;
-                        /* تعيين الأبعاد الثابتة لضمان عرضها بحجمها الأساسي دائمًا */
-                        width: 624px; /* العرض الأساسي للصورة */
-                        height: 817px; /* الارتفاع الأساسي للصورة */
-                        flex-shrink: 0; /* مهم: يمنع الحاوية من الانكماش إذا كانت الشاشة أصغر */
-                        
+                        width: 624px;
+                        height: 817px;
                         background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                        background-size: 100% 100%; /* لتغطية الحاوية بالكامل بدقة */
+                        background-size: 100% 100%; /* لملء الحاوية بالكامل */
                         background-repeat: no-repeat;
                         background-position: center;
-                        background-color: #eee; /* لون احتياطي في حال عدم تحميل الصورة */
-                        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+                        background-color: transparent; /* تأكد من الشفافية هنا أيضًا */
+                        box-shadow: none; /* لا نريد الظل في الصورة الناتجة */
                     }
+                    /* تعريف الخط العربي */
                     @font-face {
                         font-family: 'ArabicFont';
                         src: url('${FONT_PATH_RELATIVE}') format('truetype');
                     }
                     .text-overlay {
                         position: absolute;
-                        font-family: 'ArabicFont', 'Arial', sans-serif;
-                        text-wrap: wrap;
+                        font-family: 'ArabicFont', 'Arial', sans-serif; /* استخدم خطك المخصص أولاً */
+                        text-wrap: wrap; /* للسماح بلف النص إذا كان طويلاً */
+                        line-height: 1.2; /* لضبط تباعد الأسطر إذا كان النص يلتف */
                     }
+                    /* أنماط كل حقل نصي حسب TEXT_STYLES */
                     #student-name {
                         top: ${TEXT_STYLES.STUDENT_NAME.top};
                         font-size: ${TEXT_STYLES.STUDENT_NAME.fontSize};
@@ -119,7 +131,8 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.STUDENT_NAME.textAlign};
                         width: ${TEXT_STYLES.STUDENT_NAME.width};
                         left: ${TEXT_STYLES.STUDENT_NAME.left};
-                        transform: translateX(-${TEXT_STYLES.STUDENT_NAME.left});
+                        /* هذا التحويل (transform) قد يحتاج لضبط دقيق حسب التوسيط الذي تريده */
+                        /* For text-align: center, you might use: left: 50%; transform: translateX(-50%); */
                     }
                     #serial-number {
                         top: ${TEXT_STYLES.SERIAL_NUMBER.top};
@@ -136,7 +149,6 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.textAlign};
                         width: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.width};
                         left: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left};
-                        transform: translateX(-${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left});
                     }
                     #plate-number {
                         top: ${TEXT_STYLES.PLATE_NUMBER.top};
@@ -145,7 +157,6 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.PLATE_NUMBER.textAlign};
                         width: ${TEXT_STYLES.PLATE_NUMBER.width};
                         left: ${TEXT_STYLES.PLATE_NUMBER.left};
-                        transform: translateX(-${TEXT_STYLES.PLATE_NUMBER.left});
                     }
                     #car-type {
                         top: ${TEXT_STYLES.CAR_TYPE.top};
@@ -154,7 +165,6 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.CAR_TYPE.textAlign};
                         width: ${TEXT_STYLES.CAR_TYPE.width};
                         left: ${TEXT_STYLES.CAR_TYPE.left};
-                        transform: translateX(-${TEXT_STYLES.CAR_TYPE.left});
                     }
                     #color {
                         top: ${TEXT_STYLES.COLOR.top};
@@ -163,36 +173,6 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.COLOR.textAlign};
                         width: ${TEXT_STYLES.COLOR.width};
                         left: ${TEXT_STYLES.COLOR.left};
-                        transform: translateX(-${TEXT_STYLES.COLOR.left});
-                    }
-
-                    /* أنماط الطباعة ستبقى كما هي لأنها تستخدم نفس الأبعاد الثابتة */
-                    @media print {
-                        html, body {
-                            width: auto; /* السماح للمحتوى بتحديد العرض */
-                            height: auto; /* السماح للمحتوى بتحديد الارتفاع */
-                            display: block; /* إلغاء الفليكس بوكس للطباعة */
-                            background-color: white; /* تأكد من خلفية بيضاء للطباعة */
-                            overflow: visible;
-                        }
-                        body {
-                            margin: 0;
-                            padding: 0;
-                            overflow: visible;
-                            background: none;
-                        }
-                        .certificate-container {
-                            width: 624px; /* الأبعاد الثابتة لضمان الطباعة الصحيحة */
-                            height: 817px;
-                            background-size: 100% 100%;
-                            box-shadow: none;
-                            background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                            -webkit-print-color-adjust: exact;
-                            color-adjust: exact;
-                        }
-                        .text-overlay {
-                            position: absolute;
-                        }
                     }
                 </style>
             </head>
@@ -209,10 +189,30 @@ exports.handler = async (event, context) => {
             </html>
         `;
 
+        // تعيين محتوى الصفحة لـ Puppeteer
+        await page.setContent(htmlContentForScreenshot, { waitUntil: 'networkidle0' });
+
+        // تحديد العنصر الذي نريد التقاط صورته (الشهادة نفسها)
+        const certificateElement = await page.$('.certificate-container');
+
+        // التقاط لقطة الشاشة
+        const imageBuffer = await certificateElement.screenshot({
+            type: 'png', // يمكن تغييرها إلى 'jpeg' إذا كنت تفضل حجماً أصغر على حساب الجودة
+            encoding: 'base64', // لإرجاع البيانات كـ Base64
+            // لا حاجة لـ clip هنا لأننا نلتقط صورة للعنصر بأكمله الذي له أبعاد ثابتة
+        });
+
+        // إرجاع الصورة كاستجابة HTTP
         return {
             statusCode: 200,
-            body: htmlContent,
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            body: imageBuffer,
+            isBase64Encoded: true, // مهم لإخبار Netlify بأن الـ body مشفر بـ Base64
+            headers: {
+                'Content-Type': 'image/png', // نوع المحتوى هو صورة PNG
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate', // لضمان عدم تخزين الشهادة مؤقتاً
+                'Pragma': 'no-cache',
+                'Expires': '0',
+            },
         };
     } catch (error) {
         console.error('خطأ في وظيفة توليد الشهادة:', error);
@@ -223,5 +223,6 @@ exports.handler = async (event, context) => {
         };
     } finally {
         if (client) await client.close();
+        if (browser) await browser.close(); // تأكد من إغلاق المتصفح بعد كل استخدام
     }
 };
