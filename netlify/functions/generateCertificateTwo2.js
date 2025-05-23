@@ -7,15 +7,9 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **مسار صورة الشهادة:**
-// هذا المسار يستخدم قاعدة إعادة التوجيه في netlify.toml لضمان الحجم الأصلي عبر Image CDN
 const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
-
-// **مسار الخط:**
-// تأكد أن arial.ttf موجود الآن في 'public/fonts/arial.ttf'
 const FONT_PATH_RELATIVE = '/fonts/arial.ttf';
 
-// قم بضبط هذه الستايلات لتناسب تصميم شهادتك
 const TEXT_STYLES = {
     STUDENT_NAME: { top: '220px', fontSize: '30px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
     SERIAL_NUMBER: { top: '260px', left: '60px', fontSize: '18px', color: '#fff', textAlign: 'left', width: '150px' },
@@ -75,33 +69,36 @@ exports.handler = async (event, context) => {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>الشهادة</title>
                 <style>
-                    /* ضبط الـ HTML والـ Body لجعل الشهادة هي من تحدد أبعاد العرض */
+                    /* أنماط أساسية لـ HTML و Body */
                     html, body {
-                        width: 100%; /* اجعلهم 100% ليحتووا المحتوى */
-                        height: 100%;
                         margin: 0;
                         padding: 0;
+                        background-color: #0e0e0e;
+                        height: 100%; /* تأكد أنهم يملؤون نافذة العرض */
                         display: flex; /* استخدم فليكس بوكس لتوسيط الشهادة */
                         justify-content: center;
                         align-items: center;
-                        background-color: #0e0e0e;
-                        overflow: auto; /* للسماح بظهور أشرطة التمرير إذا كانت الشهادة أكبر من الشاشة */
+                        overflow: auto; /* السماح بالتمرير إذا كانت الشهادة أكبر من الشاشة */
                     }
                     
                     .certificate-container {
                         position: relative;
-                        /* تعيين الأبعاد الثابتة لضمان عرضها بحجمها الأساسي دائمًا */
-                        width: 624px;
-                        height: 817px;
-                        flex-shrink: 0; /* مهم: يمنع الحاوية من الانكماش إذا كانت الشاشة أصغر */
+                        /* للعرض على الشاشة: استخدم max-width و max-height لتناسب الشاشة */
+                        /* واحتفظ بنسبة الأبعاد باستخدام aspect-ratio */
+                        width: auto; /* السماح للعرض بالتكيف */
+                        height: auto; /* السماح للارتفاع بالتكيف */
+                        max-width: 90vw; /* لا تتجاوز 90% من عرض نافذة العرض */
+                        max-height: 90vh; /* لا تتجاوز 90% من ارتفاع نافذة العرض */
+                        aspect-ratio: 624 / 817; /* **المفتاح: حافظ على نسبة الأبعاد** */
                         
                         background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                        background-size: 100% 100%; /* لتغطية الحاوية بالكامل بدقة */
+                        background-size: contain; /* تأكد أن الصورة تناسب داخل الحاوية */
                         background-repeat: no-repeat;
                         background-position: center;
                         background-color: #eee;
                         box-shadow: 0 0 10px rgba(0,0,0,0.5);
                     }
+
                     @font-face {
                         font-family: 'ArabicFont';
                         src: url('${FONT_PATH_RELATIVE}') format('truetype');
@@ -110,7 +107,14 @@ exports.handler = async (event, context) => {
                         position: absolute;
                         font-family: 'ArabicFont', 'Arial', sans-serif;
                         text-wrap: wrap;
+                        /* هذه النسبة المئوية ستجعل النصوص تتكيف مع حجم الشهادة */
+                        /* إذا كانت الشهادة تصغر أو تكبر للحفاظ على نسبة الأبعاد */
+                        transform: scale(var(--scale, 1));
+                        transform-origin: top left;
+                        /* إضافة transition لتأثير سلس إذا تغير الحجم */
+                        transition: all 0.3s ease-in-out; 
                     }
+                    /* سيتم تحديث هذه الأبعاد بالـ JavaScript لاحقًا */
                     #student-name {
                         top: ${TEXT_STYLES.STUDENT_NAME.top};
                         font-size: ${TEXT_STYLES.STUDENT_NAME.fontSize};
@@ -165,22 +169,21 @@ exports.handler = async (event, context) => {
                         transform: translateX(-${TEXT_STYLES.COLOR.left});
                     }
 
-                    /* أنماط الطباعة ستبقى كما هي لأنها تستخدم نفس الأبعاد الثابتة */
+                    /* أنماط الطباعة */
                     @media print {
                         html, body {
-                            width: auto; /* السماح للمحتوى بتحديد العرض */
-                            height: auto; /* السماح للمحتوى بتحديد الارتفاع */
+                            width: auto;
+                            height: auto;
                             display: block; /* إلغاء الفليكس بوكس للطباعة */
-                        }
-                        body {
-                            margin: 0;
-                            padding: 0;
                             overflow: visible;
                             background: none;
                         }
                         .certificate-container {
-                            width: 624px;
+                            width: 624px; /* للطباعة: نعود للأبعاد الثابتة تمامًا */
                             height: 817px;
+                            max-width: 624px; /* تأكد من عدم التجاوز */
+                            max-height: 817px;
+                            aspect-ratio: auto; /* إزالة aspect-ratio في الطباعة */
                             background-size: 100% 100%;
                             box-shadow: none;
                             background-image: url('${CERTIFICATE_IMAGE_PATH}');
@@ -188,7 +191,7 @@ exports.handler = async (event, context) => {
                             color-adjust: exact;
                         }
                         .text-overlay {
-                            position: absolute;
+                            transform: none !important; /* إزالة أي تحجيم للنصوص */
                         }
                     }
                 </style>
@@ -202,6 +205,27 @@ exports.handler = async (event, context) => {
                     <div id="car-type" class="text-overlay">نوع السيارة: ${carType}</div>
                     <div id="color" class="text-overlay">اللون: ${color}</div>
                 </div>
+                <script>
+                    // JavaScript لضبط حجم النصوص بناءً على حجم الشهادة المعروض
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const certificateContainer = document.querySelector('.certificate-container');
+                        const originalWidth = 624; // العرض الأصلي للشهادة
+                        
+                        function adjustTextSize() {
+                            const currentWidth = certificateContainer.offsetWidth;
+                            const scale = currentWidth / originalWidth;
+                            document.querySelectorAll('.text-overlay').forEach(textElement => {
+                                textElement.style.setProperty('--scale', scale);
+                            });
+                        }
+
+                        // الضبط الأولي
+                        adjustTextSize();
+
+                        // الضبط عند تغيير حجم النافذة
+                        window.addEventListener('resize', adjustTextSize);
+                    });
+                </script>
             </body>
             </html>
         `;
