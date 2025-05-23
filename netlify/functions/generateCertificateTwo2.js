@@ -1,12 +1,15 @@
 const { MongoClient, ObjectId } = require('mongodb');
 const puppeteer = require('puppeteer-core');
-const chromium = require('chrome-aws-lambda'); // استيراد مكتبة chrome-aws-lambda
+const chromium = require('chrome-aws-lambda'); // هذا السطر هو الأهم: استخدام chrome-aws-lambda
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
+// ******** انتبه هنا: تأكد من المسار الفعلي لصورتك ********
+// إذا كانت صورتك في public/images/full/wwee.jpg، اتركها كما هي.
+// إذا كانت صورتك في public/images_temp/wwee.jpg، غيّرها إلى '/images_temp/wwee.jpg'
+const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg'; 
 const FONT_PATH_RELATIVE = '/fonts/arial.ttf';
 
 const TEXT_STYLES = {
@@ -61,12 +64,11 @@ exports.handler = async (event, context) => {
         const carType = student.car_type || '';
         const color = student.color || '';
 
-        // **هنا يبدأ جزء Puppeteer **
         // تهيئة المتصفح (Chromium) باستخدام chrome-aws-lambda
         browser = await puppeteer.launch({
-            args: chromium.args, // استخدام وسائط Chromium التي توفرها المكتبة
-            executablePath: await chromium.executablePath, // مسار Chromium الذي توفره المكتبة
-            headless: chromium.headless, // استخدام وضع headless الذي توفره المكتبة (قد يكون true أو 'new')
+            args: [...chromium.args, '--hide-scrollbars'],
+            executablePath: await chromium.executablePath, // هنا التغيير: لا نمرر true لـ chrome-aws-lambda
+            headless: chromium.headless,
         });
         const page = await browser.newPage();
 
