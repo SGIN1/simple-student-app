@@ -87,13 +87,12 @@ exports.handler = async (event, context) => {
                     }
                     .certificate-container {
                         position: relative;
-                        /* للعرض على الشاشة: استخدم max-width ونسبة padding-bottom للحفاظ على الأبعاد */
-                        width: 100%; /* تجعل الحاوية تتكيف مع عرض الشاشة */
-                        max-width: 624px; /* لا تتجاوز عرض الصورة الأصلي */
-                        padding-bottom: 131%; /* نسبة الارتفاع إلى العرض (817 / 624) * 100% */
+                        /* تعيين الأبعاد الثابتة لضمان عرضها بحجمها الأساسي دائمًا */
+                        width: 624px;
+                        height: 817px;
                         
                         background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                        background-size: cover; /* لضمان تغطية الصورة للحاوية */
+                        background-size: 100% 100%; /* لتغطية الحاوية بالكامل بدقة */
                         background-repeat: no-repeat;
                         background-position: center;
                         background-color: #eee;
@@ -101,7 +100,7 @@ exports.handler = async (event, context) => {
                     }
                     @font-face {
                         font-family: 'ArabicFont';
-                        src: url('${FONT_PATH_RELATIVE}') format('truetype'); /* استخدام المسار الجديد للخط */
+                        src: url('${FONT_PATH_RELATIVE}') format('truetype');
                     }
                     .text-overlay {
                         position: absolute;
@@ -162,7 +161,7 @@ exports.handler = async (event, context) => {
                         transform: translateX(-${TEXT_STYLES.COLOR.left});
                     }
 
-                    /* أنماط للطباعة */
+                    /* أنماط الطباعة ستبقى كما هي لأنها تستخدم نفس الأبعاد الثابتة */
                     @media print {
                         body {
                             margin: 0;
@@ -172,11 +171,9 @@ exports.handler = async (event, context) => {
                             background: none;
                         }
                         .certificate-container {
-                            /* للطباعة: نعود لتعيين الأبعاد الثابتة لضمان الدقة */
                             width: 624px;
                             height: 817px;
-                            padding-bottom: 0; /* إزالة البادينج في الطباعة */
-                            background-size: 100% 100%; /* لتغطية الحاوية بالكامل بدقة */
+                            background-size: 100% 100%;
                             box-shadow: none;
                             background-image: url('${CERTIFICATE_IMAGE_PATH}');
                             -webkit-print-color-adjust: exact;

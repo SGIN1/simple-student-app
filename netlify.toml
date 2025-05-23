@@ -7,7 +7,8 @@
 
 [functions]
   included_files = [
-    "public/**", # هذا السطر يضمن تضمين مجلد public بالكامل، بما في ذلك مجلد الخطوط الجديد
+    "public/**", # لتضمين مجلد public بالكامل (لصورة wwee.jpg)
+    "netlify/functions/arial.ttf", # لتضمين ملف الخط arial.ttf
     "node_modules/mongodb/**",
     "node_modules/bson/**"
   ]
@@ -19,9 +20,9 @@
   status = 200
   force = true
 
-# قاعدة إعادة التوجيه لصورة الشهادة بحجمها الأساسي عبر Netlify Image CDN
+# قاعدة إعادة التوجيه الجديدة لصورة الشهادة بحجمها الأساسي عبر Netlify Image CDN
 # هذا يضمن أن الصورة wwee.jpg سيتم جلبها بحجمها الأصلي
 [[redirects]]
   from = "/images/full/wwee.jpg"
-  to = "/.netlify/images?url=/images_temp/wwee.jpg" # تأكد أن هذا هو المسار الفعلي لصورك في public
+  to = "/.netlify/images?url=/images_temp/wwee.jpg"
   status = 200
