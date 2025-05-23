@@ -1,18 +1,19 @@
 {
-  "name": "functions",
+  "name": "simple-student-app",
   "version": "1.0.0",
-  "main": "addStudent.js",
+  "description": "",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
-    "mongodb": "^6.6.0",             
-    "puppeteer-core": "^10.4.0",     
-    "chrome-aws-lambda": "^10.1.0"  
+    "mongodb": "^6.6.0",               
+    "puppeteer-core": "^10.4.0",       
+    "chrome-aws-lambda": "^10.1.0",
+    "qrcode": "^1.5.3"  
   },
   "devDependencies": {
     "esbuild": "^0.25.3"

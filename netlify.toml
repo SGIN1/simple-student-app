@@ -13,8 +13,9 @@
     "public/fonts/arial.ttf",
     "node_modules/mongodb/**",
     "node_modules/bson/**",
-    "node_modules/chrome-aws-lambda/**", # هذا هو المهم: تضمين chrome-aws-lambda
-    "node_modules/puppeteer-core/**"
+    "node_modules/chrome-aws-lambda/**", # تضمين chrome-aws-lambda
+    "node_modules/puppeteer-core/**",
+    "node_modules/qrcode/**" # تضمين qrcode
   ]
 
 [[redirects]]
