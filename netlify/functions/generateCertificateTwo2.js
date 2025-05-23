@@ -8,13 +8,12 @@ const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
 // **مسار صورة الشهادة:**
-// تم تغيير هذا المسار لاستخدام مسار Netlify Image CDN الجديد الذي يضمن الحجم الأصلي.
-// هذا المسار يتوافق مع قاعدة إعادة التوجيه الجديدة في netlify.toml
-const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg'; // تم التعديل هنا
+// هذا المسار يستخدم قاعدة إعادة التوجيه في netlify.toml لضمان الحجم الأصلي عبر Image CDN
+const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
 
-// **مسار الخط:** هذا المسار هو نسبي لموقع ملف الوظيفة نفسه (generateCertificateTwo2.js)
-// تأكد أن arial.ttf موجود في 'netlify/functions/arial.ttf'
-const FONT_PATH = 'arial.ttf';
+// **مسار الخط:**
+// تأكد أن arial.ttf موجود الآن في 'public/fonts/arial.ttf'
+const FONT_PATH_RELATIVE = '/fonts/arial.ttf';
 
 // قم بضبط هذه الستايلات لتناسب تصميم شهادتك
 const TEXT_STYLES = {
@@ -73,32 +72,36 @@ exports.handler = async (event, context) => {
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, minimum-scale=0.1, initial-scale=1.0">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>الشهادة</title>
                 <style>
                     body {
                         margin: 0;
+                        padding: 0;
                         height: 100vh;
                         background-color: #0e0e0e;
                         display: flex;
                         justify-content: center;
                         align-items: center;
+                        overflow: auto; /* السماح بالتمرير إذا كانت الشهادة أكبر من الشاشة */
                     }
                     .certificate-container {
                         position: relative;
-                        width: 624px;
-                        height: 817px;
+                        /* للعرض على الشاشة: استخدم max-width ونسبة padding-bottom للحفاظ على الأبعاد */
+                        width: 100%; /* تجعل الحاوية تتكيف مع عرض الشاشة */
+                        max-width: 624px; /* لا تتجاوز عرض الصورة الأصلي */
+                        padding-bottom: 131%; /* نسبة الارتفاع إلى العرض (817 / 624) * 100% */
+                        
                         background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                        background-size: contain;
+                        background-size: cover; /* لضمان تغطية الصورة للحاوية */
                         background-repeat: no-repeat;
                         background-position: center;
                         background-color: #eee;
-                        overflow: hidden;
                         box-shadow: 0 0 10px rgba(0,0,0,0.5);
                     }
                     @font-face {
                         font-family: 'ArabicFont';
-                        src: url('/.netlify/functions/arial.ttf') format('truetype');
+                        src: url('${FONT_PATH_RELATIVE}') format('truetype'); /* استخدام المسار الجديد للخط */
                     }
                     .text-overlay {
                         position: absolute;
@@ -159,6 +162,7 @@ exports.handler = async (event, context) => {
                         transform: translateX(-${TEXT_STYLES.COLOR.left});
                     }
 
+                    /* أنماط للطباعة */
                     @media print {
                         body {
                             margin: 0;
@@ -168,8 +172,11 @@ exports.handler = async (event, context) => {
                             background: none;
                         }
                         .certificate-container {
+                            /* للطباعة: نعود لتعيين الأبعاد الثابتة لضمان الدقة */
                             width: 624px;
                             height: 817px;
+                            padding-bottom: 0; /* إزالة البادينج في الطباعة */
+                            background-size: 100% 100%; /* لتغطية الحاوية بالكامل بدقة */
                             box-shadow: none;
                             background-image: url('${CERTIFICATE_IMAGE_PATH}');
                             -webkit-print-color-adjust: exact;
