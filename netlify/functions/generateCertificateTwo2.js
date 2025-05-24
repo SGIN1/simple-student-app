@@ -1,46 +1,59 @@
 // netlify/functions/generateCertificateTwo2.js
 
 const { MongoClient, ObjectId } = require('mongodb');
-const path = require('path');
+const fetch = require('node-fetch'); // لاستخدام fetch لإرسال الطلبات إلى PDFCrowd API
 
+// URI الخاص بقاعدة بيانات MongoDB الخاصة بك. يجب أن يكون مضبوطًا كمتغير بيئة في Netlify.
 const uri = process.env.MONGODB_URI;
-const dbName = 'Cluster0';
-const collectionName = 'enrolled_students_tbl';
+const dbName = 'Cluster0'; // اسم قاعدة البيانات
+const collectionName = 'enrolled_students_tbl'; // اسم المجموعة (Collection) التي تحتوي على بيانات الطلاب
+
+// **معلومات PDFCrowd API الخاصة بك**
+const PDFCROWD_USERNAME = 'sgn'; // اسم المستخدم الخاص بـ PDFCrowd
+const PDFCROWD_API_KEY = 'b8f189e3d2485001c34860d633c1050b'; // مفتاح الـ API الخاص بـ PDFCrowd
+
+// **رابط موقعك الحقيقي على Netlify.**
+// هذا هو الرابط الذي سيتم استخدامه للوصول إلى صور وخطوط الشهادة.
+const YOUR_NETLIFY_SITE_URL = 'https://spiffy-meerkat-be5bc1.netlify.app';
 
 // **مسار صورة الشهادة:**
-// تم تغيير هذا المسار لاستخدام مسار Netlify Image CDN الجديد الذي يضمن الحجم الأصلي.
-// هذا المسار يتوافق مع قاعدة إعادة التوجيه الجديدة في netlify.toml
-const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg'; // تم التعديل هنا
+// تأكد أن هذه الصورة (wwee.jpg) موجودة في مجلد 'public/images_temp' في مشروعك على Netlify
+// لتكون متاحة للوصول العام عبر URL.
+const CERTIFICATE_IMAGE_URL = `${YOUR_NETLIFY_SITE_URL}/images_temp/wwee.jpg`;
 
-// **مسار الخط:** هذا المسار هو نسبي لموقع ملف الوظيفة نفسه (generateCertificateTwo2.js)
-// تأكد أن arial.ttf موجود في 'netlify/functions/arial.ttf'
-const FONT_PATH = 'arial.ttf';
+// **مسار الخط:**
+// تأكد أن هذا الخط (arial.ttf) موجود في مجلد 'netlify/functions' (أو مجلد آخر متاح للعامة)
+// ليتمكن PDFCrowd من استخدامه.
+const FONT_URL = `${YOUR_NETLIFY_SITE_URL}/.netlify/functions/arial.ttf`;
 
-// **هنا نقوم بضبط هذه الستايلات لتناسب تصميم شهادتك بدقة.**
-// هذه القيم (top, left, width) يجب أن تضبطها بعناية فائقة
+// **ضبط ستايلات النصوص على الشهادة.**
+// هذه القيم (top, left, width, fontSize, إلخ) يجب أن تضبطها بدقة عالية
 // لتتناسب مع المواقع الدقيقة للنصوص في صورة الشهادة wwee.jpg التي لديك.
-// استخدم أداة قياس البكسل (مثل فتح الصورة في برنامج رسومي أو حتى استخدام متصفح المطور)
-// لمعرفة المواقع الدقيقة (بالبكسل) لكل نص في الشهادة الأصلية.
+// استخدم مشروعك المحلي (certificate.html) لتحديد هذه القيم بالبكسل.
 const TEXT_STYLES = {
-    // الأبعاد الكلية للشهادة 978px عرض × 1280px ارتفاع
-    STUDENT_NAME: { top: '380px', fontSize: '42px', color: '#000', textAlign: 'center', width: '70%', left: '15%' }, // مثال: اسم الطالب في منتصف الشهادة تقريباً
-    SERIAL_NUMBER: { top: '150px', left: '100px', fontSize: '20px', color: '#333', textAlign: 'left', width: '200px' }, // مثال: رقم تسلسلي في أعلى اليسار
+    STUDENT_NAME: { top: '380px', fontSize: '42px', color: '#000', textAlign: 'center', width: '70%', left: '15%' },
+    SERIAL_NUMBER: { top: '150px', left: '100px', fontSize: '20px', color: '#333', textAlign: 'left', width: '200px' },
     DOCUMENT_SERIAL_NUMBER: { top: '480px', fontSize: '24px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
     PLATE_NUMBER: { top: '550px', fontSize: '24px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
     CAR_TYPE: { top: '620px', fontSize: '24px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
     COLOR: { top: '690px', fontSize: '24px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
 };
 
+// الدالة الرئيسية التي ستنفذها Netlify Function
 exports.handler = async (event, context) => {
+    // استخراج معرف الطالب من مسار الطلب (URL)
     const studentId = event.path.split('/').pop();
     console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
-    let client;
+    let client; // متغير لعميل MongoDB
 
     try {
+        // التحقق من وجود متغير بيئة MONGODB_URI
         if (!uri) {
             throw new Error("MONGODB_URI is not set in environment variables. Please set it in Netlify.");
         }
+
+        // الاتصال بقاعدة بيانات MongoDB
         client = new MongoClient(uri);
         await client.connect();
         const database = client.db(dbName);
@@ -48,6 +61,7 @@ exports.handler = async (event, context) => {
 
         let student;
         try {
+            // البحث عن الطالب باستخدام معرفه (ObjectId)
             student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
         } catch (objectIdError) {
             console.error('خطأ في إنشاء ObjectId:', objectIdError);
@@ -58,6 +72,7 @@ exports.handler = async (event, context) => {
             };
         }
 
+        // إذا لم يتم العثور على الطالب
         if (!student) {
             return {
                 statusCode: 404,
@@ -66,6 +81,7 @@ exports.handler = async (event, context) => {
             };
         }
 
+        // استخراج بيانات الطالب مع توفير قيمة افتراضية فارغة إذا لم تكن موجودة
         const serialNumber = student.serial_number || '';
         const studentNameArabic = student.arabic_name || '';
         const documentSerialNumber = student.document_serial_number || '';
@@ -73,150 +89,107 @@ exports.handler = async (event, context) => {
         const carType = student.car_type || '';
         const color = student.color || '';
 
-        const htmlContent = `
+        // **1. بناء كود HTML للشهادة**
+        // هذا هو قالب HTML الذي سيتم إرساله إلى PDFCrowd لتحويله إلى PDF.
+        // يتضمن صورة الخلفية، الخطوط، والنصوص الديناميكية لبيانات الطالب.
+        const certificateHtmlContent = `
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
                 <title>الشهادة الديناميكية</title>
                 <style>
-                    /* ------------------------------------------------------------- */
-                    /* الأنماط العامة للصفحة لعرض الشهادة في المنتصف */
-                    /* ------------------------------------------------------------- */
-                    body {
+                    html, body {
                         margin: 0;
                         padding: 0;
-                        height: 100vh;
-                        background-color: #f0f0f0; /* لون خلفية فاتح لراحة العين */
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        overflow: auto; /* للسماح بالتمرير إذا كانت الشهادة أكبر من الشاشة */
+                        height: 1280px; /* فرض الارتفاع على كامل الشهادة */
+                        width: 978px;  /* فرض العرض على كامل الشهادة */
+                        overflow: hidden; /* إخفاء أي تمرير غير مرغوب فيه */
                     }
-                    /* ------------------------------------------------------------- */
-                    /* خصائص حاوية الشهادة - الأبعاد الثابتة والمهمة */
-                    /* ------------------------------------------------------------- */
+                    /* خصائص حاوية الشهادة - الأبعاد الثابتة والمهمة جداً */
                     .certificate-container {
                         position: relative;
-                        /* الأبعاد الحقيقية لملف wwee.jpg */
                         width: 978px;  
                         height: 1280px;
-                        background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                        /* لضمان تغطية الصورة للحاوية بالكامل بدقة دون تكرار */
+                        background-image: url('${CERTIFICATE_IMAGE_URL}'); /* استخدم URL الصورة المتاحة للعامة */
                         background-size: 100% 100%; 
                         background-repeat: no-repeat;
                         background-position: center;
-                        box-shadow: 0 0 20px rgba(0,0,0,0.3); /* ظل جميل لإبراز الشهادة */
-                        overflow: hidden; /* لإخفاء أي محتوى يتجاوز الحدود */
-                        flex-shrink: 0; /* يمنع الحاوية من الانكماش على الشاشات الصغيرة */
+                        overflow: hidden; 
                     }
 
-                    /* ------------------------------------------------------------- */
-                    /* تعريف الخط العربي - مهم جداً للثبات البصري */
-                    /* ------------------------------------------------------------- */
+                    /* تعريف الخط العربي - مهم جداً لـ PDFCrowd */
+                    /* يجب أن يكون الخط متاحًا لـ PDFCrowd عبر URL */
                     @font-face {
                         font-family: 'ArabicFont';
-                        src: url('/.netlify/functions/arial.ttf') format('truetype');
+                        src: url('${FONT_URL}') format('truetype'); 
                         font-weight: normal;
                         font-style: normal;
                     }
-                    /* ------------------------------------------------------------- */
-                    /* الأنماط العامة لطبقة النصوص العلوية */
-                    /* ------------------------------------------------------------- */
+
                     .text-overlay {
                         position: absolute;
-                        font-family: 'ArabicFont', 'Arial', sans-serif; /* استخدام الخط العربي أولاً */
-                        /* يمكن إضافة خصائص عامة للنصوص هنا مثل line-height أو text-shadow */
-                        white-space: pre-wrap; /* للحفاظ على تنسيق النصوص (مثل فواصل الأسطر) */
-                        box-sizing: border-box; /* لضمان أن العرض لا يتأثر بالبادينج */
-                        /* background-color: rgba(255, 0, 0, 0.2); /* استخدم هذا لتصحيح المواقع مؤقتًا */ */
+                        font-family: 'ArabicFont', 'Arial', sans-serif; 
+                        color: #000; 
+                        text-align: center; 
+                        box-sizing: border-box; 
                     }
-                    /* ------------------------------------------------------------- */
-                    /* أنماط كل حقل نصي بناءً على المتغيرات المحددة في TEXT_STYLES */
-                    /* ------------------------------------------------------------- */
+
+                    /* أنماط كل حقل نصي - قيمك المضبوطة بدقة */
                     #student-name {
                         top: ${TEXT_STYLES.STUDENT_NAME.top};
+                        left: ${TEXT_STYLES.STUDENT_NAME.left};
+                        transform: translateX(${TEXT_STYLES.STUDENT_NAME.textAlign === 'center' ? '-50%' : '0'});
+                        width: ${TEXT_STYLES.STUDENT_NAME.width};
                         font-size: ${TEXT_STYLES.STUDENT_NAME.fontSize};
                         color: ${TEXT_STYLES.STUDENT_NAME.color};
                         text-align: ${TEXT_STYLES.STUDENT_NAME.textAlign};
-                        width: ${TEXT_STYLES.STUDENT_NAME.width};
-                        left: ${TEXT_STYLES.STUDENT_NAME.left};
-                        /* هذا التحويل يضمن التوسيط الأفقي عندما يكون text-align: center و left: 50% */
-                        transform: translateX(${TEXT_STYLES.STUDENT_NAME.textAlign === 'center' ? '-50%' : '0'});
-                        /* يمكن إضافة font-weight: bold; إذا كان مطلوبًا */
                     }
+
                     #serial-number {
                         top: ${TEXT_STYLES.SERIAL_NUMBER.top};
                         left: ${TEXT_STYLES.SERIAL_NUMBER.left};
+                        width: ${TEXT_STYLES.SERIAL_NUMBER.width};
                         font-size: ${TEXT_STYLES.SERIAL_NUMBER.fontSize};
                         color: ${TEXT_STYLES.SERIAL_NUMBER.color};
                         text-align: ${TEXT_STYLES.SERIAL_NUMBER.textAlign};
-                        width: ${TEXT_STYLES.SERIAL_NUMBER.width};
-                        /* لضمان ثبات الموضع الأفقي لليسار */
-                        right: auto;
                     }
                     #document-serial-number {
                         top: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.top};
+                        left: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left};
+                        transform: translateX(${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.textAlign === 'center' ? '-50%' : '0'});
+                        width: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.width};
                         font-size: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.fontSize};
                         color: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.color};
                         text-align: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.textAlign};
-                        width: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.width};
-                        left: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left};
-                        transform: translateX(${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.textAlign === 'center' ? '-50%' : '0'});
                     }
                     #plate-number {
                         top: ${TEXT_STYLES.PLATE_NUMBER.top};
+                        left: ${TEXT_STYLES.PLATE_NUMBER.left};
+                        transform: translateX(${TEXT_STYLES.PLATE_NUMBER.textAlign === 'center' ? '-50%' : '0'});
+                        width: ${TEXT_STYLES.PLATE_NUMBER.width};
                         font-size: ${TEXT_STYLES.PLATE_NUMBER.fontSize};
                         color: ${TEXT_STYLES.PLATE_NUMBER.color};
                         text-align: ${TEXT_STYLES.PLATE_NUMBER.textAlign};
-                        width: ${TEXT_STYLES.PLATE_NUMBER.width};
-                        left: ${TEXT_STYLES.PLATE_NUMBER.left};
-                        transform: translateX(${TEXT_STYLES.PLATE_NUMBER.textAlign === 'center' ? '-50%' : '0'});
                     }
                     #car-type {
                         top: ${TEXT_STYLES.CAR_TYPE.top};
+                        left: ${TEXT_STYLES.CAR_TYPE.left};
+                        transform: translateX(${TEXT_STYLES.CAR_TYPE.textAlign === 'center' ? '-50%' : '0'});
+                        width: ${TEXT_STYLES.CAR_TYPE.width};
                         font-size: ${TEXT_STYLES.CAR_TYPE.fontSize};
                         color: ${TEXT_STYLES.CAR_TYPE.color};
                         text-align: ${TEXT_STYLES.CAR_TYPE.textAlign};
-                        width: ${TEXT_STYLES.CAR_TYPE.width};
-                        left: ${TEXT_STYLES.CAR_TYPE.left};
-                        transform: translateX(${TEXT_STYLES.CAR_TYPE.textAlign === 'center' ? '-50%' : '0'});
                     }
                     #color {
                         top: ${TEXT_STYLES.COLOR.top};
+                        left: ${TEXT_STYLES.COLOR.left};
+                        transform: translateX(${TEXT_STYLES.COLOR.textAlign === 'center' ? '-50%' : '0'});
+                        width: ${TEXT_STYLES.COLOR.width};
                         font-size: ${TEXT_STYLES.COLOR.fontSize};
                         color: ${TEXT_STYLES.COLOR.color};
                         text-align: ${TEXT_STYLES.COLOR.textAlign};
-                        width: ${TEXT_STYLES.COLOR.width};
-                        left: ${TEXT_STYLES.COLOR.left};
-                        transform: translateX(${TEXT_STYLES.COLOR.textAlign === 'center' ? '-50%' : '0'});
-                    }
-
-                    /* ------------------------------------------------------------- */
-                    /* أنماط الطباعة (Print Styles) */
-                    /* ------------------------------------------------------------- */
-                    @media print {
-                        body {
-                            margin: 0;
-                            padding: 0;
-                            height: auto;
-                            overflow: visible;
-                            background: none;
-                        }
-                        .certificate-container {
-                            width: 978px;  /* تأكيد الأبعاد للطباعة */
-                            height: 1280px;
-                            box-shadow: none; /* إزالة الظل عند الطباعة */
-                            background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                            background-size: 100% 100%; /* تأكيد تغطية الصورة للحاوية بالكامل عند الطباعة */
-                            -webkit-print-color-adjust: exact; /* لضمان طباعة الألوان والخلفيات بدقة */
-                            color-adjust: exact; /* نفس الخاصية للمتصفحات الأخرى */
-                        }
-                        .text-overlay {
-                            position: absolute;
-                            /* لا حاجة لإعادة تعريف معظم الخصائص هنا إلا إذا أردت تغييرها للطباعة فقط */
-                        }
                     }
                 </style>
             </head>
@@ -233,12 +206,55 @@ exports.handler = async (event, context) => {
             </html>
         `;
 
+        // **2. إرسال HTML إلى PDFCrowd API لتحويله إلى PDF**
+        const response = await fetch('https://api.pdfcrowd.com/convert/v2/pdf/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                // ترويسة التخويل (Authorization) تستخدم اسم المستخدم ومفتاح الـ API
+                'Authorization': 'Basic ' + Buffer.from(`${PDFCROWD_USERNAME}:${PDFCROWD_API_KEY}`).toString('base64'),
+            },
+            body: new URLSearchParams({
+                src: certificateHtmlContent, // محتوى الـ HTML المراد تحويله
+                // يمكنك إضافة معلمات إضافية لـ PDFCrowd هنا للتحكم في خصائص الـ PDF الناتج
+                // مثل حجم الصفحة، الهوامش، إلخ.
+                // page_width: '978px',
+                // page_height: '1280px',
+                // use_print_media: 'true',
+                // viewport_width: '978',
+                // viewport_height: '1280',
+            }).toString(),
+        });
+
+        // التحقق مما إذا كان الطلب إلى PDFCrowd ناجحًا
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('خطأ من PDFCrowd:', errorText);
+            return {
+                statusCode: response.status,
+                body: `<h1>خطأ في توليد الشهادة من PDFCrowd</h1><p>${errorText}</p>`,
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            };
+        }
+
+        // الحصول على بيانات ملف PDF الثنائية من استجابة PDFCrowd
+        const pdfBuffer = await response.buffer();
+
+        // **3. إرجاع ملف PDF إلى المتصفح**
+        // إعداد استجابة Netlify Function لإرجاع ملف PDF قابل للتنزيل
         return {
             statusCode: 200,
-            body: htmlContent,
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            headers: {
+                'Content-Type': 'application/pdf', // نوع المحتوى هو PDF
+                // Content-Disposition لتحديد أن الملف يجب تنزيله، مع اسم للملف
+                'Content-Disposition': `attachment; filename="certificate_${studentId}.pdf"`,
+            },
+            body: pdfBuffer.toString('base64'), // يجب أن يكون الجسم بترميز Base64
+            isBase64Encoded: true, // إبلاغ Netlify أن الجسم مشفر بـ Base64
         };
+
     } catch (error) {
+        // معالجة الأخطاء العامة التي قد تحدث في الدالة
         console.error('خطأ في وظيفة توليد الشهادة:', error);
         return {
             statusCode: 500,
@@ -246,6 +262,7 @@ exports.handler = async (event, context) => {
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
+        // إغلاق اتصال MongoDB بعد الانتهاء، سواء بنجاح أو فشل
         if (client) await client.close();
     }
 };

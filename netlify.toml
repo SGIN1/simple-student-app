@@ -1,28 +1,13 @@
-# netlify.toml
-
-[build]
-  base = "/"
-  publish = "public"
-  functions = "netlify/functions"
-
 [functions]
-  included_files = [
-    "public/**", # لتضمين مجلد public بالكامل (لصورة wwee.jpg)
-    "netlify/functions/arial.ttf", # لتضمين ملف الخط arial.ttf
-    "node_modules/mongodb/**",
-    "node_modules/bson/**"
-  ]
+  # تحديد المسار الذي توجد فيه دوال Netlify
+  directory = "netlify/functions"
+  
+  # تحديد وحدة node-fetch كوحدة خارجية ليتم حزمها بواسطة Netlify
+  # هذا يضمن أن يتم تضمين node-fetch في حزمة الدالة عند النشر.
+  external_node_modules = ["node-fetch"]
+  
+  # تضمين جميع الملفات داخل مجلد node_modules/node-fetch لضمان عمل المكتبة بشكل صحيح.
+  included_files = ["node_modules/node-fetch/**"]
 
-# قاعدة إعادة التوجيه لوظيفة Netlify Function
-[[redirects]]
-  from = "/certificate/:id"
-  to = "/.netlify/functions/generateCertificateTwo2/:id"
-  status = 200
-  force = true
-
-# قاعدة إعادة التوجيه الجديدة لصورة الشهادة بحجمها الأساسي عبر Netlify Image CDN
-# هذا يضمن أن الصورة wwee.jpg سيتم جلبها بحجمها الأصلي
-[[redirects]]
-  from = "/images/full/wwee.jpg"
-  to = "/.netlify/images?url=/images_temp/wwee.jpg"
-  status = 200
+  # يمكن إضافة إعدادات أخرى هنا إذا لزم الأمر، مثل وقت انتهاء مهلة الدالة (timeout).
+  # timeout = 10 # بالثواني
