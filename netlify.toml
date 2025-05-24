@@ -2,13 +2,13 @@
 
 [build]
   base = "/"
-  publish = "public"
+  publish = "public" # تأكد من وجود هذا السطر وأن المجلد public موجود
   functions = "netlify/functions"
 
 [functions]
-  external_node_modules = ["node-fetch"] # لا يزال node-fetch مطلوبًا لإجراء طلبات HTTP
+  external_node_modules = ["node-fetch"]
   included_files = [
-    "node_modules/node-fetch/**", 
+    "node_modules/node-fetch/**",
     "node_modules/mongodb/**",
     "node_modules/bson/**",
     "netlify/functions/arial.ttf"
