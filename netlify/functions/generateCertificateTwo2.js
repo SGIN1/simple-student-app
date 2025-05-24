@@ -1,16 +1,26 @@
 // netlify/functions/generateCertificateTwo2.js
 
 const { MongoClient, ObjectId } = require('mongodb');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch'); // تأكد من تضمين node-fetch
+const path = require('path'); // قد لا يزال غير ضروري ولكن لا يضر وجوده
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-const CONVERTAPI_SECRET = 'secret_qDHxk4i07C7w8USr'; // تأكد من أنه صحيح
+const CONVERTAPI_SECRET = 'secret_qDHxk4i07C7w8USr'; // **أعد إضافة هذا المتغير!**
 
-const YOUR_NETLIFY_SITE_URL = 'https://spiffy-meerkat-be5bc1.netlify.app';
-const CERTIFICATE_IMAGE_URL = `${YOUR_NETLIFY_SITE_URL}/images_temp/wwee.jpg`;
+const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
+const FONT_PATH = '/.netlify/functions/arial.ttf'; // مسار الخط كما في CSS
+
+const TEXT_STYLES = {
+    STUDENT_NAME: { top: '220px', fontSize: '30px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    SERIAL_NUMBER: { top: '260px', left: '60px', fontSize: '18px', color: '#fff', textAlign: 'left', width: '150px' },
+    DOCUMENT_SERIAL_NUMBER: { top: '300px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    PLATE_NUMBER: { top: '330px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    CAR_TYPE: { top: '360px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    COLOR: { top: '390px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+};
 
 exports.handler = async (event, context) => {
     const studentId = event.path.split('/').pop();
@@ -22,7 +32,6 @@ exports.handler = async (event, context) => {
         if (!uri) {
             throw new Error("MONGODB_URI is not set in environment variables. Please set it in Netlify.");
         }
-
         client = new MongoClient(uri);
         await client.connect();
         const database = client.db(dbName);
@@ -48,42 +57,146 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // بناء محتوى HTML بدقة أكبر
-        const certificateHtmlContent = `
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>الشهادة التلقائية</title>
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 978px;
-            height: 1280px;
-            overflow: hidden;
-        }
-        .certificate-container {
-            width: 100%;
-            height: 100%;
-            background-image: url('${CERTIFICATE_IMAGE_URL}');
-            background-size: 100% 100%;
-            background-repeat: no-repeat;
-            background-position: center;
-        }
-    </style>
-</head>
-<body>
-    <div class="certificate-container"></div>
-</body>
-</html>
-        `.trim(); // استخدام .trim() مهم لإزالة أي مسافات بيضاء زائدة قبل/بعد المحتوى
+        const serialNumber = student.serial_number || '';
+        const studentNameArabic = student.arabic_name || '';
+        const documentSerialNumber = student.document_serial_number || '';
+        const plateNumber = student.plate_number || '';
+        const carType = student.car_type || '';
+        const color = student.color || '';
 
-        const htmlBase64 = Buffer.from(certificateHtmlContent, 'utf8').toString('base64');
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="ar" dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, minimum-scale=0.1, initial-scale=1.0">
+                <title>الشهادة</title>
+                <style>
+                    body {
+                        margin: 0;
+                        height: 100vh;
+                        background-color: #0e0e0e;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                    }
+                    .certificate-container {
+                        position: relative;
+                        width: 624px;
+                        height: 817px;
+                        background-image: url('${CERTIFICATE_IMAGE_PATH}');
+                        background-size: contain;
+                        background-repeat: no-repeat;
+                        background-position: center;
+                        background-color: #eee;
+                        overflow: hidden;
+                        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+                    }
+                    @font-face {
+                        font-family: 'ArabicFont';
+                        src: url('${FONT_PATH}') format('truetype'); /* استخدام المسار الصحيح للخط */
+                    }
+                    .text-overlay {
+                        position: absolute;
+                        font-family: 'ArabicFont', 'Arial', sans-serif;
+                        text-wrap: wrap;
+                    }
+                    #student-name {
+                        top: ${TEXT_STYLES.STUDENT_NAME.top};
+                        font-size: ${TEXT_STYLES.STUDENT_NAME.fontSize};
+                        color: ${TEXT_STYLES.STUDENT_NAME.color};
+                        text-align: ${TEXT_STYLES.STUDENT_NAME.textAlign};
+                        width: ${TEXT_STYLES.STUDENT_NAME.width};
+                        left: ${TEXT_STYLES.STUDENT_NAME.left};
+                        transform: translateX(-${TEXT_STYLES.STUDENT_NAME.left});
+                    }
+                    #serial-number {
+                        top: ${TEXT_STYLES.SERIAL_NUMBER.top};
+                        left: ${TEXT_STYLES.SERIAL_NUMBER.left};
+                        font-size: ${TEXT_STYLES.SERIAL_NUMBER.fontSize};
+                        color: ${TEXT_STYLES.SERIAL_NUMBER.color};
+                        text-align: ${TEXT_STYLES.SERIAL_NUMBER.textAlign};
+                        width: ${TEXT_STYLES.SERIAL_NUMBER.width};
+                    }
+                    #document-serial-number {
+                        top: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.top};
+                        font-size: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.fontSize};
+                        color: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.color};
+                        text-align: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.textAlign};
+                        width: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.width};
+                        left: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left};
+                        transform: translateX(-${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left});
+                    }
+                    #plate-number {
+                        top: ${TEXT_STYLES.PLATE_NUMBER.top};
+                        font-size: ${TEXT_STYLES.PLATE_NUMBER.fontSize};
+                        color: ${TEXT_STYLES.PLATE_NUMBER.color};
+                        text-align: ${TEXT_STYLES.PLATE_NUMBER.textAlign};
+                        width: ${TEXT_STYLES.PLATE_NUMBER.width};
+                        left: ${TEXT_STYLES.PLATE_NUMBER.left};
+                        transform: translateX(-${TEXT_STYLES.PLATE_NUMBER.left});
+                    }
+                    #car-type {
+                        top: ${TEXT_STYLES.CAR_TYPE.top};
+                        font-size: ${TEXT_STYLES.CAR_TYPE.fontSize};
+                        color: ${TEXT_STYLES.CAR_TYPE.color};
+                        text-align: ${TEXT_STYLES.CAR_TYPE.textAlign};
+                        width: ${TEXT_STYLES.CAR_TYPE.width};
+                        left: ${TEXT_STYLES.CAR_TYPE.left};
+                        transform: translateX(-${TEXT_STYLES.CAR_TYPE.left});
+                    }
+                    #color {
+                        top: ${TEXT_STYLES.COLOR.top};
+                        font-size: ${TEXT_STYLES.COLOR.fontSize};
+                        color: ${TEXT_STYLES.COLOR.color};
+                        text-align: ${TEXT_STYLES.COLOR.textAlign};
+                        width: ${TEXT_STYLES.COLOR.width};
+                        left: ${TEXT_STYLES.COLOR.left};
+                        transform: translateX(-${TEXT_STYLES.COLOR.left});
+                    }
+
+                    @media print {
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            height: auto;
+                            overflow: visible;
+                            background: none;
+                        }
+                        .certificate-container {
+                            width: 624px;
+                            height: 817px;
+                            box-shadow: none;
+                            background-image: url('${CERTIFICATE_IMAGE_PATH}');
+                            -webkit-print-color-adjust: exact;
+                            color-adjust: exact;
+                        }
+                        .text-overlay {
+                            position: absolute;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="certificate-container">
+                    <div id="student-name" class="text-overlay">${studentNameArabic}</div>
+                    <div id="serial-number" class="text-overlay">${serialNumber}</div>
+                    <div id="document-serial-number" class="text-overlay">${documentSerialNumber}</div>
+                    <div id="plate-number" class="text-overlay">رقم اللوحة: ${plateNumber}</div>
+                    <div id="car-type" class="text-overlay">نوع السيارة: ${carType}</div>
+                    <div id="color" class="text-overlay">اللون: ${color}</div>
+                </div>
+            </body>
+            </html>
+        `.trim(); // لا تنسى trim() هنا
+
+        // **نقطة التصحيح: طباعة محتوى HTML الخام قبل التشفير**
+        console.log('Generated HTML Content for ConvertAPI:');
+        console.log(htmlContent);
+
+        const htmlBase64 = Buffer.from(htmlContent, 'utf8').toString('base64');
         const dataUrl = `data:text/html;base64,${htmlBase64}`;
 
-        console.log('JSON Payload to ConvertAPI:');
         const payload = {
             Parameters: [
                 {
@@ -96,9 +209,14 @@ exports.handler = async (event, context) => {
                 { Name: 'MarginRight', Value: 0 },
                 { Name: 'MarginBottom', Value: 0 },
                 { Name: 'MarginLeft', Value: 0 },
-                { Name: 'ViewportWidth', Value: 978 }
+                // ConvertAPI قد لا يدعم ViewportWidth عند التحويل من HTML إلى PDF بشكل مباشر
+                // ولكن قد يتم تجاهله أو استخدامه كقيمة افتراضية للعرض عند العرض.
+                // سنستخدم حجم الصفحة المحدد في CSS (width: 624px; height: 817px;) للتحكم.
+                // إذا واجهت مشاكل في الحجم، قد تحتاج لتعديل هذا أو إزالته.
+                { Name: 'ViewportWidth', Value: 624 } // استخدم عرض الحاوية الأساسية للشهادة
             ],
         };
+        console.log('JSON Payload to ConvertAPI:');
         console.log(JSON.stringify(payload, null, 2));
 
         const convertApiUrl = `https://v2.convertapi.com/convert/html/to/pdf?Secret=${CONVERTAPI_SECRET}`;
