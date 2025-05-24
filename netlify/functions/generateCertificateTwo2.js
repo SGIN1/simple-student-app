@@ -8,19 +8,14 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-const CONVERTAPI_SECRET = 'secret_qDHxk4i07C7w8USr';
+const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET || 'secret_qDHxk4i07C7w8USr'; // استخدم متغير بيئة
 
-const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
-const FONT_PATH = '/.netlify/functions/arial.ttf';
-
-const TEXT_STYLES = {
-    STUDENT_NAME: { top: '220px', fontSize: '30px', color: '#000', textAlign: 'center', width: '80%', left: '10%', transform: 'translateX(-10%)' }, // أضفت transform هنا
-    SERIAL_NUMBER: { top: '260px', left: '60px', fontSize: '18px', color: '#fff', textAlign: 'left', width: '150px' },
-    DOCUMENT_SERIAL_NUMBER: { top: '300px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%', transform: 'translateX(-10%)' }, // أضفت transform هنا
-    PLATE_NUMBER: { top: '330px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%', transform: 'translateX(-10%)' }, // أضفت transform هنا
-    CAR_TYPE: { top: '360px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%', transform: 'translateX(-10%)' }, // أضفت transform هنا
-    COLOR: { top: '390px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%', transform: 'translateX(-10%)' }, // أضفت transform هنا
-};
+// مسارات الصور والخطوط يجب أن تكون قابلة للوصول بواسطة Netlify Function
+// إذا كانت هذه الملفات موجودة في مجلد `public` أو `static` في مشروعك،
+// فقد تحتاج إلى تعديل المسارات أو التأكد من أنها مدمجة في بناء الوظيفة.
+// في بيئة Netlify Functions، المسار '/.netlify/functions/' يشير إلى جذر الدالة.
+const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg'; // افترض أن هذا المسار صحيح ضمن Netlify
+const FONT_PATH = '/.netlify/functions/arial.ttf'; // يجب أن يكون الخط موجودًا في نفس مجلد الدالة المجمّعة
 
 exports.handler = async (event, context) => {
     const studentId = event.path.split('/').pop();
@@ -57,13 +52,14 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const serialNumber = student.serial_number || '';
-        const studentNameArabic = student.arabic_name || '';
-        const documentSerialNumber = student.document_serial_number || '';
-        const plateNumber = student.plate_number || '';
-        const carType = student.car_type || '';
-        const color = student.color || '';
+        const serialNumber = student.serial_number || 'N/A';
+        const studentNameArabic = student.arabic_name || 'اسم الطالب غير متوفر';
+        const documentSerialNumber = student.document_serial_number || 'N/A';
+        const plateNumber = student.plate_number ? `رقم اللوحة: ${student.plate_number}` : 'رقم اللوحة: N/A';
+        const carType = student.car_type ? `نوع السيارة: ${student.car_type}` : 'نوع السيارة: N/A';
+        const color = student.color ? `اللون: ${student.color}` : 'اللون: N/A';
 
+        // محتوى HTML المبسّط
         const htmlContent = `
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
@@ -74,117 +70,47 @@ exports.handler = async (event, context) => {
                 <style>
                     body {
                         margin: 0;
-                        height: 100vh;
-                        background-color: #0e0e0e;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                    }
-                    .certificate-container {
-                        position: relative;
-                        width: 624px;
-                        height: 817px;
-                        background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                        background-size: contain;
-                        background-repeat: no-repeat;
-                        background-position: center;
-                        background-color: #eee;
-                        overflow: hidden;
-                        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+                        padding: 20px;
+                        font-family: 'ArabicFont', 'Arial', sans-serif;
+                        text-align: center;
+                        color: #000;
                     }
                     @font-face {
                         font-family: 'ArabicFont';
                         src: url('${FONT_PATH}') format('truetype');
                     }
-                    .text-overlay {
-                        position: absolute;
-                        font-family: 'ArabicFont', 'Arial', sans-serif;
-                        text-wrap: wrap;
+                    .certificate-container {
+                        background-image: url('${CERTIFICATE_IMAGE_PATH}');
+                        background-size: contain; /* استخدام contain لضمان ظهور الصورة بالكامل */
+                        background-repeat: no-repeat;
+                        background-position: center;
+                        padding: 50px;
+                        /* يمكن إضافة border أو box-shadow لرؤية حدود الحاوية إذا لزم الأمر */
+                        /* border: 1px solid red; */
+                    }
+                    .text-item {
+                        margin-bottom: 15px;
+                        line-height: 1.5;
                     }
                     #student-name {
-                        top: ${TEXT_STYLES.STUDENT_NAME.top};
-                        font-size: ${TEXT_STYLES.STUDENT_NAME.fontSize};
-                        color: ${TEXT_STYLES.STUDENT_NAME.color};
-                        text-align: ${TEXT_STYLES.STUDENT_NAME.textAlign};
-                        width: ${TEXT_STYLES.STUDENT_NAME.width};
-                        left: ${TEXT_STYLES.STUDENT_NAME.left};
-                        transform: ${TEXT_STYLES.STUDENT_NAME.transform};
+                        font-size: 30px;
+                        font-weight: bold;
+                        margin-bottom: 30px;
                     }
                     #serial-number {
-                        top: ${TEXT_STYLES.SERIAL_NUMBER.top};
-                        left: ${TEXT_STYLES.SERIAL_NUMBER.left};
-                        font-size: ${TEXT_STYLES.SERIAL_NUMBER.fontSize};
-                        color: ${TEXT_STYLES.SERIAL_NUMBER.color};
-                        text-align: ${TEXT_STYLES.SERIAL_NUMBER.textAlign};
-                        width: ${TEXT_STYLES.SERIAL_NUMBER.width};
-                    }
-                    #document-serial-number {
-                        top: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.top};
-                        font-size: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.fontSize};
-                        color: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.color};
-                        text-align: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.textAlign};
-                        width: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.width};
-                        left: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left};
-                        transform: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.transform};
-                    }
-                    #plate-number {
-                        top: ${TEXT_STYLES.PLATE_NUMBER.top};
-                        font-size: ${TEXT_STYLES.PLATE_NUMBER.fontSize};
-                        color: ${TEXT_STYLES.PLATE_NUMBER.color};
-                        text-align: ${TEXT_STYLES.PLATE_NUMBER.textAlign};
-                        width: ${TEXT_STYLES.PLATE_NUMBER.width};
-                        left: ${TEXT_STYLES.PLATE_NUMBER.left};
-                        transform: ${TEXT_STYLES.PLATE_NUMBER.transform};
-                    }
-                    #car-type {
-                        top: ${TEXT_STYLES.CAR_TYPE.top};
-                        font-size: ${TEXT_STYLES.CAR_TYPE.fontSize};
-                        color: ${TEXT_STYLES.CAR_TYPE.color};
-                        text-align: ${TEXT_STYLES.CAR_TYPE.textAlign};
-                        width: ${TEXT_STYLES.CAR_TYPE.width};
-                        left: ${TEXT_STYLES.CAR_TYPE.left};
-                        transform: ${TEXT_STYLES.CAR_TYPE.transform};
-                    }
-                    #color {
-                        top: ${TEXT_STYLES.COLOR.top};
-                        font-size: ${TEXT_STYLES.COLOR.fontSize};
-                        color: ${TEXT_STYLES.COLOR.color};
-                        text-align: ${TEXT_STYLES.COLOR.textAlign};
-                        width: ${TEXT_STYLES.COLOR.width};
-                        left: ${TEXT_STYLES.COLOR.left};
-                        transform: ${TEXT_STYLES.COLOR.transform};
-                    }
-
-                    @media print {
-                        body {
-                            margin: 0;
-                            padding: 0;
-                            height: auto;
-                            overflow: visible;
-                            background: none;
-                        }
-                        .certificate-container {
-                            width: 624px;
-                            height: 817px;
-                            box-shadow: none;
-                            background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                            -webkit-print-color-adjust: exact;
-                            color-adjust: exact;
-                        }
-                        .text-overlay {
-                            position: absolute;
-                        }
+                        font-size: 18px;
+                        color: #555;
                     }
                 </style>
             </head>
             <body>
                 <div class="certificate-container">
-                    <div id="student-name" class="text-overlay">${studentNameArabic}</div>
-                    <div id="serial-number" class="text-overlay">${serialNumber}</div>
-                    <div id="document-serial-number" class="text-overlay">${documentSerialNumber}</div>
-                    <div id="plate-number" class="text-overlay">رقم اللوحة: ${plateNumber}</div>
-                    <div id="car-type" class="text-overlay">نوع السيارة: ${carType}</div>
-                    <div id="color" class="text-overlay">اللون: ${color}</div>
+                    <div id="student-name" class="text-item">${studentNameArabic}</div>
+                    <div id="serial-number" class="text-item">${serialNumber}</div>
+                    <div id="document-serial-number" class="text-item">${documentSerialNumber}</div>
+                    <div id="plate-number" class="text-item">${plateNumber}</div>
+                    <div id="car-type" class="text-item">${carType}</div>
+                    <div id="color" class="text-item">${color}</div>
                 </div>
             </body>
             </html>
@@ -193,23 +119,22 @@ exports.handler = async (event, context) => {
         console.log('Generated HTML Content for ConvertAPI (for debugging):');
         console.log(htmlContent);
 
-        // **التغيير الرئيسي هنا:**
-        // بدلاً من FileValue مع Url (data:text/html;base64,...),
-        // نستخدم Parameter جديد من نوع HtmlFile مع قيمة HTML مباشرة.
         const payload = {
             Parameters: [
                 {
-                    Name: 'HtmlFile', // تغيير اسم الـ Parameter إلى HtmlFile
-                    FileValue: {
-                        FileName: 'certificate.html', // اسم ملف وهمي
-                        Data: Buffer.from(htmlContent, 'utf8').toString('base64') // إرسال HTML مشفرًا بـ Base64 مباشرةً كـ Data
-                    }
+                    Name: 'HtmlFile',
+                    Value: Buffer.from(htmlContent, 'utf8').toString('base64')
                 },
+                // إزالة Margin Parameters إذا كنت تريد أن تكون الافتراضات هي ما يحكم
+                // أو اتركها إذا كنت تريد هامش 0
                 { Name: 'MarginTop', Value: 0 },
                 { Name: 'MarginRight', Value: 0 },
                 { Name: 'MarginBottom', Value: 0 },
                 { Name: 'MarginLeft', Value: 0 },
-                // ViewportWidth يمكن أن يكون مفيدًا لضبط عرض الرؤية لـ ConvertAPI
+                // ViewportWidth يمكن أن تؤثر على العرض الذي يراه ConvertAPI عند تحويل HTML
+                // يمكننا إزالتها للسماح لـ ConvertAPI باختيار العرض الافتراضي
+                // أو الاحتفاظ بها إذا كانت الأبعاد مهمة لعرض الخلفية بشكل صحيح.
+                // لنتركها في هذه المرحلة لتجنب مشاكل في عرض الخلفية.
                 { Name: 'ViewportWidth', Value: 624 }
             ],
         };
