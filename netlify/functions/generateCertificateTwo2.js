@@ -48,9 +48,8 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // بناء الـ HTML
-        const certificateHtmlContent = `
-            <!DOCTYPE html>
+        // **هذا هو التعديل الرئيسي: استخدام .trim() لإزالة المسافات البيضاء الزائدة**
+        const certificateHtmlContent = `<!DOCTYPE html>
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
@@ -77,15 +76,12 @@ exports.handler = async (event, context) => {
             <body>
                 <div class="certificate-container"></div>
             </body>
-            </html>
-        `;
+            </html>`.trim(); // **إضافة .trim() هنا**
 
-        // **هنا التغيير الرئيسي: تأكد من تحويل الـ HTML إلى Base64 بشكل صحيح**
-        // استخدام Buffer.from(string, 'utf8').toString('base64') هو الطريقة الصحيحة
         const htmlBase64 = Buffer.from(certificateHtmlContent, 'utf8').toString('base64');
         const dataUrl = `data:text/html;base64,${htmlBase64}`;
 
-        console.log('JSON Payload to ConvertAPI:'); // لتتبع الـ JSON الذي نرسله
+        console.log('JSON Payload to ConvertAPI:');
         const payload = {
             Parameters: [
                 {
@@ -116,7 +112,7 @@ exports.handler = async (event, context) => {
                 }
             ],
         };
-        console.log(JSON.stringify(payload, null, 2)); // اطبع الـ JSON منسقًا لرؤيته في السجلات
+        console.log(JSON.stringify(payload, null, 2));
 
         const convertApiUrl = `https://v2.convertapi.com/convert/html/to/pdf?Secret=${CONVERTAPI_SECRET}`;
 
@@ -125,13 +121,12 @@ exports.handler = async (event, context) => {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(payload), // استخدام الـ payload الذي أنشأناه
+            body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
-            const errorText = await response.text(); // حاول الحصول على نص الخطأ الخام
+            const errorText = await response.text();
             console.error('خطأ من ConvertAPI (الاستجابة النصية):', errorText);
-            // حاول تحليل JSON إذا كان نصياً
             try {
                 const errorData = JSON.parse(errorText);
                 console.error('خطأ من ConvertAPI (JSON المحلل):', errorData);
@@ -141,7 +136,6 @@ exports.handler = async (event, context) => {
                     headers: { 'Content-Type': 'text/html; charset=utf-8' },
                 };
             } catch (jsonParseError) {
-                // إذا لم يكن نص الخطأ JSON صالحًا
                 console.error('فشل تحليل JSON من استجابة ConvertAPI:', jsonParseError);
                 return {
                     statusCode: response.status,
