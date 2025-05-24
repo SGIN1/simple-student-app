@@ -48,35 +48,37 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // **هذا هو التعديل الرئيسي: استخدام .trim() لإزالة المسافات البيضاء الزائدة**
-        const certificateHtmlContent = `<!DOCTYPE html>
-            <html lang="ar" dir="rtl">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                <title>الشهادة التلقائية</title>
-                <style>
-                    html, body {
-                        margin: 0;
-                        padding: 0;
-                        width: 978px;
-                        height: 1280px;
-                        overflow: hidden;
-                    }
-                    .certificate-container {
-                        width: 100%;
-                        height: 100%;
-                        background-image: url('${CERTIFICATE_IMAGE_URL}');
-                        background-size: 100% 100%;
-                        background-repeat: no-repeat;
-                        background-position: center;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="certificate-container"></div>
-            </body>
-            </html>`.trim(); // **إضافة .trim() هنا**
+        // بناء محتوى HTML بدقة أكبر
+        const certificateHtmlContent = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>الشهادة التلقائية</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 978px;
+            height: 1280px;
+            overflow: hidden;
+        }
+        .certificate-container {
+            width: 100%;
+            height: 100%;
+            background-image: url('${CERTIFICATE_IMAGE_URL}');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="certificate-container"></div>
+</body>
+</html>
+        `.trim(); // استخدام .trim() مهم لإزالة أي مسافات بيضاء زائدة قبل/بعد المحتوى
 
         const htmlBase64 = Buffer.from(certificateHtmlContent, 'utf8').toString('base64');
         const dataUrl = `data:text/html;base64,${htmlBase64}`;
@@ -90,26 +92,11 @@ exports.handler = async (event, context) => {
                         Url: dataUrl,
                     },
                 },
-                {
-                    Name: 'MarginTop',
-                    Value: 0
-                },
-                {
-                    Name: 'MarginRight',
-                    Value: 0
-                },
-                {
-                    Name: 'MarginBottom',
-                    Value: 0
-                },
-                {
-                    Name: 'MarginLeft',
-                    Value: 0
-                },
-                {
-                   Name: 'ViewportWidth',
-                   Value: 978
-                }
+                { Name: 'MarginTop', Value: 0 },
+                { Name: 'MarginRight', Value: 0 },
+                { Name: 'MarginBottom', Value: 0 },
+                { Name: 'MarginLeft', Value: 0 },
+                { Name: 'ViewportWidth', Value: 978 }
             ],
         };
         console.log(JSON.stringify(payload, null, 2));
@@ -150,7 +137,7 @@ exports.handler = async (event, context) => {
 
         const pdfResponse = await fetch(pdfFileUrl);
         if (!pdfResponse.ok) {
-             throw new Error(`Failed to fetch PDF from ConvertAPI URL: ${pdfResponse.statusText}`);
+            throw new Error(`Failed to fetch PDF from ConvertAPI URL: ${pdfResponse.statusText}`);
         }
         const pdfBuffer = await pdfResponse.buffer();
 
