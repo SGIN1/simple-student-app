@@ -1,34 +1,26 @@
 // netlify/functions/generateCertificateTwo2.js
 
 const { MongoClient, ObjectId } = require('mongodb');
-const fetch = require('node-fetch'); // لاستخدام fetch لإرسال الطلبات إلى PDFCrowd API
+const fetch = require('node-fetch'); // لاستخدام fetch لإرسال الطلبات إلى ConvertAPI
 
 // URI الخاص بقاعدة بيانات MongoDB الخاصة بك. يجب أن يكون مضبوطًا كمتغير بيئة في Netlify.
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0'; // اسم قاعدة البيانات
 const collectionName = 'enrolled_students_tbl'; // اسم المجموعة (Collection) التي تحتوي على بيانات الطلاب
 
-// **معلومات PDFCrowd API الخاصة بك**
-const PDFCROWD_USERNAME = 'sgn'; // اسم المستخدم الخاص بـ PDFCrowd
-const PDFCROWD_API_KEY = 'b8f189e3d2485001c34860d633c1050b'; // مفتاح الـ API الخاص بـ PDFCrowd
+// **معلومات ConvertAPI الخاصة بك (استخدم الـ API Secret)**
+const CONVERTAPI_SECRET = 'secret_qDHxk4i07C7w8USr';
 
 // **رابط موقعك الحقيقي على Netlify.**
-// هذا هو الرابط الذي سيتم استخدامه للوصول إلى صور وخطوط الشهادة.
-// تأكد من أن هذا الرابط هو رابط موقعك الأساسي على Netlify
 const YOUR_NETLIFY_SITE_URL = 'https://spiffy-meerkat-be5bc1.netlify.app';
 
 // **مسار صورة الشهادة:**
-// بناءً على إعدادات netlify.toml الجديدة، يمكنك الإشارة مباشرة إلى مسار الصورة في مجلد public
 const CERTIFICATE_IMAGE_URL = `${YOUR_NETLIFY_SITE_URL}/images_temp/wwee.jpg`;
 
 // **مسار الخط:**
-// بناءً على إعدادات netlify.toml الجديدة، يمكنك الإشارة مباشرة إلى مسار الخط داخل مجلد الدوال
 const FONT_URL = `${YOUR_NETLIFY_SITE_URL}/.netlify/functions/arial.ttf`;
 
 // **ضبط ستايلات النصوص على الشهادة.**
-// هذه القيم (top, left, width, fontSize, إلخ) يجب أن تضبطها بدقة عالية
-// لتتناسب مع المواقع الدقيقة للنصوص في صورة الشهادة wwee.jpg التي لديك.
-// استخدم مشروعك المحلي (certificate.html) لتحديد هذه القيم بالبكسل.
 const TEXT_STYLES = {
     STUDENT_NAME: { top: '380px', fontSize: '42px', color: '#000', textAlign: 'center', width: '70%', left: '15%' },
     SERIAL_NUMBER: { top: '150px', left: '100px', fontSize: '20px', color: '#333', textAlign: 'left', width: '200px' },
@@ -38,21 +30,17 @@ const TEXT_STYLES = {
     COLOR: { top: '690px', fontSize: '24px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
 };
 
-// الدالة الرئيسية التي ستنفذها Netlify Function
 exports.handler = async (event, context) => {
-    // استخراج معرف الطالب من مسار الطلب (URL)
     const studentId = event.path.split('/').pop();
     console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
-    let client; // متغير لعميل MongoDB
+    let client;
 
     try {
-        // التحقق من وجود متغير بيئة MONGODB_URI
         if (!uri) {
             throw new Error("MONGODB_URI is not set in environment variables. Please set it in Netlify.");
         }
 
-        // الاتصال بقاعدة بيانات MongoDB
         client = new MongoClient(uri);
         await client.connect();
         const database = client.db(dbName);
@@ -60,7 +48,6 @@ exports.handler = async (event, context) => {
 
         let student;
         try {
-            // البحث عن الطالب باستخدام معرفه (ObjectId)
             student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
         } catch (objectIdError) {
             console.error('خطأ في إنشاء ObjectId:', objectIdError);
@@ -71,7 +58,6 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // إذا لم يتم العثور على الطالب
         if (!student) {
             return {
                 statusCode: 404,
@@ -80,7 +66,6 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // استخراج بيانات الطالب مع توفير قيمة افتراضية فارغة إذا لم تكن موجودة
         const serialNumber = student.serial_number || '';
         const studentNameArabic = student.arabic_name || '';
         const documentSerialNumber = student.document_serial_number || '';
@@ -88,9 +73,6 @@ exports.handler = async (event, context) => {
         const carType = student.car_type || '';
         const color = student.color || '';
 
-        // **1. بناء كود HTML للشهادة**
-        // هذا هو قالب HTML الذي سيتم إرساله إلى PDFCrowd لتحويله إلى PDF.
-        // يتضمن صورة الخلفية، الخطوط، والنصوص الديناميكية لبيانات الطالب.
         const certificateHtmlContent = `
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
@@ -102,40 +84,33 @@ exports.handler = async (event, context) => {
                     html, body {
                         margin: 0;
                         padding: 0;
-                        height: 1280px; /* فرض الارتفاع على كامل الشهادة */
-                        width: 978px;  /* فرض العرض على كامل الشهادة */
-                        overflow: hidden; /* إخفاء أي تمرير غير مرغوب فيه */
+                        height: 1280px;
+                        width: 978px;
+                        overflow: hidden;
                     }
-                    /* خصائص حاوية الشهادة - الأبعاد الثابتة والمهمة جداً */
                     .certificate-container {
                         position: relative;
-                        width: 978px;  
+                        width: 978px;
                         height: 1280px;
-                        background-image: url('${CERTIFICATE_IMAGE_URL}'); /* استخدم URL الصورة المتاحة للعامة */
-                        background-size: 100% 100%; 
+                        background-image: url('${CERTIFICATE_IMAGE_URL}');
+                        background-size: 100% 100%;
                         background-repeat: no-repeat;
                         background-position: center;
-                        overflow: hidden; 
+                        overflow: hidden;
                     }
-
-                    /* تعريف الخط العربي - مهم جداً لـ PDFCrowd */
-                    /* يجب أن يكون الخط متاحًا لـ PDFCrowd عبر URL */
                     @font-face {
                         font-family: 'ArabicFont';
-                        src: url('${FONT_URL}') format('truetype'); 
+                        src: url('${FONT_URL}') format('truetype');
                         font-weight: normal;
                         font-style: normal;
                     }
-
                     .text-overlay {
                         position: absolute;
-                        font-family: 'ArabicFont', 'Arial', sans-serif; 
-                        color: #000; 
-                        text-align: center; 
-                        box-sizing: border-box; 
+                        font-family: 'ArabicFont', 'Arial', sans-serif;
+                        color: #000;
+                        text-align: center;
+                        box-sizing: border-box;
                     }
-
-                    /* أنماط كل حقل نصي - قيمك المضبوطة بدقة */
                     #student-name {
                         top: ${TEXT_STYLES.STUDENT_NAME.top};
                         left: ${TEXT_STYLES.STUDENT_NAME.left};
@@ -145,7 +120,6 @@ exports.handler = async (event, context) => {
                         color: ${TEXT_STYLES.STUDENT_NAME.color};
                         text-align: ${TEXT_STYLES.STUDENT_NAME.textAlign};
                     }
-
                     #serial-number {
                         top: ${TEXT_STYLES.SERIAL_NUMBER.top};
                         left: ${TEXT_STYLES.SERIAL_NUMBER.left};
@@ -205,55 +179,100 @@ exports.handler = async (event, context) => {
             </html>
         `;
 
-        // **2. إرسال HTML إلى PDFCrowd API لتحويله إلى PDF**
-        const response = await fetch('https://api.pdfcrowd.com/convert/v2/pdf/', {
+        // **2. إرسال HTML إلى ConvertAPI لتحويله إلى PDF**
+        // ConvertAPI يستخدم نقطة نهاية مختلفة ومعلمات مختلفة عن PDFCrowd
+        const convertApiUrl = `https://v2.convertapi.com/convert/html/to/pdf?Secret=${CONVERTAPI_SECRET}`;
+
+        const response = await fetch(convertApiUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                // ترويسة التخويل (Authorization) تستخدم اسم المستخدم ومفتاح الـ API
-                'Authorization': 'Basic ' + Buffer.from(`${PDFCROWD_USERNAME}:${PDFCROWD_API_KEY}`).toString('base64'),
+                'Content-Type': 'application/json', // ConvertAPI يتوقع JSON في هذا النوع من الطلبات
             },
-            body: new URLSearchParams({
-                src: certificateHtmlContent, // محتوى الـ HTML المراد تحويله
-                // يمكنك إضافة معلمات إضافية لـ PDFCrowd هنا للتحكم في خصائص الـ PDF الناتج
-                // مثل حجم الصفحة، الهوامش، إلخ.
-                // page_width: '978px',
-                // page_height: '1280px',
-                // use_print_media: 'true',
-                // viewport_width: '978',
-                // viewport_height: '1280',
-            }).toString(),
+            // جسم الطلب يحتوي على الـ HTML كمدخل
+            body: JSON.stringify({
+                Parameters: [
+                    {
+                        Name: 'File',
+                        FileValue: {
+                            Url: `data:text/html;base64,${Buffer.from(certificateHtmlContent).toString('base64')}`, // إرسال HTML كـ Data URL مشفر بـ Base64
+                        },
+                    },
+                    {
+                        Name: 'PageSize',
+                        Value: 'Custom',
+                    },
+                    {
+                        Name: 'PageWidth',
+                        Value: '978px',
+                    },
+                    {
+                        Name: 'PageHeight',
+                        Value: '1280px',
+                    },
+                    {
+                        Name: 'MarginTop',
+                        Value: 0
+                    },
+                    {
+                        Name: 'MarginRight',
+                        Value: 0
+                    },
+                    {
+                        Name: 'MarginBottom',
+                        Value: 0
+                    },
+                    {
+                        Name: 'MarginLeft',
+                        Value: 0
+                    },
+                    // يمكن إضافة معلمات أخرى مثل UsePrintMedia أو ViewPortWidth
+                    // {
+                    //    Name: 'UsePrintMedia',
+                    //    Value: true
+                    // },
+                    // {
+                    //    Name: 'ViewportWidth',
+                    //    Value: '978'
+                    // }
+                ],
+            }),
         });
 
-        // التحقق مما إذا كان الطلب إلى PDFCrowd ناجحًا
+        // التحقق مما إذا كان الطلب إلى ConvertAPI ناجحًا
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('خطأ من PDFCrowd:', errorText);
+            const errorData = await response.json(); // ConvertAPI قد يرجع JSON في حالة الخطأ
+            console.error('خطأ من ConvertAPI:', errorData);
             return {
                 statusCode: response.status,
-                body: `<h1>خطأ في توليد الشهادة من PDFCrowd</h1><p>${errorText}</p>`,
+                body: `<h1>خطأ في توليد الشهادة من ConvertAPI</h1><p>${JSON.stringify(errorData, null, 2)}</p>`,
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
 
-        // الحصول على بيانات ملف PDF الثنائية من استجابة PDFCrowd
-        const pdfBuffer = await response.buffer();
+        // الحصول على بيانات ملف PDF الثنائية من استجابة ConvertAPI
+        // ConvertAPI يرجع كائن JSON يحتوي على رابط للملف
+        const result = await response.json();
+        const pdfFileUrl = result.Files[0].Url;
+
+        // جلب ملف PDF الفعلي من الرابط الذي قدمه ConvertAPI
+        const pdfResponse = await fetch(pdfFileUrl);
+        if (!pdfResponse.ok) {
+             throw new Error(`Failed to fetch PDF from ConvertAPI URL: ${pdfResponse.statusText}`);
+        }
+        const pdfBuffer = await pdfResponse.buffer();
 
         // **3. إرجاع ملف PDF إلى المتصفح**
-        // إعداد استجابة Netlify Function لإرجاع ملف PDF قابل للتنزيل
         return {
             statusCode: 200,
             headers: {
-                'Content-Type': 'application/pdf', // نوع المحتوى هو PDF
-                // Content-Disposition لتحديد أن الملف يجب تنزيله، مع اسم للملف
+                'Content-Type': 'application/pdf',
                 'Content-Disposition': `attachment; filename="certificate_${studentId}.pdf"`,
             },
-            body: pdfBuffer.toString('base64'), // يجب أن يكون الجسم بترميز Base64
-            isBase64Encoded: true, // إبلاغ Netlify أن الجسم مشفر بـ Base64
+            body: pdfBuffer.toString('base64'),
+            isBase64Encoded: true,
         };
 
     } catch (error) {
-        // معالجة الأخطاء العامة التي قد تحدث في الدالة
         console.error('خطأ في وظيفة توليد الشهادة:', error);
         return {
             statusCode: 500,
@@ -261,7 +280,6 @@ exports.handler = async (event, context) => {
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
-        // إغلاق اتصال MongoDB بعد الانتهاء، سواء بنجاح أو فشل
         if (client) await client.close();
     }
 };

@@ -1,55 +1,22 @@
 # netlify.toml
 
 [build]
-  # المجلد الأساسي لمشروعك (إذا كانت الملفات الرئيسية في الجذر)
   base = "/"
-  # المجلد الذي يحتوي على الملفات الثابتة التي سيتم نشرها (مثل HTML، CSS، صور)
   publish = "public"
-  # المجلد الذي يحتوي على دوال Netlify Function
   functions = "netlify/functions"
 
 [functions]
-  # الوحدات الخارجية التي يجب على Netlify تضمينها في حزمة الدالة
-  # node-fetch ضرورية لإرسال الطلبات إلى PDFCrowd
-  external_node_modules = ["node-fetch"]
-
-  # الملفات والمجلدات الإضافية التي يجب تضمينها في حزمة الدالة
-  # هذا يضمن أن دوالك ستجد الموارد المطلوبة.
+  external_node_modules = ["node-fetch"] # لا يزال node-fetch مطلوبًا لإجراء طلبات HTTP
   included_files = [
-    # تضمين مجلد node-fetch بالكامل لتجنب مشاكل التبعيات
     "node_modules/node-fetch/**", 
-    # تضمين مكتبة MongoDB و BSON اللازمة للاتصال بقاعدة البيانات
     "node_modules/mongodb/**",
     "node_modules/bson/**",
-    # تضمين ملف الخط الخاص بك ليكون متاحًا للدالة و PDFCrowd
     "netlify/functions/arial.ttf"
   ]
-  # يمكن إضافة إعدادات أخرى هنا إذا لزم الأمر، مثل وقت انتهاء مهلة الدالة (timeout).
-  # timeout = 10 # بالثواني
 
-# ---
 # قواعد إعادة التوجيه
-# ---
-
-# قاعدة إعادة التوجيه الأولى: توجيه الطلبات الودية إلى دالة Netlify
-# هذا يسمح لك باستخدام رابط سهل القراءة مثل /certificate/YOUR_ID
-# بدلاً من / .netlify/functions/generateCertificateTwo2/YOUR_ID
 [[redirects]]
   from = "/certificate/:id"
   to = "/.netlify/functions/generateCertificateTwo2/:id"
   status = 200
-  force = true # يجبر Netlify على استخدام هذا التوجيه حتى لو كان هناك ملف مطابق
-
-# قاعدة إعادة التوجيه الثانية: لضمان وصول PDFCrowd إلى صورة الخلفية
-# بما أننا أشرنا إلى الصورة مباشرة في HTML (CERTIFICATE_IMAGE_URL)،
-# يجب أن تكون متاحة للعامة من خلال مسارها الطبيعي في مجلد 'public'.
-# هذه القاعدة ليست ضرورية إذا كانت الصورة في مجلد 'public' بالفعل،
-# ولكنها تضمن أن Netlify سيتعامل معها بشكل صحيح لو كنت تستخدم Netlify Image CDN.
-# في هذه الحالة، استخدام المسار المباشر `public/images_temp/wwee.jpg` هو الأفضل.
-# لذلك، سأقوم بإزالة هذا الجزء لأنه قد يسبب تعقيدًا غير ضروري بناءً على الكود الحالي.
-# إذا كنت تريد استخدام Netlify Image CDN، يجب أن تعدل CERTIFICATE_IMAGE_URL أيضًا.
-
-# بناءً على الكود الحالي:
-# `CERTIFICATE_IMAGE_URL = `${YOUR_NETLIFY_SITE_URL}/images_temp/wwee.jpg`;`
-# هذا المسار يشير مباشرة إلى مجلد 'public' الخاص بك، وهذا هو السلوك الافتراضي لـ Netlify.
-# لذا، لا حاجة لقاعدة إعادة توجيه خاصة بالصورة هنا.
+  force = true
