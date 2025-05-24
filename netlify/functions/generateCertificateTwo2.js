@@ -1,25 +1,25 @@
 // netlify/functions/generateCertificateTwo2.js
 
 const { MongoClient, ObjectId } = require('mongodb');
-const fetch = require('node-fetch'); // تأكد من تضمين node-fetch
-const path = require('path'); // قد لا يزال غير ضروري ولكن لا يضر وجوده
+const fetch = require('node-fetch');
+const path = require('path');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-const CONVERTAPI_SECRET = 'secret_qDHxk4i07C7w8USr'; // **أعد إضافة هذا المتغير!**
+const CONVERTAPI_SECRET = 'secret_qDHxk4i07C7w8USr';
 
 const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
-const FONT_PATH = '/.netlify/functions/arial.ttf'; // مسار الخط كما في CSS
+const FONT_PATH = '/.netlify/functions/arial.ttf';
 
 const TEXT_STYLES = {
-    STUDENT_NAME: { top: '220px', fontSize: '30px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    STUDENT_NAME: { top: '220px', fontSize: '30px', color: '#000', textAlign: 'center', width: '80%', left: '10%', transform: 'translateX(-10%)' }, // أضفت transform هنا
     SERIAL_NUMBER: { top: '260px', left: '60px', fontSize: '18px', color: '#fff', textAlign: 'left', width: '150px' },
-    DOCUMENT_SERIAL_NUMBER: { top: '300px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
-    PLATE_NUMBER: { top: '330px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
-    CAR_TYPE: { top: '360px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
-    COLOR: { top: '390px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
+    DOCUMENT_SERIAL_NUMBER: { top: '300px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%', transform: 'translateX(-10%)' }, // أضفت transform هنا
+    PLATE_NUMBER: { top: '330px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%', transform: 'translateX(-10%)' }, // أضفت transform هنا
+    CAR_TYPE: { top: '360px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%', transform: 'translateX(-10%)' }, // أضفت transform هنا
+    COLOR: { top: '390px', fontSize: '16px', color: '#000', textAlign: 'center', width: '80%', left: '10%', transform: 'translateX(-10%)' }, // أضفت transform هنا
 };
 
 exports.handler = async (event, context) => {
@@ -94,7 +94,7 @@ exports.handler = async (event, context) => {
                     }
                     @font-face {
                         font-family: 'ArabicFont';
-                        src: url('${FONT_PATH}') format('truetype'); /* استخدام المسار الصحيح للخط */
+                        src: url('${FONT_PATH}') format('truetype');
                     }
                     .text-overlay {
                         position: absolute;
@@ -108,7 +108,7 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.STUDENT_NAME.textAlign};
                         width: ${TEXT_STYLES.STUDENT_NAME.width};
                         left: ${TEXT_STYLES.STUDENT_NAME.left};
-                        transform: translateX(-${TEXT_STYLES.STUDENT_NAME.left});
+                        transform: ${TEXT_STYLES.STUDENT_NAME.transform};
                     }
                     #serial-number {
                         top: ${TEXT_STYLES.SERIAL_NUMBER.top};
@@ -125,7 +125,7 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.textAlign};
                         width: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.width};
                         left: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left};
-                        transform: translateX(-${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left});
+                        transform: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.transform};
                     }
                     #plate-number {
                         top: ${TEXT_STYLES.PLATE_NUMBER.top};
@@ -134,7 +134,7 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.PLATE_NUMBER.textAlign};
                         width: ${TEXT_STYLES.PLATE_NUMBER.width};
                         left: ${TEXT_STYLES.PLATE_NUMBER.left};
-                        transform: translateX(-${TEXT_STYLES.PLATE_NUMBER.left});
+                        transform: ${TEXT_STYLES.PLATE_NUMBER.transform};
                     }
                     #car-type {
                         top: ${TEXT_STYLES.CAR_TYPE.top};
@@ -143,7 +143,7 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.CAR_TYPE.textAlign};
                         width: ${TEXT_STYLES.CAR_TYPE.width};
                         left: ${TEXT_STYLES.CAR_TYPE.left};
-                        transform: translateX(-${TEXT_STYLES.CAR_TYPE.left});
+                        transform: ${TEXT_STYLES.CAR_TYPE.transform};
                     }
                     #color {
                         top: ${TEXT_STYLES.COLOR.top};
@@ -152,7 +152,7 @@ exports.handler = async (event, context) => {
                         text-align: ${TEXT_STYLES.COLOR.textAlign};
                         width: ${TEXT_STYLES.COLOR.width};
                         left: ${TEXT_STYLES.COLOR.left};
-                        transform: translateX(-${TEXT_STYLES.COLOR.left});
+                        transform: ${TEXT_STYLES.COLOR.transform};
                     }
 
                     @media print {
@@ -188,32 +188,29 @@ exports.handler = async (event, context) => {
                 </div>
             </body>
             </html>
-        `.trim(); // لا تنسى trim() هنا
+        `.trim();
 
-        // **نقطة التصحيح: طباعة محتوى HTML الخام قبل التشفير**
-        console.log('Generated HTML Content for ConvertAPI:');
+        console.log('Generated HTML Content for ConvertAPI (for debugging):');
         console.log(htmlContent);
 
-        const htmlBase64 = Buffer.from(htmlContent, 'utf8').toString('base64');
-        const dataUrl = `data:text/html;base64,${htmlBase64}`;
-
+        // **التغيير الرئيسي هنا:**
+        // بدلاً من FileValue مع Url (data:text/html;base64,...),
+        // نستخدم Parameter جديد من نوع HtmlFile مع قيمة HTML مباشرة.
         const payload = {
             Parameters: [
                 {
-                    Name: 'File',
+                    Name: 'HtmlFile', // تغيير اسم الـ Parameter إلى HtmlFile
                     FileValue: {
-                        Url: dataUrl,
-                    },
+                        FileName: 'certificate.html', // اسم ملف وهمي
+                        Data: Buffer.from(htmlContent, 'utf8').toString('base64') // إرسال HTML مشفرًا بـ Base64 مباشرةً كـ Data
+                    }
                 },
                 { Name: 'MarginTop', Value: 0 },
                 { Name: 'MarginRight', Value: 0 },
                 { Name: 'MarginBottom', Value: 0 },
                 { Name: 'MarginLeft', Value: 0 },
-                // ConvertAPI قد لا يدعم ViewportWidth عند التحويل من HTML إلى PDF بشكل مباشر
-                // ولكن قد يتم تجاهله أو استخدامه كقيمة افتراضية للعرض عند العرض.
-                // سنستخدم حجم الصفحة المحدد في CSS (width: 624px; height: 817px;) للتحكم.
-                // إذا واجهت مشاكل في الحجم، قد تحتاج لتعديل هذا أو إزالته.
-                { Name: 'ViewportWidth', Value: 624 } // استخدم عرض الحاوية الأساسية للشهادة
+                // ViewportWidth يمكن أن يكون مفيدًا لضبط عرض الرؤية لـ ConvertAPI
+                { Name: 'ViewportWidth', Value: 624 }
             ],
         };
         console.log('JSON Payload to ConvertAPI:');
