@@ -11,12 +11,8 @@ const collectionName = 'enrolled_students_tbl';
 const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET || 'secret_qDHxk4i07C7w8USr';
 
 const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
-const FONT_PATH = '/.netlify/functions/arial.ttf'; // سيبقى هذا المسار لكن لن يتم استخدامه فعليًا
 
 exports.handler = async (event, context) => {
-    // لم نعد بحاجة لجلب بيانات الطالب إذا كنا لا نعرض نصوصًا
-    // لكنني سأبقي الكود الأساسي لجلب البيانات إذا أردت استخدامه لاحقًا.
-    // يمكنك حذف جزء جلب الطالب بالكامل إذا كنت متأكدًا أنك لا تحتاج بياناته.
     const studentId = event.path.split('/').pop();
     console.log('ID المستلم في وظيفة generateCertificateTwo2 (للإشارة فقط، لن نستخدم بياناته للنص):', studentId);
 
@@ -25,14 +21,9 @@ exports.handler = async (event, context) => {
         if (!uri) {
             throw new Error("MONGODB_URI is not set in environment variables. Please set it in Netlify.");
         }
-        // إزالة جلب بيانات الطالب إذا لم تعد بحاجة إليها نهائياً
-        // client = new MongoClient(uri);
-        // await client.connect();
-        // const database = client.db(dbName);
-        // const studentsCollection = database.collection(collectionName);
-        // const student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
-        // if (!student) { /* ... handle not found ... */ }
-        // // ... وإزالة المتغيرات المتعلقة بالنصوص مثل serialNumber, studentNameArabic ...
+        // تم إزالة جزء جلب بيانات الطالب بالكامل من الكود لأنه لا يُستخدم لملء أي نصوص.
+        // إذا كنت تنوي استخدام بيانات الطالب لاحقًا لأي غرض آخر غير النصوص،
+        // يجب إعادة هذا الجزء من الكود.
 
         const htmlContent = `
             <!DOCTYPE html>
@@ -46,7 +37,6 @@ exports.handler = async (event, context) => {
                         margin: 0;
                         padding: 0;
                     }
-                    /* لا يوجد تعريف للخط 'ArabicFont' لأنه لن يتم استخدام أي نص */
                     .certificate-container {
                         background-image: url('${CERTIFICATE_IMAGE_PATH}');
                         background-size: contain;
@@ -59,7 +49,7 @@ exports.handler = async (event, context) => {
             </head>
             <body>
                 <div class="certificate-container">
-                    </div>
+                </div>
             </body>
             </html>
         `.trim();
@@ -70,8 +60,9 @@ exports.handler = async (event, context) => {
         const payload = {
             Parameters: [
                 {
-                    Name: 'HtmlString',
-                    Value: htmlContent
+                    Name: 'File',
+                    FileName: 'certificate.html',
+                    Value: Buffer.from(htmlContent, 'utf8').toString('base64')
                 }
             ],
         };
@@ -136,6 +127,6 @@ exports.handler = async (event, context) => {
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
-        if (client) await client.close(); // تأكد من إغلاق الاتصال إذا تم فتحه
+        if (client) await client.close();
     }
 };
