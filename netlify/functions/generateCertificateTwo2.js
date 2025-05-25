@@ -8,14 +8,10 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET || 'secret_qDHxk4i07C7w8USr'; // استخدم متغير بيئة
+const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET || 'secret_qDHxk4i07C7w8USr';
 
-// مسارات الصور والخطوط يجب أن تكون قابلة للوصول بواسطة Netlify Function
-// إذا كانت هذه الملفات موجودة في مجلد `public` أو `static` في مشروعك،
-// فقد تحتاج إلى تعديل المسارات أو التأكد من أنها مدمجة في بناء الوظيفة.
-// في بيئة Netlify Functions، المسار '/.netlify/functions/' يشير إلى جذر الدالة.
-const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg'; // افترض أن هذا المسار صحيح ضمن Netlify
-const FONT_PATH = '/.netlify/functions/arial.ttf'; // يجب أن يكون الخط موجودًا في نفس مجلد الدالة المجمّعة
+const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
+const FONT_PATH = '/.netlify/functions/arial.ttf';
 
 exports.handler = async (event, context) => {
     const studentId = event.path.split('/').pop();
@@ -59,18 +55,18 @@ exports.handler = async (event, context) => {
         const carType = student.car_type ? `نوع السيارة: ${student.car_type}` : 'نوع السيارة: N/A';
         const color = student.color ? `اللون: ${student.color}` : 'اللون: N/A';
 
-        // محتوى HTML المبسّط
+        // محتوى HTML المبسّط للغاية
         const htmlContent = `
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, minimum-scale=0.1, initial-scale=1.0">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>الشهادة</title>
                 <style>
                     body {
                         margin: 0;
-                        padding: 20px;
+                        /* إزالة الـ padding هنا لترك ConvertAPI يحدد الهوامش الافتراضية */
                         font-family: 'ArabicFont', 'Arial', sans-serif;
                         text-align: center;
                         color: #000;
@@ -80,13 +76,11 @@ exports.handler = async (event, context) => {
                         src: url('${FONT_PATH}') format('truetype');
                     }
                     .certificate-container {
+                        /* إزالة جميع الأبعاد الثابتة والـ padding */
                         background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                        background-size: contain; /* استخدام contain لضمان ظهور الصورة بالكامل */
+                        background-size: contain;
                         background-repeat: no-repeat;
                         background-position: center;
-                        padding: 50px;
-                        /* يمكن إضافة border أو box-shadow لرؤية حدود الحاوية إذا لزم الأمر */
-                        /* border: 1px solid red; */
                     }
                     .text-item {
                         margin-bottom: 15px;
@@ -119,23 +113,15 @@ exports.handler = async (event, context) => {
         console.log('Generated HTML Content for ConvertAPI (for debugging):');
         console.log(htmlContent);
 
+        // التغيير الحاسم: استخدام Name: 'File' بدلاً من 'HtmlFile'
+        // وإزالة جميع الـ "Margin" و "ViewportWidth" بارامترات للسماح لـ ConvertAPI بالتحكم الكامل
         const payload = {
             Parameters: [
                 {
-                    Name: 'HtmlFile',
-                    Value: Buffer.from(htmlContent, 'utf8').toString('base64')
-                },
-                // إزالة Margin Parameters إذا كنت تريد أن تكون الافتراضات هي ما يحكم
-                // أو اتركها إذا كنت تريد هامش 0
-                { Name: 'MarginTop', Value: 0 },
-                { Name: 'MarginRight', Value: 0 },
-                { Name: 'MarginBottom', Value: 0 },
-                { Name: 'MarginLeft', Value: 0 },
-                // ViewportWidth يمكن أن تؤثر على العرض الذي يراه ConvertAPI عند تحويل HTML
-                // يمكننا إزالتها للسماح لـ ConvertAPI باختيار العرض الافتراضي
-                // أو الاحتفاظ بها إذا كانت الأبعاد مهمة لعرض الخلفية بشكل صحيح.
-                // لنتركها في هذه المرحلة لتجنب مشاكل في عرض الخلفية.
-                { Name: 'ViewportWidth', Value: 624 }
+                    Name: 'File', // التغيير هنا
+                    Value: Buffer.from(htmlContent, 'utf8').toString('base64'),
+                    FileName: 'certificate.html' // إضافة اسم الملف كما هو مطلوب في بعض سيناريوهات ConvertAPI
+                }
             ],
         };
         console.log('JSON Payload to ConvertAPI:');
