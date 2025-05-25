@@ -10,8 +10,6 @@ const collectionName = 'enrolled_students_tbl';
 
 const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET || 'secret_qDHxk4i07C7w8USr';
 
-const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
-
 exports.handler = async (event, context) => {
     const studentId = event.path.split('/').pop();
     console.log('ID المستلم في وظيفة generateCertificateTwo2 (للإشارة فقط، لن نستخدم بياناته للنص):', studentId);
@@ -22,8 +20,7 @@ exports.handler = async (event, context) => {
             throw new Error("MONGODB_URI is not set in environment variables. Please set it in Netlify.");
         }
         // تم إزالة جزء جلب بيانات الطالب بالكامل من الكود لأنه لا يُستخدم لملء أي نصوص.
-        // إذا كنت تنوي استخدام بيانات الطالب لاحقًا لأي غرض آخر غير النصوص،
-        // يجب إعادة هذا الجزء من الكود.
+        // الـ HTML التالي لا يحتوي على أي نصوص أو صور، فقط هيكل أساسي.
 
         const htmlContent = `
             <!DOCTYPE html>
@@ -37,19 +34,11 @@ exports.handler = async (event, context) => {
                         margin: 0;
                         padding: 0;
                     }
-                    .certificate-container {
-                        background-image: url('${CERTIFICATE_IMAGE_PATH}');
-                        background-size: contain;
-                        background-repeat: no-repeat;
-                        background-position: center;
-                        min-height: 100vh;
-                        min-width: 100vw;
-                    }
+                    /* تم إزالة أي خصائص CSS تتعلق بالصورة أو الخطوط */
                 </style>
             </head>
             <body>
-                <div class="certificate-container">
-                </div>
+                <div></div>
             </body>
             </html>
         `.trim();
