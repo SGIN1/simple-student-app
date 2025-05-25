@@ -9,10 +9,16 @@
   included_files = [
     "node_modules/mongodb/**",
     "node_modules/bson/**"
+    # لم نعد بحاجة لتضمين الخطوط أو مجلدات الصور هنا، لأن المتصفح سيطلبها مباشرة من 'public'
   ]
 
+# قاعدة إعادة التوجيه لوظيفة Netlify Function
 [[redirects]]
   from = "/certificate/:id"
   to = "/.netlify/functions/generateCertificateTwo2/:id"
   status = 200
   force = true
+
+# تأكد من أن الصورة wwee.jpg موجودة في المسار الصحيح داخل مجلد 'public'
+# مثلاً: public/images/full/wwee.jpg
+# المتصفح سيقوم بطلب الصورة مباشرة من هذا المسار النسبي: /images/full/wwee.jpg

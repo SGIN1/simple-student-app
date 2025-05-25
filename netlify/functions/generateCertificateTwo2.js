@@ -1,8 +1,11 @@
 const { MongoClient, ObjectId } = require('mongodb');
+const fetch = require('node-fetch'); // تمت إضافته لـ ConvertAPI
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
+
+const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET || 'secret_qDHxk4i07C7w8USr'; // تمت إضافته لـ ConvertAPI
 
 const CERTIFICATE_IMAGE_RELATIVE_PATH = '/images/full/wwee.jpg';
 
@@ -30,21 +33,64 @@ exports.handler = async (event, context) => {
             </html>
         `.trim();
 
-        
-        
+        // بداية إضافة ConvertAPI
+        const convertApiUrl = `https://v2.convertapi.com/convert/html/to/pdf?Secret=${CONVERTAPI_SECRET}`;
+
+        const response = await fetch(convertApiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/html',
+                'Content-Disposition': 'attachment; filename="certificate.html"'
+            },
+            body: Buffer.from(htmlContent, 'utf8'),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('خطأ من ConvertAPI (الاستجابة النصية):', errorText);
+            try {
+                const errorData = JSON.parse(errorText);
+                console.error('خطأ من ConvertAPI (JSON المحلل):', errorData);
+                return {
+                    statusCode: response.status,
+                    body: `<h1>خطأ في توليد الشهادة من ConvertAPI</h1><p>${JSON.stringify(errorData, null, 2)}</p>`,
+                    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+                };
+            } catch (jsonParseError) {
+                console.error('فشل تحليل JSON من استجابة ConvertAPI:', jsonParseError);
+                return {
+                    statusCode: response.status,
+                    body: `<h1>خطأ في توليد الشهادة من ConvertAPI</h1><p>استجابة غير متوقعة: ${errorText}</p>`,
+                    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+                };
+            }
+        }
+
+        const result = await response.json();
+        const pdfFileUrl = result.Files[0].Url;
+
+        const pdfResponse = await fetch(pdfFileUrl);
+        if (!pdfResponse.ok) {
+            throw new Error(`Failed to fetch PDF from ConvertAPI URL: ${pdfResponse.statusText}`);
+        }
+        const pdfBuffer = await pdfResponse.buffer();
+
         return {
             statusCode: 200,
             headers: {
-                'Content-Type': 'text/html; charset=utf-8',
+                'Content-Type': 'application/pdf', // هذا يخبر المتصفح أن الملف PDF
+                'Content-Disposition': `attachment; filename="certificate_${studentId}.pdf"`,
             },
-            body: htmlContent,
+            body: pdfBuffer.toString('base64'),
+            isBase64Encoded: true,
         };
+        // نهاية إضافة ConvertAPI
 
     } catch (error) {
-        console.error('خطأ في وظيفة عرض الشهادة:', error);
+        console.error('خطأ في وظيفة توليد الشهادة:', error);
         return {
             statusCode: 500,
-            body: `<h1>حدث خطأ أثناء عرض الشهادة</h1><p>${error.message}</p>`,
+            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
