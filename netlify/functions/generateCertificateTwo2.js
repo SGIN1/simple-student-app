@@ -7,26 +7,30 @@ const uri = process.env.MONGODB_URI; // لـ MongoDB، احتفظ بها كمت�
 const dbName = 'Cluster0'; // اسم قاعدة البيانات
 const collectionName = 'enrolled_students_tbl'; // اسم المجموعة
 
-// مفتاح ConvertAPI السري. يجب تعيينه كمتغير بيئي في Netlify.
+// مفتاح ConvertAPI Token. يجب تعيينه كمتغير بيئي في Netlify.
 // لا تضع المفتاح الحقيقي هنا مباشرة في بيئة الإنتاج لأسباب أمنية.
-const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET; 
+const CONVERTAPI_TOKEN = process.env.CONVERTAPI_TOKEN; 
 
 // رابط الصورة العلني للشهادة على موقعك في Netlify.
 // تأكد 100% أن هذا الرابط صحيح وأن الصورة متاحة للعامة.
 const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`;
 
 exports.handler = async (event, context) => {
+    // استخراج الـ ID من المسار.
+    // يجب أن يكون الرابط: /certificate/SOME_ID_HERE
     const studentId = event.path.split('/').pop();
     console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
     let client; // لتعريف اتصال MongoDB، لا يستخدم حاليا
     try {
-        // التحقق من مفتاح ConvertAPI السري
-        if (!CONVERTAPI_SECRET) {
-            throw new Error("CONVERTAPI_SECRET is not set in environment variables. Please set it in Netlify.");
+        // التحقق من مفتاح ConvertAPI Token
+        if (!CONVERTAPI_TOKEN) {
+            throw new Error("CONVERTAPI_TOKEN is not set in environment variables. Please set it in Netlify.");
         }
         
-        // إذا كنت ستستخدم MongoDB، ستحتاج لإلغاء التعليق على الأسطر التالية:
+        // إذا كنت ستستخدم MongoDB لجلب بيانات الطالب (مثل اسمه)،
+        // ستحتاج لإلغاء التعليق على الأسطر التالية.
+        // تأكد من تهيئة MONGODB_URI في متغيرات بيئة Netlify أيضاً.
         /*
         if (!uri) {
             throw new Error("MONGODB_URI is not set in environment variables. Please set it in Netlify.");
@@ -35,6 +39,7 @@ exports.handler = async (event, context) => {
         await client.connect();
         const database = client.db(dbName);
         const collection = database.collection(collectionName);
+        // تأكد من أن ID الطالب في MongoDB هو ObjectId وليس سلسلة نصية عادية
         const student = await collection.findOne({ _id: new ObjectId(studentId) });
         if (!student) {
             return {
@@ -43,11 +48,12 @@ exports.handler = async (event, context) => {
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
-        const studentName = student.name || 'الاسم غير متوفر'; // افترض وجود حقل 'name'
+        // افترض أن حقل اسم الطالب هو 'name' في قاعدة البيانات
+        const studentName = student.name || 'الاسم غير متوفر'; 
         */
 
-        // بناء محتوى HTML للشهادة
-        // يمكنك إضافة متغيرات ديناميكية هنا مثل ${studentName}
+        // بناء محتوى HTML للشهادة.
+        // يمكن إضافة متغيرات ديناميكية هنا مثل ${studentName} إذا كنت تستخدم MongoDB.
         const htmlContent = `
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
@@ -59,17 +65,20 @@ exports.handler = async (event, context) => {
                     body { margin: 0; padding: 0; }
                     img { width: 100%; height: auto; display: block; }
                     /* يمكنك إضافة CSS لتحديد موضع اسم الطالب على الصورة إذا كان ديناميكياً */
-                    /* .student-name {
+                    /* مثال:
+                    .student-name {
                         position: absolute;
-                        top: 50%; // مثال: عدّل لتحديد الموضع بدقة
-                        left: 50%; // مثال: عدّل لتحديد الموضع بدقة
-                        transform: translate(-50%, -50%);
-                        color: black;
-                        font-size: 3em;
-                        font-weight: bold;
-                        text-align: center;
+                        top: 50%; // عدّل لتحديد الموضع الرأسي بدقة
+                        left: 50%; // عدّل لتحديد الموضع الأفقي بدقة
+                        transform: translate(-50%, -50%); // لمركزة الاسم
+                        color: black; // لون النص
+                        font-size: 3em; // حجم الخط
+                        font-weight: bold; // سمك الخط
+                        text-align: center; // محاذاة النص
                         width: 80%; // لمنع تجاوز الاسم لحدود معينة
-                    } */
+                        font-family: 'Arial', sans-serif; // نوع الخط
+                    }
+                    */
                 </style>
             </head>
             <body>
@@ -78,18 +87,18 @@ exports.handler = async (event, context) => {
             </html>
         `.trim();
 
-        // تحويل محتوى HTML إلى Base64
+        // تحويل محتوى HTML إلى Base64 لأن ConvertAPI تتوقع ملفاً مشفراً بـ Base64.
         const htmlBase64 = Buffer.from(htmlContent).toString('base64');
 
-        // إعداد طلب ConvertAPI لتحويل HTML إلى JPG باستخدام Base64
+        // إعداد طلب ConvertAPI لتحويل HTML إلى JPG.
+        // نستخدم 'https://v2.convertapi.com/convert/html/to/jpg' كعنوان API.
         const convertApiUrl = `https://v2.convertapi.com/convert/html/to/jpg`;
         const convertApiRequestBody = {
-            Secret: CONVERTAPI_SECRET,
             Parameters: [
                 {
                     Name: "File",
                     FileValue: htmlBase64, // إرسال HTML كـ Base64
-                    FileName: "certificate.html"
+                    FileName: "certificate.html" // اسم الملف المصدر (لا يؤثر على المحتوى)
                 }
             ]
         };
@@ -97,16 +106,19 @@ exports.handler = async (event, context) => {
         const response = await fetch(convertApiUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json', // نوع المحتوى هو JSON
+                'Content-Type': 'application/json', // نوع محتوى الطلب هو JSON
+                // الأهم: إرسال الـ Token في رأس Authorization (كما تطلبه ConvertAPI)
+                'Authorization': `Bearer ${CONVERTAPI_TOKEN}` 
             },
-            body: JSON.stringify(convertApiRequestBody), // إرسال الجسم كـ JSON
+            body: JSON.stringify(convertApiRequestBody), // تحويل الجسم إلى سلسلة JSON
         });
 
-        // التعامل مع أخطاء ConvertAPI
+        // التعامل مع أخطاء استجابة ConvertAPI.
         if (!response.ok) {
             const errorText = await response.text();
             console.error('خطأ من ConvertAPI (الاستجابة النصية):', errorText);
             try {
+                // محاولة تحليل الاستجابة كـ JSON لعرض رسالة خطأ أوضح
                 const errorData = JSON.parse(errorText);
                 console.error('خطأ من ConvertAPI (JSON المحلل):', errorData);
                 return {
@@ -115,6 +127,7 @@ exports.handler = async (event, context) => {
                     headers: { 'Content-Type': 'text/html; charset=utf-8' },
                 };
             } catch (jsonParseError) {
+                // في حال كانت الاستجابة ليست JSON
                 console.error('فشل تحليل JSON من استجابة ConvertAPI:', jsonParseError);
                 return {
                     statusCode: response.status,
@@ -131,14 +144,15 @@ exports.handler = async (event, context) => {
         }
         const imageFileUrl = result.Files[0].Url; // رابط الصورة الناتجة من ConvertAPI
 
-        // جلب الصورة الناتجة من ConvertAPI
+        // جلب الصورة الناتجة من ConvertAPI.
         const imageResponse = await fetch(imageFileUrl);
         if (!imageResponse.ok) {
-            throw new Error(`Failed to fetch image from ConvertAPI URL: ${imageResponse.statusText}`);
+            throw new Error(`فشل في جلب الصورة من رابط ConvertAPI: ${imageResponse.statusText}`);
         }
+        // تحويل الصورة إلى Buffer (بيانات ثنائية).
         const imageBuffer = await imageResponse.buffer();
 
-        // إرجاع الصورة كاستجابة مباشرة للمتصفح
+        // إرجاع الصورة كاستجابة مباشرة للمتصفح.
         return {
             statusCode: 200,
             headers: {
@@ -148,8 +162,8 @@ exports.handler = async (event, context) => {
                 'Pragma': 'no-cache',
                 'Expires': '0',
             },
-            body: imageBuffer.toString('base64'), // يجب أن يكون body نصًا Base64
-            isBase64Encoded: true, // مهم جداً لـ Netlify Functions
+            body: imageBuffer.toString('base64'), // يجب أن يكون body نصًا مشفرًا بـ Base64
+            isBase64Encoded: true, // **مهم جداً** لـ Netlify Functions لإخبارها أن الجسم مشفر بـ Base64
         };
 
     } catch (error) {
@@ -163,3 +177,4 @@ exports.handler = async (event, context) => {
         if (client) await client.close(); // إغلاق اتصال MongoDB إذا كان مفتوحاً
     }
 };
+
