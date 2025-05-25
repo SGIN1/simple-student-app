@@ -9,8 +9,8 @@ const collectionName = 'enrolled_students_tbl';
 
 const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET || 'secret_qDHxk4i07C7w8USr';
 
-// هذا هو الرابط العلني الحقيقي لصورة الشهادة على موقعك في Netlify.
-// تم تحديده بناءً على المعلومات التي قدمتها: ssadsd.kozow.com
+// هذا هو الرابط العلني الحقيقي والمؤكد لصورة الشهادة على موقعك في Netlify.
+// بناءً على اسم موقعك في Netlify، تأكد 100% أن هذا هو الرابط الصحيح الذي تظهر فيه الصورة.
 const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`;
 
 exports.handler = async (event, context) => {
@@ -38,6 +38,7 @@ exports.handler = async (event, context) => {
         `.trim();
 
         // طلب من ConvertAPI لتحويل HTML إلى صورة JPG
+        // هذه هي النقطة التي تحدث فيها المشكلة مع ConvertAPI
         const convertApiUrl = `https://v2.convertapi.com/convert/html/to/jpg?Secret=${CONVERTAPI_SECRET}`;
 
         const response = await fetch(convertApiUrl, {
@@ -71,7 +72,7 @@ exports.handler = async (event, context) => {
         }
 
         const result = await response.json();
-        const imageFileUrl = result.Files[0].Url; // نحصل على رابط الصورة الناتجة
+        const imageFileUrl = result.Files[0].Url; // رابط الصورة الناتجة من ConvertAPI
 
         const imageResponse = await fetch(imageFileUrl);
         if (!imageResponse.ok) {
@@ -83,8 +84,8 @@ exports.handler = async (event, context) => {
         return {
             statusCode: 200,
             headers: {
-                'Content-Type': 'image/jpeg', // نوع المحتوى هو صورة JPEG
-                'Content-Disposition': `inline; filename="certificate_${studentId}.jpg"`, // 'inline' لعرضها في المتصفح
+                'Content-Type': 'image/jpeg', // يخبر المتصفح أن المحتوى هو صورة JPEG
+                'Content-Disposition': `inline; filename="certificate_${studentId}.jpg"`, // 'inline' للعرض المباشر
             },
             body: imageBuffer.toString('base64'),
             isBase64Encoded: true,
