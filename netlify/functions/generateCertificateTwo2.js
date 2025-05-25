@@ -9,8 +9,9 @@ const collectionName = 'enrolled_students_tbl';
 
 const CONVERTAPI_TOKEN = process.env.CONVERTAPI_TOKEN;
 
-const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`;
-const FONT_PUBLIC_URL = '/.netlify/functions/arial.ttf';
+// إزالة مسارات الصور والخطوط الخارجية في هذا الاختبار لتبسيط HTML
+// const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`;
+// const FONT_PUBLIC_URL = '/.netlify/functions/arial.ttf';
 
 const TEXT_STYLES = {
     STUDENT_NAME: { top: '220px', fontSize: '30px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
@@ -63,7 +64,6 @@ exports.handler = async (event, context) => {
 
         if (!student) {
             console.warn(`تحذير: لم يتم العثور على طالب بالمعرف: ${studentId}. استخدام بيانات تجريبية.`);
-            // استخدام بيانات تجريبية إذا لم يتم العثور على الطالب
             student = {
                 arabic_name: "الطالب التجريبي",
                 serial_number: "SN-12345",
@@ -72,72 +72,44 @@ exports.handler = async (event, context) => {
                 car_type: "Sedan",
                 color: "Red"
             };
-            // إرجاع 404 إذا كنت تريد إظهار أن الطالب غير موجود
-            // return {
-            //     statusCode: 404,
-            //     body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`,
-            //     headers: { 'Content-Type': 'text/html; charset=utf-8' },
-            // };
         }
 
-        const serialNumber = student.serial_number || 'N/A';
         const studentNameArabic = student.arabic_name || 'اسم غير معروف';
-        const documentSerialNumber = student.document_serial_number || 'N/A';
-        const plateNumber = student.plate_number || 'N/A';
-        const carType = student.car_type || 'N/A';
-        const color = student.color || 'N/A';
+        const serialNumber = student.serial_number || 'N/A';
 
-        // **اختبار بسيط: بناء HTML بسيط جدًا للتأكد من أن المشكلة ليست في تعقيد HTML**
+        // **محتوى HTML بسيط جدًا (بدون صور أو خطوط خارجية)**
         let htmlContent = `
             <!DOCTYPE html>
-            <html lang="ar" dir="rtl">
+            <html>
             <head>
                 <meta charset="UTF-8">
-                <title>Test Certificate</title>
+                <title>Simple Test</title>
                 <style>
-                    body {
-                        margin: 0;
-                        padding: 0;
-                        font-family: Arial, sans-serif;
-                        text-align: center;
-                    }
-                    img {
-                        width: 100%;
-                        height: auto;
-                        display: block;
-                    }
-                    .overlay-text {
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        font-size: 4em;
-                        color: blue;
-                    }
+                    body { font-family: sans-serif; text-align: center; }
+                    h1 { color: #333; }
+                    p { color: #666; }
                 </style>
             </head>
             <body>
-                <img src="${CERTIFICATE_IMAGE_PUBLIC_URL}" alt="Certificate Background">
-                <div class="overlay-text">مرحبًا ${studentNameArabic}!</div>
-                <div class="overlay-text" style="top: 70%; font-size: 2em; color: green;">رقم تسلسلي: ${serialNumber}</div>
+                <h1>Hello, ${studentNameArabic}!</h1>
+                <p>This is a simple test certificate.</p>
+                <p>Serial Number: ${serialNumber}</p>
             </body>
             </html>
         `.trim();
 
-        // **ملاحظة:** إذا نجح هذا الكود التجريبي، عندها نعود إلى الكود الأصلي المعقد ونبحث عن مشاكل التنسيق أو المحتوى فيه.
-
-        console.log('طول htmlContent قبل التشفير:', htmlContent.length);
+        console.log('طول htmlContent قبل التشفير (اختبار مبسط):', htmlContent.length);
         if (htmlContent.length === 0) {
             throw new Error("htmlContent فارغ قبل التشفير.");
         }
-        console.log('أول 200 حرف من htmlContent:', htmlContent.substring(0, 200));
+        console.log('أول 200 حرف من htmlContent (اختبار مبسط):', htmlContent.substring(0, 200));
 
         const htmlBase64 = Buffer.from(htmlContent).toString('base64');
-        console.log('طول htmlBase64 بعد التشفير:', htmlBase64.length);
+        console.log('طول htmlBase64 بعد التشفير (اختبار مبسط):', htmlBase64.length);
         if (htmlBase64.length === 0) {
             throw new Error("htmlBase64 فارغ بعد التشفير.");
         }
-        console.log('أول 200 حرف من htmlBase64:', htmlBase64.substring(0, 200));
+        console.log('أول 200 حرف من htmlBase64 (اختبار مبسط):', htmlBase64.substring(0, 200));
 
         const convertApiUrl = `https://v2.convertapi.com/convert/html/to/jpg`;
         const convertApiRequestBody = {
@@ -147,19 +119,13 @@ exports.handler = async (event, context) => {
                     FileValue: {
                         Base64: htmlBase64
                     },
-                    FileName: "certificate.html"
+                    FileName: "simple_test.html"
                 },
-                { Name: "PageSize", Value: "Custom" },
-                { Name: "PageWidth", Value: 800 }, // استخدم أبعادًا بسيطة للاختبار
-                { Name: "PageHeight", Value: 600 },
-                { Name: "MarginTop", Value: 0 },
-                { Name: "MarginRight", Value: 0 },
-                { Name: "MarginBottom", Value: 0 },
-                { Name: "MarginLeft", Value: 0 }
+                { Name: "PageSize", Value: "A4" } // استخدام حجم قياسي (A4) للاختبار
             ]
         };
 
-        console.log('جسم طلب ConvertAPI (أول 500 حرف):', JSON.stringify(convertApiRequestBody, null, 2).substring(0, 500));
+        console.log('جسم طلب ConvertAPI (أول 500 حرف) (اختبار مبسط):', JSON.stringify(convertApiRequestBody, null, 2).substring(0, 500));
 
         const response = await fetch(convertApiUrl, {
             method: 'POST',
@@ -172,20 +138,20 @@ exports.handler = async (event, context) => {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('خطأ من ConvertAPI (الاستجابة النصية):', errorText);
+            console.error('خطأ من ConvertAPI (الاستجابة النصية) (اختبار مبسط):', errorText);
             try {
                 const errorData = JSON.parse(errorText);
-                console.error('خطأ من ConvertAPI (JSON المحلل):', errorData);
+                console.error('خطأ من ConvertAPI (JSON المحلل) (اختبار مبسط):', errorData);
                 return {
                     statusCode: response.status,
-                    body: `<h1>خطأ في توليد الشهادة من ConvertAPI</h1><p>${JSON.stringify(errorData, null, 2)}</p>`,
+                    body: `<h1>خطأ في توليد الشهادة من ConvertAPI (اختبار مبسط)</h1><p>${JSON.stringify(errorData, null, 2)}</p>`,
                     headers: { 'Content-Type': 'text/html; charset=utf-8' },
                 };
             } catch (jsonParseError) {
-                console.error('فشل تحليل JSON من استجابة ConvertAPI:', jsonParseError);
+                console.error('فشل تحليل JSON من استجابة ConvertAPI (اختبار مبسط):', jsonParseError);
                 return {
                     statusCode: response.status,
-                    body: `<h1>خطأ في توليد الشهادة من ConvertAPI</h1><p>استجابة غير متوقعة: ${errorText}</p>`,
+                    body: `<h1>خطأ في توليد الشهادة من ConvertAPI (اختبار مبسط)</h1><p>استجابة غير متوقعة: ${errorText}</p>`,
                     headers: { 'Content-Type': 'text/html; charset=utf-8' },
                 };
             }
@@ -193,10 +159,10 @@ exports.handler = async (event, context) => {
 
         const result = await response.json();
         if (!result.Files || result.Files.length === 0) {
-            console.error('ConvertAPI لم تُرجع أي ملفات في الاستجابة.');
+            console.error('ConvertAPI لم تُرجع أي ملفات في الاستجابة (اختبار مبسط).');
             return {
                 statusCode: 500,
-                body: `<h1>خطأ في توليد الشهادة</h1><p>ConvertAPI لم تُرجع أي ملفات.</p>`,
+                body: `<h1>خطأ في توليد الشهادة (اختبار مبسط)</h1><p>ConvertAPI لم تُرجع أي ملفات.</p>`,
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
@@ -212,7 +178,7 @@ exports.handler = async (event, context) => {
             statusCode: 200,
             headers: {
                 'Content-Type': 'image/jpeg',
-                'Content-Disposition': `inline; filename="certificate_${studentId}.jpg"`,
+                'Content-Disposition': `inline; filename="simple_test_certificate.jpg"`,
                 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
                 'Pragma': 'no-cache',
                 'Expires': '0',
@@ -222,10 +188,10 @@ exports.handler = async (event, context) => {
         };
 
     } catch (error) {
-        console.error('خطأ في وظيفة توليد الشهادة:', error);
+        console.error('خطأ في وظيفة توليد الشهادة (اختبار مبسط):', error);
         return {
             statusCode: 500,
-            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
+            body: `<h1>حدث خطأ أثناء توليد الشهادة (اختبار مبسط)</h1><p>${error.message}</p>`,
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
