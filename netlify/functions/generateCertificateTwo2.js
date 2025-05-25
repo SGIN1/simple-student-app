@@ -1,13 +1,17 @@
+// netlify/functions/generateCertificateTwo2.js
+
 const { MongoClient, ObjectId } = require('mongodb');
-const fetch = require('node-fetch'); // تمت إضافته لـ ConvertAPI
+const fetch = require('node-fetch');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET || 'secret_qDHxk4i07C7w8USr'; // تمت إضافته لـ ConvertAPI
+const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET || 'secret_qDHxk4i07C7w8USr';
 
-const CERTIFICATE_IMAGE_RELATIVE_PATH = '/images/full/wwee.jpg';
+// هذا هو الرابط العلني الحقيقي لصورة الشهادة على موقعك في Netlify.
+// تم تحديده بناءً على المعلومات التي قدمتها: ssadsd.kozow.com
+const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`;
 
 exports.handler = async (event, context) => {
     const studentId = event.path.split('/').pop();
@@ -28,13 +32,13 @@ exports.handler = async (event, context) => {
                 <title>الشهادة ${studentId}</title>
             </head>
             <body>
-                <img src="${CERTIFICATE_IMAGE_RELATIVE_PATH}" alt="الشهادة">
+                <img src="${CERTIFICATE_IMAGE_PUBLIC_URL}" alt="الشهادة">
             </body>
             </html>
         `.trim();
 
-        // بداية إضافة ConvertAPI
-        const convertApiUrl = `https://v2.convertapi.com/convert/html/to/pdf?Secret=${CONVERTAPI_SECRET}`;
+        // طلب من ConvertAPI لتحويل HTML إلى صورة JPG
+        const convertApiUrl = `https://v2.convertapi.com/convert/html/to/jpg?Secret=${CONVERTAPI_SECRET}`;
 
         const response = await fetch(convertApiUrl, {
             method: 'POST',
@@ -67,24 +71,24 @@ exports.handler = async (event, context) => {
         }
 
         const result = await response.json();
-        const pdfFileUrl = result.Files[0].Url;
+        const imageFileUrl = result.Files[0].Url; // نحصل على رابط الصورة الناتجة
 
-        const pdfResponse = await fetch(pdfFileUrl);
-        if (!pdfResponse.ok) {
-            throw new Error(`Failed to fetch PDF from ConvertAPI URL: ${pdfResponse.statusText}`);
+        const imageResponse = await fetch(imageFileUrl);
+        if (!imageResponse.ok) {
+            throw new Error(`Failed to fetch image from ConvertAPI URL: ${imageResponse.statusText}`);
         }
-        const pdfBuffer = await pdfResponse.buffer();
+        const imageBuffer = await imageResponse.buffer();
 
+        // عرض الصورة مباشرة في المتصفح
         return {
             statusCode: 200,
             headers: {
-                'Content-Type': 'application/pdf', // هذا يخبر المتصفح أن الملف PDF
-                'Content-Disposition': `attachment; filename="certificate_${studentId}.pdf"`,
+                'Content-Type': 'image/jpeg', // نوع المحتوى هو صورة JPEG
+                'Content-Disposition': `inline; filename="certificate_${studentId}.jpg"`, // 'inline' لعرضها في المتصفح
             },
-            body: pdfBuffer.toString('base64'),
+            body: imageBuffer.toString('base64'),
             isBase64Encoded: true,
         };
-        // نهاية إضافة ConvertAPI
 
     } catch (error) {
         console.error('خطأ في وظيفة توليد الشهادة:', error);
