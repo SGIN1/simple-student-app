@@ -6,13 +6,11 @@
   functions = "netlify/functions"
 
 [functions]
-  # سنقوم بتضمين وحدات MongoDB و BSON فقط لأنها ضرورية لعمل الوظيفة.
   included_files = [
     "node_modules/mongodb/**",
     "node_modules/bson/**"
   ]
 
-# قاعدة إعادة التوجيه لوظيفة Netlify Function الأساسية الخاصة بك
 [[redirects]]
   from = "/certificate/:id"
   to = "/.netlify/functions/generateCertificateTwo2/:id"

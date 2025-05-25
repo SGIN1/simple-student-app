@@ -19,8 +19,6 @@ exports.handler = async (event, context) => {
         if (!uri) {
             throw new Error("MONGODB_URI is not set in environment variables. Please set it in Netlify.");
         }
-        // تم إزالة جزء جلب بيانات الطالب بالكامل من الكود لأنه لا يُستخدم لملء أي نصوص.
-        // الـ HTML التالي لا يحتوي على أي نصوص أو صور، فقط هيكل أساسي.
 
         const htmlContent = `
             <!DOCTYPE html>
@@ -34,7 +32,6 @@ exports.handler = async (event, context) => {
                         margin: 0;
                         padding: 0;
                     }
-                    /* تم إزالة أي خصائص CSS تتعلق بالصورة أو الخطوط */
                 </style>
             </head>
             <body>
@@ -46,26 +43,17 @@ exports.handler = async (event, context) => {
         console.log('Generated HTML Content for ConvertAPI (for debugging):');
         console.log(htmlContent);
 
-        const payload = {
-            Parameters: [
-                {
-                    Name: 'File',
-                    FileName: 'certificate.html',
-                    Value: Buffer.from(htmlContent, 'utf8').toString('base64')
-                }
-            ],
-        };
-        console.log('JSON Payload to ConvertAPI:');
-        console.log(JSON.stringify(payload, null, 2));
-
+        // التعديل الرئيسي هنا: إرسال HTML كـ Buffer (مصفوفة بايتات) مباشرةً
+        // هذا هو ما يتوقعه ConvertAPI لحل مشكلة "File size must be greater than 0 bytes."
         const convertApiUrl = `https://v2.convertapi.com/convert/html/to/pdf?Secret=${CONVERTAPI_SECRET}`;
 
         const response = await fetch(convertApiUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'text/html', // تحديد أن نوع المحتوى هو HTML
+                'Content-Disposition': 'attachment; filename="certificate.html"' // يُعلم ConvertAPI أن هذا ملف HTML
             },
-            body: JSON.stringify(payload),
+            body: Buffer.from(htmlContent, 'utf8'), // إرسال بيانات HTML الخام كـ Buffer
         });
 
         if (!response.ok) {
