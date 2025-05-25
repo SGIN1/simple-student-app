@@ -1,24 +1,31 @@
 // netlify/functions/generateCertificateTwo2.js
 
 const { MongoClient, ObjectId } = require('mongodb');
-const fetch = require('node-fetch');
-const path = require('path');
+const fetch = require('node-fetch'); // لم نعد بحاجة لـ fetch إذا لم نستخدم ConvertAPI
+const path = require('path'); // لم نعد بحاجة لـ path
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET || 'secret_qDHxk4i07C7w8USr';
+// لم نعد بحاجة لـ CONVERTAPI_SECRET إذا لم نستخدم ConvertAPI
+// const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET || 'secret_qDHxk4i07C7w8USr';
+
+// مسار الصورة في مشروعك (سيكون متاحًا في المتصفح مباشرة)
+const CERTIFICATE_IMAGE_RELATIVE_PATH = '/images/full/wwee.jpg';
 
 exports.handler = async (event, context) => {
     const studentId = event.path.split('/').pop();
-    console.log('ID المستلم في وظيفة generateCertificateTwo2 (للإشارة فقط، لن نستخدم بياناته للنص):', studentId);
+    console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
     let client;
     try {
         if (!uri) {
             throw new Error("MONGODB_URI is not set in environment variables. Please set it in Netlify.");
         }
+        // هنا يمكنك جلب بيانات الطالب إذا كنت ترغب في عرض اسمه أو معلومات أخرى على الشهادة.
+        // بما أنك طلبت عرض الشهادة كصورة فقط، لن نجلب البيانات الآن.
+        // إذا أردت إضافة نص لاحقًا، سنضيف كود MongoDB هنا.
 
         const htmlContent = `
             <!DOCTYPE html>
@@ -26,81 +33,56 @@ exports.handler = async (event, context) => {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>الشهادة</title>
+                <title>الشهادة ${studentId}</title>
                 <style>
                     body {
                         margin: 0;
                         padding: 0;
+                        /* نستخدم min-height و min-width لضمان تغطية كامل الشاشة */
+                        min-height: 100vh;
+                        min-width: 100vw;
+                        overflow: hidden; /* لمنع ظهور scrollbars إذا كانت الصورة أكبر قليلاً */
+                        display: flex; /* لضمان توسيط المحتوى */
+                        justify-content: center;
+                        align-items: center;
+                        background-color: #f0f0f0; /* لون خلفية خفيف إذا كانت الصورة لا تغطي 100% */
+                    }
+                    .certificate-container {
+                        /* مسار الصورة المطلق الذي يمكن للمتصفح الوصول إليه */
+                        background-image: url('${CERTIFICATE_IMAGE_RELATIVE_PATH}');
+                        background-size: contain; /* لجعل الصورة تتناسب داخل الحاوية */
+                        background-repeat: no-repeat; /* لعدم تكرار الصورة */
+                        background-position: center; /* لتوسيط الصورة */
+                        width: 100%; /* اجعل الحاوية تأخذ عرض الشاشة */
+                        height: 100%; /* اجعل الحاوية تأخذ ارتفاع الشاشة */
+                        max-width: 1200px; /* يمكن تحديد أقصى عرض للشهادة إذا لزم الأمر */
+                        max-height: 800px; /* يمكن تحديد أقصى ارتفاع */
+                        aspect-ratio: 3/2; /* إذا كانت الشهادة بنسبة 3:2، للحفاظ على الأبعاد */
+                        /* يمكنك ضبط هذه الأبعاد لتناسب حجم صورتك wwee.jpg */
                     }
                 </style>
             </head>
             <body>
-                <div></div>
+                <div class="certificate-container">
+                    </div>
             </body>
             </html>
         `.trim();
 
-        console.log('Generated HTML Content for ConvertAPI (for debugging):');
-        console.log(htmlContent);
-
-        // التعديل الرئيسي هنا: إرسال HTML كـ Buffer (مصفوفة بايتات) مباشرةً
-        // هذا هو ما يتوقعه ConvertAPI لحل مشكلة "File size must be greater than 0 bytes."
-        const convertApiUrl = `https://v2.convertapi.com/convert/html/to/pdf?Secret=${CONVERTAPI_SECRET}`;
-
-        const response = await fetch(convertApiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'text/html', // تحديد أن نوع المحتوى هو HTML
-                'Content-Disposition': 'attachment; filename="certificate.html"' // يُعلم ConvertAPI أن هذا ملف HTML
-            },
-            body: Buffer.from(htmlContent, 'utf8'), // إرسال بيانات HTML الخام كـ Buffer
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('خطأ من ConvertAPI (الاستجابة النصية):', errorText);
-            try {
-                const errorData = JSON.parse(errorText);
-                console.error('خطأ من ConvertAPI (JSON المحلل):', errorData);
-                return {
-                    statusCode: response.status,
-                    body: `<h1>خطأ في توليد الشهادة من ConvertAPI</h1><p>${JSON.stringify(errorData, null, 2)}</p>`,
-                    headers: { 'Content-Type': 'text/html; charset=utf-8' },
-                };
-            } catch (jsonParseError) {
-                console.error('فشل تحليل JSON من استجابة ConvertAPI:', jsonParseError);
-                return {
-                    statusCode: response.status,
-                    body: `<h1>خطأ في توليد الشهادة من ConvertAPI</h1><p>استجابة غير متوقعة: ${errorText}</p>`,
-                    headers: { 'Content-Type': 'text/html; charset=utf-8' },
-                };
-            }
-        }
-
-        const result = await response.json();
-        const pdfFileUrl = result.Files[0].Url;
-
-        const pdfResponse = await fetch(pdfFileUrl);
-        if (!pdfResponse.ok) {
-            throw new Error(`Failed to fetch PDF from ConvertAPI URL: ${pdfResponse.statusText}`);
-        }
-        const pdfBuffer = await pdfResponse.buffer();
-
+        // إرجاع كود HTML مباشرة إلى المتصفح
         return {
             statusCode: 200,
             headers: {
-                'Content-Type': 'application/pdf',
-                'Content-Disposition': `attachment; filename="certificate_${studentId}.pdf"`,
+                'Content-Type': 'text/html; charset=utf-8',
             },
-            body: pdfBuffer.toString('base64'),
-            isBase64Encoded: true,
+            body: htmlContent,
         };
 
     } catch (error) {
-        console.error('خطأ في وظيفة توليد الشهادة:', error);
+        console.error('خطأ في وظيفة عرض الشهادة:', error);
         return {
             statusCode: 500,
-            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
+            body: `<h1>حدث خطأ أثناء عرض الشهادة</h1><p>${error.message}</p>`,
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
