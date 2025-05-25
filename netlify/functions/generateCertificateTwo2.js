@@ -11,51 +11,29 @@ const collectionName = 'enrolled_students_tbl';
 const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET || 'secret_qDHxk4i07C7w8USr';
 
 const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg';
-const FONT_PATH = '/.netlify/functions/arial.ttf';
+const FONT_PATH = '/.netlify/functions/arial.ttf'; // سيبقى هذا المسار لكن لن يتم استخدامه فعليًا
 
 exports.handler = async (event, context) => {
+    // لم نعد بحاجة لجلب بيانات الطالب إذا كنا لا نعرض نصوصًا
+    // لكنني سأبقي الكود الأساسي لجلب البيانات إذا أردت استخدامه لاحقًا.
+    // يمكنك حذف جزء جلب الطالب بالكامل إذا كنت متأكدًا أنك لا تحتاج بياناته.
     const studentId = event.path.split('/').pop();
-    console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
+    console.log('ID المستلم في وظيفة generateCertificateTwo2 (للإشارة فقط، لن نستخدم بياناته للنص):', studentId);
 
     let client;
-
     try {
         if (!uri) {
             throw new Error("MONGODB_URI is not set in environment variables. Please set it in Netlify.");
         }
-        client = new MongoClient(uri);
-        await client.connect();
-        const database = client.db(dbName);
-        const studentsCollection = database.collection(collectionName);
+        // إزالة جلب بيانات الطالب إذا لم تعد بحاجة إليها نهائياً
+        // client = new MongoClient(uri);
+        // await client.connect();
+        // const database = client.db(dbName);
+        // const studentsCollection = database.collection(collectionName);
+        // const student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
+        // if (!student) { /* ... handle not found ... */ }
+        // // ... وإزالة المتغيرات المتعلقة بالنصوص مثل serialNumber, studentNameArabic ...
 
-        let student;
-        try {
-            student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
-        } catch (objectIdError) {
-            console.error('خطأ في إنشاء ObjectId:', objectIdError);
-            return {
-                statusCode: 400,
-                body: '<h1>معرف الطالب غير صالح</h1><p>يجب أن يكون المعرف سلسلة نصية مكونة من 24 حرفًا سداسيًا عشريًا.</p>',
-                headers: { 'Content-Type': 'text/html; charset=utf-8' },
-            };
-        }
-
-        if (!student) {
-            return {
-                statusCode: 404,
-                body: `<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`,
-                headers: { 'Content-Type': 'text/html; charset=utf-8' },
-            };
-        }
-
-        const serialNumber = student.serial_number || 'N/A';
-        const studentNameArabic = student.arabic_name || 'اسم الطالب غير متوفر';
-        const documentSerialNumber = student.document_serial_number || 'N/A';
-        const plateNumber = student.plate_number ? `رقم اللوحة: ${student.plate_number}` : 'رقم اللوحة: N/A';
-        const carType = student.car_type ? `نوع السيارة: ${student.car_type}` : 'نوع السيارة: N/A';
-        const color = student.color ? `اللون: ${student.color}` : 'اللون: N/A';
-
-        // محتوى HTML المبسّط للغاية
         const htmlContent = `
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
@@ -66,46 +44,22 @@ exports.handler = async (event, context) => {
                 <style>
                     body {
                         margin: 0;
-                        /* إزالة الـ padding هنا لترك ConvertAPI يحدد الهوامش الافتراضية */
-                        font-family: 'ArabicFont', 'Arial', sans-serif;
-                        text-align: center;
-                        color: #000;
+                        padding: 0;
                     }
-                    @font-face {
-                        font-family: 'ArabicFont';
-                        src: url('${FONT_PATH}') format('truetype');
-                    }
+                    /* لا يوجد تعريف للخط 'ArabicFont' لأنه لن يتم استخدام أي نص */
                     .certificate-container {
-                        /* إزالة جميع الأبعاد الثابتة والـ padding */
                         background-image: url('${CERTIFICATE_IMAGE_PATH}');
                         background-size: contain;
                         background-repeat: no-repeat;
                         background-position: center;
-                    }
-                    .text-item {
-                        margin-bottom: 15px;
-                        line-height: 1.5;
-                    }
-                    #student-name {
-                        font-size: 30px;
-                        font-weight: bold;
-                        margin-bottom: 30px;
-                    }
-                    #serial-number {
-                        font-size: 18px;
-                        color: #555;
+                        min-height: 100vh;
+                        min-width: 100vw;
                     }
                 </style>
             </head>
             <body>
                 <div class="certificate-container">
-                    <div id="student-name" class="text-item">${studentNameArabic}</div>
-                    <div id="serial-number" class="text-item">${serialNumber}</div>
-                    <div id="document-serial-number" class="text-item">${documentSerialNumber}</div>
-                    <div id="plate-number" class="text-item">${plateNumber}</div>
-                    <div id="car-type" class="text-item">${carType}</div>
-                    <div id="color" class="text-item">${color}</div>
-                </div>
+                    </div>
             </body>
             </html>
         `.trim();
@@ -113,14 +67,11 @@ exports.handler = async (event, context) => {
         console.log('Generated HTML Content for ConvertAPI (for debugging):');
         console.log(htmlContent);
 
-        // التغيير الحاسم: استخدام Name: 'File' بدلاً من 'HtmlFile'
-        // وإزالة جميع الـ "Margin" و "ViewportWidth" بارامترات للسماح لـ ConvertAPI بالتحكم الكامل
         const payload = {
             Parameters: [
                 {
-                    Name: 'File', // التغيير هنا
-                    Value: Buffer.from(htmlContent, 'utf8').toString('base64'),
-                    FileName: 'certificate.html' // إضافة اسم الملف كما هو مطلوب في بعض سيناريوهات ConvertAPI
+                    Name: 'HtmlString',
+                    Value: htmlContent
                 }
             ],
         };
@@ -185,6 +136,6 @@ exports.handler = async (event, context) => {
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
-        if (client) await client.close();
+        if (client) await client.close(); // تأكد من إغلاق الاتصال إذا تم فتحه
     }
 };
