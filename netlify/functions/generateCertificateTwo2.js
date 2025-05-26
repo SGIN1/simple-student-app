@@ -182,23 +182,33 @@ exports.handler = async (event, context) => {
         }
 
         const result = await response.json();
-        if (!result.Files || result.Files.length === 0) {
-            console.error('ConvertAPI لم تُرجع أي ملفات في الاستجابة.');
+        // اطبع الاستجابة الكاملة من ConvertAPI لتتبع الأخطاء بشكل أفضل
+        console.log('الاستجابة الكاملة من ConvertAPI:', JSON.stringify(result, null, 2));
+
+        if (!result.Files || result.Files.length === 0 || !result.Files[0].Url) {
+            console.error('ConvertAPI لم تُرجع أي ملفات أو رابط URL صالح في الاستجابة.');
             return {
                 statusCode: 500,
-                body: `<h1>خطأ في توليد الشهادة</h1><p>ConvertAPI لم تُرجع أي ملفات.</p>`,
+                body: `<h1>خطأ في توليد الشهادة</h1><p>ConvertAPI لم تُرجع أي ملفات أو رابط URL صالح. تحقق من سجلات Netlify لمزيد من التفاصيل.</p>`,
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
 
-        // ****** التغيير هنا: التأكد من أن الرابط مطلق ******
         let imageFileUrl = result.Files[0].Url;
-        if (!imageFileUrl.startsWith('http://') && !imageFileUrl.startsWith('https://')) {
+        // هنا تم التأكد من أن imageFileUrl موجود قبل محاولة استخدام startsWith
+        if (typeof imageFileUrl === 'string' && !imageFileUrl.startsWith('http://') && !imageFileUrl.startsWith('https://')) {
             // إذا كان الرابط نسبيًا، فقم ببناء رابط مطلق
             imageFileUrl = `https://v2.convertapi.com${imageFileUrl}`; 
             console.log('تم بناء رابط مطلق جديد:', imageFileUrl); // لتتبع السجلات
+        } else if (typeof imageFileUrl !== 'string') {
+             console.error('imageFileUrl ليس سلسلة نصية:', imageFileUrl);
+             return {
+                statusCode: 500,
+                body: `<h1>خطأ في توليد الشهادة</h1><p>رابط الصورة المستلم من ConvertAPI غير صالح.</p>`,
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            };
         }
-        // ************************************************
+
 
         const imageResponse = await fetch(imageFileUrl);
         if (!imageResponse.ok) {
