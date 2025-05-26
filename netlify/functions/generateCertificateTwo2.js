@@ -1,5 +1,5 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const fetch = require = ('node-fetch');
+const fetch = require('node-fetch'); // <--- هذا هو السطر المصحح!
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -136,18 +136,16 @@ exports.handler = async (event, context) => {
         }
         console.log('أول 200 حرف من htmlBase64:', htmlBase64.substring(0, 200));
 
-        const convertApiUrl = `https://v2.convertapi.com/convert/html/to/jpg`; // ابقِها jpg أو غيّرها إلى pdf حسب ما تريد
+        const convertApiUrl = `https://v2.convertapi.com/convert/html/to/jpg`; 
         const convertApiRequestBody = {
             Parameters: [
                 {
                     Name: "File",
                     FileValue: {
-                        // التغيير هنا: استخدم 'Data' بدلاً من 'Base64' وأضف 'Name'
                         Name: "certificate.html", 
                         Data: htmlBase64 
                     }
                 }
-                // أزلنا PageSize في المحاولة السابقة، فلنبقِها محذوفة ما لم تكن هناك حاجة ماسة لها
             ]
         };
 
@@ -203,8 +201,8 @@ exports.handler = async (event, context) => {
         return {
             statusCode: 200,
             headers: {
-                'Content-Type': 'image/jpeg', // ابقِها image/jpeg أو غيّرها إلى application/pdf حسب ما اخترت في الأعلى
-                'Content-Disposition': `inline; filename="certificate.jpg"`, // ابقِها jpg أو غيّرها إلى pdf
+                'Content-Type': 'image/jpeg', 
+                'Content-Disposition': `inline; filename="certificate.jpg"`, 
                 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
                 'Pragma': 'no-cache',
                 'Expires': '0',
