@@ -15,7 +15,7 @@ const SCREENSHOTONE_ACCESS_KEY = process.env.SCREENSHOTONE_ACCESS_KEY;
 
 // الرابط العام (Public URL) للصورة الخلفية للشهادة.
 // تأكد أن هذا الرابط صحيح ويمكن الوصول إليه من الإنترنت.
-const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`; // <--- تأكد من وجود هذا السطر هنا
+const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`;
 
 // دالة Netlify الرئيسية التي ستُستدعى عند طلب الرابط.
 exports.handler = async (event, context) => {
@@ -103,7 +103,7 @@ exports.handler = async (event, context) => {
                         position: relative;
                         width: 1123px;
                         height: 794px;
-                        background-image: url('${CERTIFICATE_IMAGE_PUBLIC_URL}'); /* هنا يتم استخدام المتغير */
+                        background-image: url('${CERTIFICATE_IMAGE_PUBLIC_URL}');
                         background-size: cover;
                         background-repeat: no-repeat;
                         background-position: center;
@@ -148,7 +148,7 @@ exports.handler = async (event, context) => {
             viewport_width: 1123,
             viewport_height: 794,
             full_page: true,
-            debug: true, // تفعيل وضع التصحيح
+            // debug: true, // <--- هذا السطر تم إزالته لأنه غير مسموح به لـ HTML
         };
 
         console.log("Sending HTML to ScreenshotOne API...");
