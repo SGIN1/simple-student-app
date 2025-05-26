@@ -15,6 +15,10 @@ const SCREENSHOTONE_ACCESS_KEY = process.env.SCREENSHOTONE_ACCESS_KEY;
 
 // الرابط العام (Public URL) للصورة الخلفية للشهادة.
 // تأكد أن هذا الرابط صحيح ويمكن الوصول إليه من الإنترنت.
+// ملاحظة: الصورة في المسار C:\images\wwee.jpg لا يمكن الوصول إليها مباشرة من الإنترنت.
+// يجب أن تكون الصورة مرفوعة على استضافة ويب أو CDN ليتمكن Netlify من الوصول إليها.
+// الرابط الحالي: https://ssadsd.kozow.com/images/full/wwee.jpg
+// تأكد أن هذه الصورة الموجودة على الرابط هي نفسها التي أبعادها 978x1280 بكسل.
 const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`;
 
 // دالة Netlify الرئيسية التي ستُستدعى عند طلب الرابط.
@@ -101,8 +105,8 @@ exports.handler = async (event, context) => {
                     }
                     .certificate-container {
                         position: relative;
-                        width: 1123px;
-                        height: 794px;
+                        width: 978px; /* تم تحديث العرض بناءً على ImageMagick */
+                        height: 1280px; /* تم تحديث الارتفاع بناءً على ImageMagick */
                         background-image: url('${CERTIFICATE_IMAGE_PUBLIC_URL}');
                         background-size: cover;
                         background-repeat: no-repeat;
@@ -115,6 +119,9 @@ exports.handler = async (event, context) => {
                         text-overflow: ellipsis;
                         box-sizing: border-box;
                     }
+                    /* أنماط محددة لكل عنصر نصي لضبط موقعه وشكله على الشهادة */
+                    /* ستحتاج إلى تعديل هذه القيم (top, left, width, font-size) لتتناسب مع الأبعاد الجديدة للشهادة (978x1280) */
+                    /* القيم الحالية كانت مصممة لـ 1123x794، ستبدو غير مناسبة وقد تحتاج إلى إعادة ضبطها يدوياً */
                     .student-name { top: 220px; left: 10%; width: 80%; text-align: center; font-size: 30px; color: #000; }
                     .serial-number { top: 260px; left: 60px; font-size: 18px; color: #fff; text-align: left; width: 150px; }
                     .document-serial-number { top: 300px; left: 10%; width: 80%; text-align: center; font-size: 16px; color: #000; }
@@ -144,9 +151,9 @@ exports.handler = async (event, context) => {
             access_key: SCREENSHOTONE_ACCESS_KEY,
             html: htmlContent, // إرسال HTML مباشرةً
             format: "jpeg",
-            response_type: "by_format", // نعود لطلب الصورة مباشرةً
-            // viewport_width: 1123, // تم إزالة هذا السطر
-            // viewport_height: 794, // تم إزالة هذا السطر
+            response_type: "by_format",
+            viewport_width: 978, // **تم تحديث العرض هنا**
+            viewport_height: 1280, // **تم تحديث الارتفاع هنا**
             full_page: true,
         };
 
