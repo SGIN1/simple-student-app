@@ -1,5 +1,5 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const fetch = require('node-fetch');
+const fetch = require = ('node-fetch');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -7,8 +7,6 @@ const collectionName = 'enrolled_students_tbl';
 
 const CONVERTAPI_TOKEN = process.env.CONVERTAPI_TOKEN;
 
-// تأكد أن هذا الرابط هو الرابط العام الصحيح لصورة الشهادة بعد النشر على Netlify.
-// بما أنك نقلت مجلد 'images' إلى جذر مشروعك، فهذا المسار صحيح.
 const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`; 
 
 const TEXT_STYLES = {
@@ -79,7 +77,6 @@ exports.handler = async (event, context) => {
         const carType = student.car_type || 'N/A';
         const color = student.color || 'N/A';
 
-        // محتوى HTML مع صورة الخلفية كـ URL ووضع النص فوقها
         let htmlContent = `
             <!DOCTYPE html>
             <html>
@@ -126,34 +123,35 @@ exports.handler = async (event, context) => {
             </html>
         `.trim();
 
-        console.log('طول htmlContent قبل التشفير (اختبار مبسط):', htmlContent.length);
+        console.log('طول htmlContent قبل التشفير:', htmlContent.length);
         if (htmlContent.length === 0) {
             throw new Error("htmlContent فارغ قبل التشفير.");
         }
-        console.log('أول 200 حرف من htmlContent (اختبار مبسط):', htmlContent.substring(0, 200));
+        console.log('أول 200 حرف من htmlContent:', htmlContent.substring(0, 200));
 
         const htmlBase64 = Buffer.from(htmlContent).toString('base64');
-        console.log('طول htmlBase64 بعد التشفير (اختبار مبسط):', htmlBase64.length);
+        console.log('طول htmlBase64 بعد التشفير:', htmlBase64.length);
         if (htmlBase64.length === 0) {
             throw new Error("htmlBase64 فارغ بعد التشفير.");
         }
-        console.log('أول 200 حرف من htmlBase64 (اختبار مبسط):', htmlBase64.substring(0, 200));
+        console.log('أول 200 حرف من htmlBase64:', htmlBase64.substring(0, 200));
 
-        const convertApiUrl = `https://v2.convertapi.com/convert/html/to/jpg`;
+        const convertApiUrl = `https://v2.convertapi.com/convert/html/to/jpg`; // ابقِها jpg أو غيّرها إلى pdf حسب ما تريد
         const convertApiRequestBody = {
             Parameters: [
                 {
                     Name: "File",
                     FileValue: {
-                        Base64: htmlBase64
-                    },
-                    FileName: "certificate.html"
-                },
-                { Name: "PageSize", Value: "A4" }
+                        // التغيير هنا: استخدم 'Data' بدلاً من 'Base64' وأضف 'Name'
+                        Name: "certificate.html", 
+                        Data: htmlBase64 
+                    }
+                }
+                // أزلنا PageSize في المحاولة السابقة، فلنبقِها محذوفة ما لم تكن هناك حاجة ماسة لها
             ]
         };
 
-        console.log('جسم طلب ConvertAPI (أول 500 حرف) (اختبار مبسط):', JSON.stringify(convertApiRequestBody, null, 2).substring(0, 500));
+        console.log('جسم طلب ConvertAPI (أول 500 حرف):', JSON.stringify(convertApiRequestBody, null, 2).substring(0, 500));
 
         const response = await fetch(convertApiUrl, {
             method: 'POST',
@@ -166,20 +164,20 @@ exports.handler = async (event, context) => {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('خطأ من ConvertAPI (الاستجابة النصية) (اختبار مبسط):', errorText);
+            console.error('خطأ من ConvertAPI (الاستجابة النصية):', errorText);
             try {
                 const errorData = JSON.parse(errorText);
-                console.error('خطأ من ConvertAPI (JSON المحلل) (اختبار مبسط):', errorData);
+                console.error('خطأ من ConvertAPI (JSON المحلل):', errorData);
                 return {
                     statusCode: response.status,
-                    body: `<h1>خطأ في توليد الشهادة من ConvertAPI (اختبار مبسط)</h1><p>${JSON.stringify(errorData, null, 2)}</p>`,
+                    body: `<h1>خطأ في توليد الشهادة من ConvertAPI</h1><p>${JSON.stringify(errorData, null, 2)}</p>`,
                     headers: { 'Content-Type': 'text/html; charset=utf-8' },
                 };
             } catch (jsonParseError) {
-                console.error('فشل تحليل JSON من استجابة ConvertAPI (اختبار مبسط):', jsonParseError);
+                console.error('فشل تحليل JSON من استجابة ConvertAPI:', jsonParseError);
                 return {
                     statusCode: response.status,
-                    body: `<h1>خطأ في توليد الشهادة من ConvertAPI (اختبار مبسط)</h1><p>استجابة غير متوقعة: ${errorText}</p>`,
+                    body: `<h1>خطأ في توليد الشهادة من ConvertAPI</h1><p>استجابة غير متوقعة: ${errorText}</p>`,
                     headers: { 'Content-Type': 'text/html; charset=utf-8' },
                 };
             }
@@ -187,10 +185,10 @@ exports.handler = async (event, context) => {
 
         const result = await response.json();
         if (!result.Files || result.Files.length === 0) {
-            console.error('ConvertAPI لم تُرجع أي ملفات في الاستجابة (اختبار مبسط).');
+            console.error('ConvertAPI لم تُرجع أي ملفات في الاستجابة.');
             return {
                 statusCode: 500,
-                body: `<h1>خطأ في توليد الشهادة (اختبار مبسط)</h1><p>ConvertAPI لم تُرجع أي ملفات.</p>`,
+                body: `<h1>خطأ في توليد الشهادة</h1><p>ConvertAPI لم تُرجع أي ملفات.</p>`,
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
@@ -205,8 +203,8 @@ exports.handler = async (event, context) => {
         return {
             statusCode: 200,
             headers: {
-                'Content-Type': 'image/jpeg',
-                'Content-Disposition': `inline; filename="certificate.jpg"`,
+                'Content-Type': 'image/jpeg', // ابقِها image/jpeg أو غيّرها إلى application/pdf حسب ما اخترت في الأعلى
+                'Content-Disposition': `inline; filename="certificate.jpg"`, // ابقِها jpg أو غيّرها إلى pdf
                 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
                 'Pragma': 'no-cache',
                 'Expires': '0',
@@ -216,10 +214,10 @@ exports.handler = async (event, context) => {
         };
 
     } catch (error) {
-        console.error('خطأ في وظيفة توليد الشهادة (اختبار مبسط):', error);
+        console.error('خطأ في وظيفة توليد الشهادة:', error);
         return {
             statusCode: 500,
-            body: `<h1>حدث خطأ أثناء توليد الشهادة (اختبار مبسط)</h1><p>${error.message}</p>`,
+            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
