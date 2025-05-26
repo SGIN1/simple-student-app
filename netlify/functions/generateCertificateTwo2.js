@@ -1,7 +1,8 @@
 const { MongoClient, ObjectId } = require('mongodb');
 const fetch = require('node-fetch');
 
-// رابط اتصال قاعدة البيانات MongoDB. يجب ضبطه كمتغير بيئة في Netlify.
+// رابط اتصال قاعدة البيانات MongoDB.
+// يجب ضبط هذا المتغير (MONGODB_URI) في إعدادات Netlify كمتغير بيئة.
 const uri = process.env.MONGODB_URI;
 // اسم قاعدة البيانات في MongoDB
 const dbName = 'Cluster0';
@@ -50,38 +51,45 @@ exports.handler = async (event, context) => {
         let student; // متغير لتخزين بيانات الطالب
         try {
             // البحث عن الطالب في قاعدة البيانات باستخدام المعرف.
+            // نستخدم new ObjectId(studentId) لتحويل الـ ID النصي إلى كائن ObjectId.
             student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
         } catch (objectIdError) {
-            // التعامل مع خطأ إذا كان معرف الطالب غير صالح.
+            // التعامل مع خطأ إذا كان معرف الطالب غير صالح (ليس 24 حرفًا سداسيًا عشريًا).
+            console.error("MongoDB ObjectId conversion error:", objectIdError); // للسجلات
             return {
                 statusCode: 400,
-                body: '<h1>معرف الطالب غير صالح</h1><p>يجب أن يكون المعرف سلسلة نصية مكونة من 24 حرفًا سداسيًا عشريًا.</p>',
+                body: '<h1>معرف الطالب غير صالح</h1><p>الرابط الذي استخدمته غير صحيح. يرجى التأكد من صحة معرف الطالب.</p>',
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
 
-        // إذا لم يتم العثور على الطالب، يتم استخدام بيانات تجريبية (Fallback data).
+        // إذا لم يتم العثور على الطالب في قاعدة البيانات، يتم استخدام بيانات تجريبية (Fallback data).
         if (!student) {
+            console.log("Student not found, using fallback data for ID:", studentId); // للسجلات
             student = {
-                arabic_name: "الطالب التجريبي",
-                serial_number: "SN-12345",
-                document_serial_number: "DOC-67890",
-                plate_number: "ABC-123",
-                car_type: "Sedan",
-                color: "Red"
+                arabic_name: "اسم الطالب التجريبي",
+                serial_number: "SN-TEST-123",
+                document_serial_number: "DOC-TEST-456",
+                plate_number: "ABC-TEST-789",
+                car_type: "Sedan Test",
+                color: "Red Test"
             };
+        } else {
+            console.log("Student found:", student.arabic_name); // للسجلات
         }
 
         // استخراج البيانات من كائن الطالب أو استخدام "N/A" إذا كانت غير موجودة.
+        // هذا يضمن أن تكون جميع المتغيرات تحتوي على قيمة نصية.
         const studentNameArabic = student.arabic_name || 'اسم غير معروف';
-        const serialNumber = student.serial_number || 'N/A';
-        const documentSerialNumber = student.document_serial_number || 'N/A';
-        const plateNumber = student.plate_number || 'N/A';
-        const carType = student.car_type || 'N/A';
-        const color = student.color || 'N/A';
+        const serialNumber = student.serial_number || 'غير متوفر';
+        const documentSerialNumber = student.document_serial_number || 'غير متوفر';
+        const plateNumber = student.plate_number || 'غير متوفر';
+        const carType = student.car_type || 'غير متوفر';
+        const color = student.color || 'غير متوفر';
 
-        // بناء محتوى HTML للشهادة.
+        // بناء محتوى HTML الكامل للشهادة.
         // يتضمن هذا كلاً من الصورة الخلفية والنصوص مع تحديد مواضعها.
+        // الأنماط (CSS) هنا هي التي تتحكم في موضع وحجم النصوص على الشهادة.
         let htmlContent = `
             <!DOCTYPE html>
             <html>
@@ -91,26 +99,30 @@ exports.handler = async (event, context) => {
                 <style>
                     body {
                         font-family: Arial, sans-serif;
+                        margin: 0;
+                        padding: 0;
                         position: relative;
-                        /* هذه الأنماط الأساسية مهمة لتحديد كيفية عرض الصفحة */
+                        /* قد تحتاج إلى ضبط أبعاد الجسم بناءً على أبعاد الصورة الخلفية */
+                        /* مثلاً، إذا كانت الصورة 1123px عرضًا و 794px ارتفاعًا: */
+                        /* width: 1123px; */
+                        /* height: 794px; */
                     }
                     .certificate-container {
                         position: relative;
+                        width: 1123px; /* تأكد أن هذا يطابق عرض الصورة الخلفية */
+                        height: 794px; /* تأكد أن هذا يطابق ارتفاع الصورة الخلفية */
                         background-image: url('${CERTIFICATE_IMAGE_PUBLIC_URL}');
                         background-size: cover; 
                         background-repeat: no-repeat;
                         background-position: center;
-                        /* يمكن إضافة width و height هنا إذا كان هناك حجم ثابت للشهادة */
-                        /* مثال: width: 1123px; height: 794px; */
                     }
                     .text-overlay {
                         position: absolute; /* مهم جداً لوضع النصوص فوق الصورة */
                         white-space: nowrap; /* يمنع التفاف النص إلى سطر جديد */
                         overflow: hidden; /* يخفي أي نص يتجاوز مساحته */
                         text-overflow: ellipsis; /* يضيف علامة ... إذا كان النص طويلاً جداً */
-                        /* الأنماط التالية هي لتحديد موضع كل نص على الشهادة.
-                           تحتاج إلى تعديل قيم 'top', 'left', 'width', 'font-size', 'color', 'text-align'
-                           لتتناسب تمامًا مع تصميم قالب الشهادة (wwee.jpg).
+                        box-sizing: border-box; /* يضمن أن العرض يشمل الحشو والحدود */
+                        /* هذه القيم تحتاج إلى ضبط دقيق جدًا لتتناسب مع تصميم قالب الشهادة (wwee.jpg).
                            إذا لم تظهر النصوص بشكل صحيح، هذه هي الأماكن التي يجب تعديلها. */
                     }
                     /* أنماط محددة لكل عنصر نصي لضبط موقعه وشكله على الشهادة */
@@ -126,7 +138,7 @@ exports.handler = async (event, context) => {
                 <div class="certificate-container">
                     <div class="text-overlay student-name">${studentNameArabic}</div>
                     <div class="text-overlay serial-number">${serialNumber}</div>
-                    <div class="text-overlay document-serial_number">${documentSerialNumber}</div>
+                    <div class="text-overlay document-serial-number">${documentSerialNumber}</div>
                     <div class="text-overlay plate-number">${plateNumber}</div>
                     <div class="text-overlay car-type">${carType}</div>
                     <div class="text-overlay color">${color}</div>
@@ -142,12 +154,15 @@ exports.handler = async (event, context) => {
             access_key: SCREENSHOTONE_ACCESS_KEY, // مفتاح الوصول الخاص بك
             html: htmlContent, // محتوى HTML الذي سيتم تحويله
             format: "jpg", // تنسيق الصورة المطلوب (JPG)
-            response_type: "by_format", // طلب استجابة مباشرة بالصورة
+            response_type: "by_format", // طلب استجابة مباشرة بالصورة (صورة ثنائية)
             // يمكن إضافة خيارات إضافية هنا لتحسين اللقطة، مثل:
-            // viewport_width: 1920, // عرض لقطة الشاشة
-            // viewport_height: 1080, // ارتفاع لقطة الشاشة
-            // full_page: true, // التقاط الصفحة بالكامل
+            // viewport_width: 1123, // عرض المتصفح ليتناسب مع الصورة الخلفية
+            // viewport_height: 794, // ارتفاع المتصفح ليتناسب مع الصورة الخلفية
+            full_page: true, // التقاط الصفحة بالكامل
+            // ignore_host_errors: true, // يمكن تفعيل هذا إذا كنت تريد التقاط صفحة الخطأ 404
         };
+
+        console.log("Sending HTML to ScreenshotOne API..."); // للسجلات
 
         // إرسال طلب POST إلى ScreenshotOne API.
         const response = await fetch(screenshotOneApiUrl, {
@@ -162,6 +177,7 @@ exports.handler = async (event, context) => {
         // التحقق مما إذا كانت الاستجابة من ScreenshotOne ناجحة (status code 2xx).
         if (!response.ok) {
             const errorText = await response.text();
+            console.error("ScreenshotOne API error response:", response.status, errorText); // للسجلات
             try {
                 // محاولة تحليل رسالة الخطأ إذا كانت بصيغة JSON.
                 const errorData = JSON.parse(errorText);
@@ -185,6 +201,7 @@ exports.handler = async (event, context) => {
 
         // التحقق مما إذا كانت الصورة الناتجة فارغة.
         if (imageBuffer.length === 0) {
+            console.error("ScreenshotOne API returned an empty image buffer."); // للسجلات
             return {
                 statusCode: 500,
                 body: `<h1>خطأ في توليد الشهادة</h1><p>ScreenshotOne API أرجعت صورة فارغة. قد يكون هناك مشكلة في البيانات المدخلة أو حدود الخطة.</p>`,
@@ -208,13 +225,17 @@ exports.handler = async (event, context) => {
 
     } catch (error) {
         // التعامل مع أي أخطاء غير متوقعة تحدث أثناء تنفيذ الدالة.
+        console.error("Unexpected error in Netlify function:", error); // للسجلات
         return {
             statusCode: 500,
-            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>${error.message}</p>`,
+            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>تفاصيل الخطأ: ${error.message}</p><p>الرجاء مراجعة سجلات وظيفة Netlify.</p>`,
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         };
     } finally {
         // إغلاق اتصال MongoDB في كل الأحوال.
-        if (client) await client.close();
+        if (client) {
+            console.log("Closing MongoDB connection."); // للسجلات
+            await client.close();
+        }
     }
 };
