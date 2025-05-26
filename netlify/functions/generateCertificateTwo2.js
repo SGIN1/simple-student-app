@@ -1,5 +1,3 @@
-// netlify/functions/generateCertificateTwo2.js
-
 const { MongoClient, ObjectId } = require('mongodb');
 const fetch = require('node-fetch');
 
@@ -9,9 +7,9 @@ const collectionName = 'enrolled_students_tbl';
 
 const CONVERTAPI_TOKEN = process.env.CONVERTAPI_TOKEN;
 
-// إزالة مسارات الصور والخطوط الخارجية في هذا الاختبار لتبسيط HTML
-// const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`;
-// const FONT_PUBLIC_URL = '/.netlify/functions/arial.ttf';
+// تأكد أن هذا الرابط هو الرابط العام الصحيح لصورة الشهادة بعد النشر على Netlify.
+// بما أنك نقلت مجلد 'images' إلى جذر مشروعك، فهذا المسار صحيح.
+const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`; 
 
 const TEXT_STYLES = {
     STUDENT_NAME: { top: '220px', fontSize: '30px', color: '#000', textAlign: 'center', width: '80%', left: '10%' },
@@ -76,24 +74,54 @@ exports.handler = async (event, context) => {
 
         const studentNameArabic = student.arabic_name || 'اسم غير معروف';
         const serialNumber = student.serial_number || 'N/A';
+        const documentSerialNumber = student.document_serial_number || 'N/A';
+        const plateNumber = student.plate_number || 'N/A';
+        const carType = student.car_type || 'N/A';
+        const color = student.color || 'N/A';
 
-        // **محتوى HTML بسيط جدًا (بدون صور أو خطوط خارجية)**
+        // محتوى HTML مع صورة الخلفية كـ URL ووضع النص فوقها
         let htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
                 <meta charset="UTF-8">
-                <title>Simple Test</title>
+                <title>Certificate</title>
                 <style>
-                    body { font-family: sans-serif; text-align: center; }
-                    h1 { color: #333; }
-                    p { color: #666; }
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        font-family: Arial, sans-serif;
+                        position: relative;
+                        width: 794px; /* A4 width at 96dpi (approx) */
+                        height: 1123px; /* A4 height at 96dpi (approx) */
+                        overflow: hidden; /* Hide scrollbars if content overflows */
+                    }
+                    .certificate-container {
+                        position: relative;
+                        width: 100%;
+                        height: 100%;
+                        background-image: url('${CERTIFICATE_IMAGE_PUBLIC_URL}');
+                        background-size: cover; /* Cover the entire container */
+                        background-repeat: no-repeat;
+                        background-position: center;
+                    }
+                    .text-overlay {
+                        position: absolute;
+                        white-space: nowrap; /* Prevent text from wrapping */
+                        overflow: hidden; /* Hide overflow if text is too long */
+                        text-overflow: ellipsis; /* Add ellipsis for overflowed text */
+                    }
                 </style>
             </head>
             <body>
-                <h1>Hello, ${studentNameArabic}!</h1>
-                <p>This is a simple test certificate.</p>
-                <p>Serial Number: ${serialNumber}</p>
+                <div class="certificate-container">
+                    <div class="text-overlay" style="top: ${TEXT_STYLES.STUDENT_NAME.top}; left: ${TEXT_STYLES.STUDENT_NAME.left}; width: ${TEXT_STYLES.STUDENT_NAME.width}; text-align: ${TEXT_STYLES.STUDENT_NAME.textAlign}; font-size: ${TEXT_STYLES.STUDENT_NAME.fontSize}; color: ${TEXT_STYLES.STUDENT_NAME.color};">${studentNameArabic}</div>
+                    <div class="text-overlay" style="top: ${TEXT_STYLES.SERIAL_NUMBER.top}; left: ${TEXT_STYLES.SERIAL_NUMBER.left}; width: ${TEXT_STYLES.SERIAL_NUMBER.width}; text-align: ${TEXT_STYLES.SERIAL_NUMBER.textAlign}; font-size: ${TEXT_STYLES.SERIAL_NUMBER.fontSize}; color: ${TEXT_STYLES.SERIAL_NUMBER.color};">${serialNumber}</div>
+                    <div class="text-overlay" style="top: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.top}; left: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.left}; width: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.width}; text-align: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.textAlign}; font-size: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.fontSize}; color: ${TEXT_STYLES.DOCUMENT_SERIAL_NUMBER.color};">${documentSerialNumber}</div>
+                    <div class="text-overlay" style="top: ${TEXT_STYLES.PLATE_NUMBER.top}; left: ${TEXT_STYLES.PLATE_NUMBER.left}; width: ${TEXT_STYLES.PLATE_NUMBER.width}; text-align: ${TEXT_STYLES.PLATE_NUMBER.textAlign}; font-size: ${TEXT_STYLES.PLATE_NUMBER.fontSize}; color: ${TEXT_STYLES.PLATE_NUMBER.color};">${plateNumber}</div>
+                    <div class="text-overlay" style="top: ${TEXT_STYLES.CAR_TYPE.top}; left: ${TEXT_STYLES.CAR_TYPE.left}; width: ${TEXT_STYLES.CAR_TYPE.width}; text-align: ${TEXT_STYLES.CAR_TYPE.textAlign}; font-size: ${TEXT_STYLES.CAR_TYPE.fontSize}; color: ${TEXT_STYLES.CAR_TYPE.color};">${carType}</div>
+                    <div class="text-overlay" style="top: ${TEXT_STYLES.COLOR.top}; left: ${TEXT_STYLES.COLOR.left}; width: ${TEXT_STYLES.COLOR.width}; text-align: ${TEXT_STYLES.COLOR.textAlign}; font-size: ${TEXT_STYLES.COLOR.fontSize}; color: ${TEXT_STYLES.COLOR.color};">${color}</div>
+                </div>
             </body>
             </html>
         `.trim();
@@ -119,9 +147,9 @@ exports.handler = async (event, context) => {
                     FileValue: {
                         Base64: htmlBase64
                     },
-                    FileName: "simple_test.html"
+                    FileName: "certificate.html"
                 },
-                { Name: "PageSize", Value: "A4" } // استخدام حجم قياسي (A4) للاختبار
+                { Name: "PageSize", Value: "A4" }
             ]
         };
 
@@ -178,7 +206,7 @@ exports.handler = async (event, context) => {
             statusCode: 200,
             headers: {
                 'Content-Type': 'image/jpeg',
-                'Content-Disposition': `inline; filename="simple_test_certificate.jpg"`,
+                'Content-Disposition': `inline; filename="certificate.jpg"`,
                 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
                 'Pragma': 'no-cache',
                 'Expires': '0',
