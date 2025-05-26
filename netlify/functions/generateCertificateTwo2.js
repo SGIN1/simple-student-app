@@ -1,5 +1,5 @@
 const { MongoClient, ObjectId } = require('mongodb');
-const fetch = require('node-fetch'); // <--- هذا هو السطر المصحح!
+const fetch = require('node-fetch');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -191,7 +191,15 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const imageFileUrl = result.Files[0].Url;
+        // ****** التغيير هنا: التأكد من أن الرابط مطلق ******
+        let imageFileUrl = result.Files[0].Url;
+        if (!imageFileUrl.startsWith('http://') && !imageFileUrl.startsWith('https://')) {
+            // إذا كان الرابط نسبيًا، فقم ببناء رابط مطلق
+            imageFileUrl = `https://v2.convertapi.com${imageFileUrl}`; 
+            console.log('تم بناء رابط مطلق جديد:', imageFileUrl); // لتتبع السجلات
+        }
+        // ************************************************
+
         const imageResponse = await fetch(imageFileUrl);
         if (!imageResponse.ok) {
             throw new Error(`فشل في جلب الصورة من رابط ConvertAPI: ${imageResponse.statusText}`);
