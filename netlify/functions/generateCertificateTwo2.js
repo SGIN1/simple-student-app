@@ -145,10 +145,9 @@ exports.handler = async (event, context) => {
             html: htmlContent, // إرسال HTML مباشرةً
             format: "jpeg",
             response_type: "by_format", // نعود لطلب الصورة مباشرةً
-            viewport_width: 1123,
-            viewport_height: 794,
+            // viewport_width: 1123, // تم إزالة هذا السطر
+            // viewport_height: 794, // تم إزالة هذا السطر
             full_page: true,
-            // debug: true, // <--- هذا السطر تم إزالته لأنه غير مسموح به لـ HTML
         };
 
         console.log("Sending HTML to ScreenshotOne API...");
