@@ -5,11 +5,8 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// ******************************************************
-// ** تأكد من استخدام مفتاح ConvertAPI السري هنا          **
-// ** يجب أن يكون هذا متغير بيئة في Netlify               **
-// ******************************************************
-const CONVERTAPI_SECRET = process.env.CONVERTAPI_SECRET; 
+// تم تغيير اسم المتغير هنا ليتوافق مع ما ذكرته
+const CONVERTAPI_TOKEN = process.env.CONVERTAPI_TOKEN; 
 
 const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`; 
 
@@ -18,10 +15,11 @@ exports.handler = async (event, context) => {
 
     let client;
     try {
-        if (!CONVERTAPI_SECRET) {
+        // تم تغيير اسم المتغير في الشرط هنا
+        if (!CONVERTAPI_TOKEN) { 
             return {
                 statusCode: 500,
-                body: "<h1>خطأ في الخادم</h1><p>CONVERTAPI_SECRET غير مضبوط.</p>",
+                body: "<h1>خطأ في الخادم</h1><p>CONVERTAPI_TOKEN غير مضبوط.</p>",
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
@@ -116,15 +114,16 @@ exports.handler = async (event, context) => {
             </html>
         `.trim();
 
-        const convertApiUrl = `https://v2.convertapi.com/convert/html/to/jpg?Secret=${CONVERTAPI_SECRET}`;
+        // تم تعديل الرابط لاستخدام CONVERTAPI_TOKEN
+        const convertApiUrl = `https://v2.convertapi.com/convert/html/to/jpg?Secret=${CONVERTAPI_TOKEN}`;
 
         const response = await fetch(convertApiUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'text/html', // يجب أن يكون نوع المحتوى HTML
-                'Accept': 'application/json', // نتوقع استجابة JSON تحتوي على رابط الملف
+                'Content-Type': 'text/html', 
+                'Accept': 'application/json', 
             },
-            body: htmlContent, // إرسال محتوى HTML مباشرة
+            body: htmlContent, 
         });
 
         if (!response.ok) {
