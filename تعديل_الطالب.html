@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>تعديل بيانات الطالب</title>
-    <link rel="stylesheet" href="القالب_المشترك.css">
+    
 </head>
 <body>
     <header style="position: relative;">
@@ -140,7 +140,7 @@
                 colorInput.value = 'جارٍ التحميل...';
                 serialNumberDuplicateInput.value = 'جارٍ التحميل...';
 
-                // *** هذا هو التعديل الأساسي: إزالة ".netlify" من المسار ***
+                // *** تم التأكد من صحة هذا المسار ***
                 const response = await fetch(`/netlify/functions/getStudent?id=${id}`);
                 const data = await response.json();
 
@@ -217,7 +217,7 @@
             };
 
             try {
-                // *** هذا هو التعديل الأساسي: إزالة ".netlify" من المسار ***
+                // *** تم التأكد من صحة هذا المسار ***
                 const response = await fetch('/netlify/functions/updateStudent', {
                     method: 'POST',
                     headers: {

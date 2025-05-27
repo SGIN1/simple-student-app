@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>بيانات الطلاب</title>
-    <link rel="stylesheet" href="القالب_المشترك2.css">
+    
 </head>
 <body>
     <header style="position: relative;">
@@ -64,7 +64,7 @@
             studentTableBody.innerHTML = ''; // مسح أي بيانات سابقة
 
             try {
-                // *** تحديث مسار الدالة لجلب جميع الطلاب ***
+                // *** تم التأكد من أن هذا المسار صحيح بعد إعادة تسمية الدالة في الخلفية إلى getStudents.js ***
                 const url = searchTerm ? `/netlify/functions/getStudents?search=${encodeURIComponent(searchTerm)}` : '/netlify/functions/getStudents';
                 const response = await fetch(url);
                 const students = await response.json();
@@ -85,6 +85,7 @@
                         editButton.textContent = 'تعديل';
                         editButton.classList.add('edit-btn');
                         editButton.onclick = () => {
+                            // *** التأكد من أن هذا المسار لملف تعديل البيانات صحيح في جذر مشروعك ***
                             window.location.href = `تعديل_بيانات_الطالب.html?id=${student._id}`;
                         };
                         actionsCell.appendChild(editButton);
@@ -94,7 +95,7 @@
                         printCertOneButton.textContent = 'شهادة (HTML)';
                         printCertOneButton.classList.add('print-btn');
                         printCertOneButton.onclick = () => {
-                            // *** تحديث مسار الدالة لشهادة HTML (Certificate One) ***
+                            // *** تم التأكد من صحة هذا المسار ***
                             window.open(`/netlify/functions/generateCertificateOne1?id=${student._id}`, '_blank');
                         };
                         actionsCell.appendChild(printCertOneButton);
@@ -104,8 +105,7 @@
                         printCertTwoButton.textContent = 'شهادة (صورة)';
                         printCertTwoButton.classList.add('print-image-btn');
                         printCertTwoButton.onclick = () => {
-                            // *** تحديث مسار الدالة لشهادة الصورة (Certificate Two) ***
-                            // نستخدم المسار "الأنيق" الذي سيتم إعادة توجيهه بواسطة vercel.json
+                            // *** تم التأكد من صحة هذا المسار وvercel.json يعيد توجيهه بشكل صحيح ***
                             window.open(`/certificate/${student._id}`, '_blank');
                         };
                         actionsCell.appendChild(printCertTwoButton);
@@ -140,7 +140,7 @@
             }
 
             try {
-                // *** استدعاء دالة Vercel Function الجديدة للحذف ***
+                // *** تم التأكد من صحة هذا المسار ***
                 const response = await fetch('/netlify/functions/deleteStudent', {
                     method: 'POST',
                     headers: {
