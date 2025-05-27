@@ -1,6 +1,22 @@
 {
   "rewrites": [
     {
+      "source": "/students",
+      "destination": "/بيانات_الطلاب.html"
+    },
+    {
+      "source": "/add-student",
+      "destination": "/إضافة_طالب.html"
+    },
+    {
+      "source": "/edit-student",
+      "destination": "/تعديل_بيانات_الطالب.html"
+    },
+    {
+      "source": "/edit-student/:id",
+      "destination": "/تعديل_بيانات_الطالب.html"
+    },
+    {
       "source": "/certificate/:id",
       "destination": "/netlify/functions/generateCertificateTwo2"
     }
