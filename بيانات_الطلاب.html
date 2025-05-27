@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>بيانات الطلاب</title>
-    <link rel="stylesheet" href="%D8%A7%D9%84%D9%82%D8%A7%D9%84%D8%A8_%D8%A7%D9%84%D9%85%D8%B4%D8%AA%D8%B1%D9%832.css">
+    <link rel="stylesheet" href="القالب_المشترك2.css">
 </head>
 <body>
     <header style="position: relative;">
@@ -11,7 +11,8 @@
             <div class="menu-icon" id="menu-toggle">☰</div>
             <h1>بيانات الطلاب</h1>
             <ul id="dropdown-menu" class="hidden">
-                <li><a href="إضافة_طالب.html">إضافة طالب جديد</a></li>
+                {{!-- تم تحديث الرابط هنا --}}
+                <li><a href="/add-student">إضافة طالب جديد</a></li>
             </ul>
         </div>
     </header>
@@ -85,8 +86,8 @@
                         editButton.textContent = 'تعديل';
                         editButton.classList.add('edit-btn');
                         editButton.onclick = () => {
-                            // *** التأكد من أن هذا المسار لملف تعديل البيانات صحيح في جذر مشروعك ***
-                            window.location.href = `تعديل_بيانات_الطالب.html?id=${student._id}`;
+                            // {{!-- تم تحديث الرابط هنا --}}
+                            window.location.href = `/edit-student?id=${student._id}`;
                         };
                         actionsCell.appendChild(editButton);
 

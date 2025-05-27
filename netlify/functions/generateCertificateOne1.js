@@ -7,7 +7,8 @@ const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
 // **هام جدًا:** تأكد من أن هذا الرابط يشير إلى الدومين الجديد الخاص بك
-const NETLIFY_BASE_URL = 'https://ssadsd.kozow.com'; // استبدل بـاسم دومينك
+// تم تعطيله مؤقتًا لتجنب التضارب أثناء التطوير. يجب إزالة التعليق وتعيين الدومين الصحيح بعد النشر.
+// const NETLIFY_BASE_URL = 'https://ssadsd.kozow.com'; // استبدل بـاسم دومينك
 
 exports.handler = async (event, context) => {
     const studentId = event.queryStringParameters.id;
@@ -31,12 +32,14 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // **التعديل هنا:** إنشاء رابط URL كامل للشهادة الثانية باستخدام الرابط الأنيق مع الدومين الجديد
-        const certificateTwoUrl = `${NETLIFY_BASE_URL}/certificate/${student._id}`;
+        // استخدام رابط نسبي أو افتراضي عند تعطيل NETLIFY_BASE_URL
+        // في بيئة التطوير المحلية، قد تحتاج لضبط هذا يدويًا للاختبار
+        const certificateTwoUrl = `/certificate/${student._id}`; // سيتم حل هذا المسار بواسطة vercel.json
 
         let qrCodeDataUri;
 
         try {
+            // سيتم استخدام المسار النسبي أو الافتراضي لإنشاء QR Code مؤقتًا
             qrCodeDataUri = await QRCode.toDataURL(certificateTwoUrl);
         } catch (err) {
             console.error("Error generating QR code:", err);

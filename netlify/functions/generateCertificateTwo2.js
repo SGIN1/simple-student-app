@@ -1,8 +1,8 @@
+// netlify/functions/generateCertificateTwo2.js
 const { MongoClient, ObjectId } = require('mongodb');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch'); // تأكد من تثبيت 'node-fetch' (npm install node-fetch)
 
 // رابط اتصال قاعدة البيانات MongoDB.
-// يجب ضبط هذا المتغير (MONGODB_URI) في إعدادات Netlify كمتغير بيئة.
 const uri = process.env.MONGODB_URI;
 // اسم قاعدة البيانات في MongoDB
 const dbName = 'Cluster0';
@@ -10,14 +10,12 @@ const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
 // مفتاح الوصول لخدمة ScreenshotOne API.
-// يجب ضبط هذا المتغير (SCREENSHOTONE_ACCESS_KEY) في إعدادات Netlify كمتغير بيئة.
-const SCREENSHOTONE_ACCESS_KEY = process.env.SCREENSHOTONE_ACCESS_KEY;
+// تم تعطيله مؤقتًا لتقليل المشاكل أثناء النقل.
+// يجب عليك إزالة التعليق وتعيين هذا المتغير في إعدادات Vercel كمتغير بيئة عند الحاجة.
+// const SCREENSHOTONE_ACCESS_KEY = process.env.SCREENSHOTONE_ACCESS_KEY;
 
 // الرابط العام (Public URL) للصورة الخلفية للشهادة.
 // تأكد أن هذا الرابط صحيح ويمكن الوصول إليه من الإنترنت.
-// ملاحظة: الصورة في المسار C:\images\wwee.jpg لا يمكن الوصول إليها مباشرة من الإنترنت.
-// يجب أن تكون الصورة مرفوعة على استضافة ويب أو CDN ليتمكن Netlify من الوصول إليها.
-// الرابط الحالي: https://ssadsd.kozow.com/images/full/wwee.jpg
 // تأكد أن هذه الصورة الموجودة على الرابط هي نفسها التي أبعادها 978x1280 بكسل.
 const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`;
 
@@ -27,25 +25,31 @@ exports.handler = async (event, context) => {
     const studentId = event.path.split('/').pop();
 
     let client; // متغير لتخزين كائن عميل MongoDB
+
     try {
-        // التحقق مما إذا كان مفتاح ScreenshotOne مضبوطًا.
-        if (!SCREENSHOTONE_ACCESS_KEY) {
-            console.error("SCREENSHOTONE_ACCESS_KEY is not set.");
-            return {
-                statusCode: 500,
-                body: "<h1>خطأ في الخادم</h1><p>SCREENSHOTONE_ACCESS_KEY غير مضبوط. يرجى التحقق من متغيرات البيئة في Netlify.</p>",
-                headers: { 'Content-Type': 'text/html; charset=utf-8' },
-            };
-        }
         // التحقق مما إذا كان URI الخاص بـ MongoDB مضبوطًا.
         if (!uri) {
             console.error("MONGODB_URI is not set.");
             return {
                 statusCode: 500,
-                body: "<h1>خطأ في الخادم</h1><p>MONGODB_URI غير مضبوط.</p>",
+                body: "<h1>خطأ في الخادم</h1><p>MONGODB_URI غير مضبوط. يرجى التحقق من متغيرات البيئة في Vercel.</p>",
                 headers: { 'Content-Type': 'text/html; charset=utf-8' },
             };
         }
+
+        // تم تعطيل مفتاح ScreenshotOne مؤقتًا.
+        // إذا كان المفتاح غير معرف (لأنه معلق)، سنرجع رسالة خطأ.
+        // يجب إزالة التعليق وتعيينه في متغيرات البيئة ليعمل توليد الصور.
+        if (!process.env.SCREENSHOTONE_ACCESS_KEY) {
+            console.warn("SCREENSHOTONE_ACCESS_KEY is not set. Screenshot generation will be skipped.");
+            return {
+                statusCode: 501, // Not Implemented or Service Unavailable
+                body: "<h1>توليد الشهادة غير متاح حاليًا</h1><p>تم تعطيل وظيفة توليد الشهادة الصورية مؤقتًا (SCREENSHOTONE_ACCESS_KEY غير مضبوط). يرجى الاتصال بالمسؤول.</p>",
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            };
+        }
+        const SCREENSHOTONE_ACCESS_KEY = process.env.SCREENSHOTONE_ACCESS_KEY;
+
 
         // إنشاء اتصال بقاعدة بيانات MongoDB.
         client = new MongoClient(uri);
@@ -148,7 +152,7 @@ exports.handler = async (event, context) => {
 
         // بناء جسم الطلب (Payload) لإرساله إلى ScreenshotOne.
         const screenshotOneRequestBody = {
-            access_key: SCREENSHOTONE_ACCESS_KEY,
+            access_key: SCREENSHOTONE_ACCESS_KEY, // سيتم استخدام المتغير المعرّف من process.env
             html: htmlContent, // إرسال HTML مباشرةً
             format: "jpeg",
             response_type: "by_format",
