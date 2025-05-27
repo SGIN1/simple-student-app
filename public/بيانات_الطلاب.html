@@ -65,8 +65,8 @@
             studentTableBody.innerHTML = ''; // مسح أي بيانات سابقة
 
             try {
-                // *** تم التأكد من أن هذا المسار صحيح بعد إعادة تسمية الدالة في الخلفية إلى getStudents.js ***
-                const url = searchTerm ? `/netlify/functions/getStudents?search=${encodeURIComponent(searchTerm)}` : '/netlify/functions/getStudents';
+                // تم تحديث المسار هنا
+                const url = searchTerm ? `/api/getStudents?search=${encodeURIComponent(searchTerm)}` : '/api/getStudents';
                 const response = await fetch(url);
                 const students = await response.json();
 
@@ -86,7 +86,7 @@
                         editButton.textContent = 'تعديل';
                         editButton.classList.add('edit-btn');
                         editButton.onclick = () => {
-                            // {{!-- تم تحديث الرابط هنا --}}
+                            // تم تحديث الرابط هنا
                             window.location.href = `/edit-student?id=${student._id}`;
                         };
                         actionsCell.appendChild(editButton);
@@ -96,8 +96,8 @@
                         printCertOneButton.textContent = 'شهادة (HTML)';
                         printCertOneButton.classList.add('print-btn');
                         printCertOneButton.onclick = () => {
-                            // *** تم التأكد من صحة هذا المسار ***
-                            window.open(`/netlify/functions/generateCertificateOne1?id=${student._id}`, '_blank');
+                            // تم تحديث المسار هنا
+                            window.open(`/api/generateCertificateOne1?id=${student._id}`, '_blank');
                         };
                         actionsCell.appendChild(printCertOneButton);
 
@@ -106,7 +106,8 @@
                         printCertTwoButton.textContent = 'شهادة (صورة)';
                         printCertTwoButton.classList.add('print-image-btn');
                         printCertTwoButton.onclick = () => {
-                            // *** تم التأكد من صحة هذا المسار وvercel.json يعيد توجيهه بشكل صحيح ***
+                            // تم التأكد من صحة هذا المسار وvercel.json يعيد توجيهه بشكل صحيح
+                            // لا توجد تغييرات هنا لأن vercel.json يعالجها بالفعل
                             window.open(`/certificate/${student._id}`, '_blank');
                         };
                         actionsCell.appendChild(printCertTwoButton);
@@ -141,8 +142,8 @@
             }
 
             try {
-                // *** تم التأكد من صحة هذا المسار ***
-                const response = await fetch('/netlify/functions/deleteStudent', {
+                // تم تحديث المسار هنا
+                const response = await fetch('/api/deleteStudent', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

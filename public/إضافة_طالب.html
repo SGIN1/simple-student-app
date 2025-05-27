@@ -130,7 +130,8 @@
             messageDiv.textContent = 'جاري إضافة الطالب...';
             messageDiv.className = 'message';
 
-            const response = await fetch('/.netlify/functions/addStudent', {
+            // تم تحديث المسار هنا
+            const response = await fetch('/api/addStudent', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
