@@ -11,7 +11,6 @@
             <div class="menu-icon" id="menu-toggle">☰</div>
             <h1>بيانات الطلاب</h1>
             <ul id="dropdown-menu" class="hidden">
-                {{!-- تم تحديث الرابط هنا --}}
                 <li><a href="/add-student">إضافة طالب جديد</a></li>
             </ul>
         </div>
@@ -65,7 +64,7 @@
             studentTableBody.innerHTML = ''; // مسح أي بيانات سابقة
 
             try {
-                // تم تحديث المسار هنا
+                // المسار الصحيح الآن هو /api/getStudents
                 const url = searchTerm ? `/api/getStudents?search=${encodeURIComponent(searchTerm)}` : '/api/getStudents';
                 const response = await fetch(url);
                 const students = await response.json();
@@ -86,8 +85,7 @@
                         editButton.textContent = 'تعديل';
                         editButton.classList.add('edit-btn');
                         editButton.onclick = () => {
-                            // تم تحديث الرابط هنا
-                            window.location.href = `/edit-student?id=${student._id}`;
+                            window.location.href = `/edit-student?id=${student.id}`; // استخدام student.id
                         };
                         actionsCell.appendChild(editButton);
 
@@ -96,8 +94,7 @@
                         printCertOneButton.textContent = 'شهادة (HTML)';
                         printCertOneButton.classList.add('print-btn');
                         printCertOneButton.onclick = () => {
-                            // تم تحديث المسار هنا
-                            window.open(`/api/generateCertificateOne1?id=${student._id}`, '_blank');
+                            window.open(`/api/generateCertificateOne1?id=${student.id}`, '_blank'); // استخدام student.id
                         };
                         actionsCell.appendChild(printCertOneButton);
 
@@ -106,9 +103,7 @@
                         printCertTwoButton.textContent = 'شهادة (صورة)';
                         printCertTwoButton.classList.add('print-image-btn');
                         printCertTwoButton.onclick = () => {
-                            // تم التأكد من صحة هذا المسار وvercel.json يعيد توجيهه بشكل صحيح
-                            // لا توجد تغييرات هنا لأن vercel.json يعالجها بالفعل
-                            window.open(`/certificate/${student._id}`, '_blank');
+                            window.open(`/certificate/${student.id}`, '_blank'); // استخدام student.id
                         };
                         actionsCell.appendChild(printCertTwoButton);
 
@@ -116,7 +111,7 @@
                         const deleteButton = document.createElement('button');
                         deleteButton.textContent = 'حذف';
                         deleteButton.classList.add('delete-btn');
-                        deleteButton.setAttribute('data-id', student._id); // تخزين ID في خاصية data-id
+                        deleteButton.setAttribute('data-id', student.id); // استخدام student.id
                         actionsCell.appendChild(deleteButton);
                     });
                     loadingMessage.style.display = 'none';
@@ -142,7 +137,6 @@
             }
 
             try {
-                // تم تحديث المسار هنا
                 const response = await fetch('/api/deleteStudent', {
                     method: 'POST',
                     headers: {

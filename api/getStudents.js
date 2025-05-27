@@ -1,4 +1,4 @@
-// netlify/functions/getStudent.js
+// api/getStudents.js
 const { MongoClient, ObjectId } = require('mongodb');
 
 // تعريف رابط الاتصال واسم قاعدة البيانات من متغيرات البيئة
@@ -8,7 +8,8 @@ const collectionName = 'enrolled_students_tbl';
 
 exports.handler = async (event, context) => {
     let client; // تعريف الـ client هنا
-    const studentId = event.queryStringParameters.id;
+    const searchTerm = event.queryStringParameters.search; // جلب مصطلح البحث
+    const studentId = event.queryStringParameters.id; // جلب مُعرف الطالب إذا وجد
 
     try {
         // التحقق من وجود رابط الاتصال
@@ -71,8 +72,20 @@ exports.handler = async (event, context) => {
                 };
             }
         } else {
-            // إذا لم يتم توفير مُعرّف الطالب، قم بجلب جميع الطلاب
-            const students = await studentsCollection.find({}).toArray();
+            // إذا لم يتم توفير مُعرّف الطالب، قم بجلب جميع الطلاب مع تطبيق البحث
+            let query = {};
+            if (searchTerm) {
+                // استخدام تعبيرات منتظمة للبحث الجزئي وغير الحساس لحالة الأحرف
+                query = {
+                    $or: [
+                        { serial_number: { $regex: searchTerm, $options: 'i' } },
+                        { plate_number: { $regex: searchTerm, $options: 'i' } },
+                        { chassis_number: { $regex: searchTerm, $options: 'i' } }
+                    ]
+                };
+            }
+
+            const students = await studentsCollection.find(query).toArray();
             const formattedStudents = students.map(student => ({
                 id: student._id.toString(),
                 serial_number: student.serial_number,
