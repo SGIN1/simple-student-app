@@ -252,7 +252,7 @@ th:nth-child(15), td:nth-child(15) { /* تاريخ الإضافة */
 th:nth-child(16), td:nth-child(16), /* الإجراءات (تعديل) */
 th:nth-child(17), td:nth-child(17), /* الإجراءات1 (حذف) */
 th:nth-child(18), td:nth-child(18), /* عرض الشهادة الأولى */
-th:nth-child(19), td:nth-child(19)    /* عرض الشهادة الثانية */
+th:nth-child(19), td:nth-child(19)   /* عرض الشهادة الثانية */
 {
     width: 100px; /* عرض ثابت لأعمدة الإجراءات */
 }

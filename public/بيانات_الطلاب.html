@@ -11,6 +11,7 @@
             <div class="menu-icon" id="menu-toggle">☰</div>
             <h1>بيانات الطلاب</h1>
             <ul id="dropdown-menu" class="hidden">
+                {{!-- تم تحديث الرابط هنا --}}
                 <li><a href="/add-student">إضافة طالب جديد</a></li>
             </ul>
         </div>
@@ -64,8 +65,8 @@
             studentTableBody.innerHTML = ''; // مسح أي بيانات سابقة
 
             try {
-                // المسار الصحيح الآن هو /api/getStudents
-                const url = searchTerm ? `/api/getStudents?search=${encodeURIComponent(searchTerm)}` : '/api/getStudents';
+                // تم تغيير المسار هنا ليتوافق مع getStudent (بالمفرد)
+                const url = searchTerm ? `/api/getStudent?search=${encodeURIComponent(searchTerm)}` : '/api/getStudent';
                 const response = await fetch(url);
                 const students = await response.json();
 
@@ -85,7 +86,7 @@
                         editButton.textContent = 'تعديل';
                         editButton.classList.add('edit-btn');
                         editButton.onclick = () => {
-                            window.location.href = `/edit-student?id=${student.id}`; // استخدام student.id
+                            window.location.href = `/edit-student?id=${student.id}`;
                         };
                         actionsCell.appendChild(editButton);
 
@@ -94,7 +95,7 @@
                         printCertOneButton.textContent = 'شهادة (HTML)';
                         printCertOneButton.classList.add('print-btn');
                         printCertOneButton.onclick = () => {
-                            window.open(`/api/generateCertificateOne1?id=${student.id}`, '_blank'); // استخدام student.id
+                            window.open(`/api/generateCertificateOne1?id=${student.id}`, '_blank');
                         };
                         actionsCell.appendChild(printCertOneButton);
 
@@ -103,7 +104,7 @@
                         printCertTwoButton.textContent = 'شهادة (صورة)';
                         printCertTwoButton.classList.add('print-image-btn');
                         printCertTwoButton.onclick = () => {
-                            window.open(`/certificate/${student.id}`, '_blank'); // استخدام student.id
+                            window.open(`/certificate/${student.id}`, '_blank');
                         };
                         actionsCell.appendChild(printCertTwoButton);
 
@@ -111,7 +112,7 @@
                         const deleteButton = document.createElement('button');
                         deleteButton.textContent = 'حذف';
                         deleteButton.classList.add('delete-btn');
-                        deleteButton.setAttribute('data-id', student.id); // استخدام student.id
+                        deleteButton.setAttribute('data-id', student.id);
                         actionsCell.appendChild(deleteButton);
                     });
                     loadingMessage.style.display = 'none';
@@ -130,26 +131,27 @@
             }
         }
 
-        // دالة حذف الطالب
+        // دالة حذف الطالب (المسار يبقى /api/deleteStudent بناءً على سجلات Vercel)
         async function deleteStudent(studentId) {
             if (!confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟')) {
-                return; // إلغاء الحذف إذا لم يؤكد المستخدم
+                return;
             }
 
             try {
+                // يفترض أن اسم الملف هو deleteStudent.js (بالإنجليزي)
                 const response = await fetch('/api/deleteStudent', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ id: studentId }) // إرسال المعرف في جسم الطلب
+                    body: JSON.stringify({ id: studentId })
                 });
 
                 const result = await response.json();
 
                 if (response.ok) {
                     alert('تم حذف الطالب بنجاح!');
-                    fetchStudents(); // إعادة تحميل الطلاب بعد الحذف
+                    fetchStudents();
                 } else {
                     alert(`فشل الحذف: ${result.error || 'خطأ غير معروف'}`);
                     console.error('Error deleting student:', result.error);
@@ -169,7 +171,7 @@
         // إضافة مستمع لحدث "Enter" في حقل البحث
         searchInput.addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {
-                searchButton.click(); // محاكاة النقر على زر البحث
+                searchButton.click();
             }
         });
 
