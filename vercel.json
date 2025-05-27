@@ -22,7 +22,7 @@
     },
     {
       "source": "/certificate/:id",
-      "destination": "/netlify/functions/generateCertificateTwo2"
+      "destination": "/api/generateCertificateTwo2"
     }
   ]
 }
