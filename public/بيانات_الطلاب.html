@@ -11,7 +11,6 @@
             <div class="menu-icon" id="menu-toggle">☰</div>
             <h1>بيانات الطلاب</h1>
             <ul id="dropdown-menu" class="hidden">
-                {{!-- تم تحديث الرابط هنا --}}
                 <li><a href="/add-student">إضافة طالب جديد</a></li>
             </ul>
         </div>
@@ -57,15 +56,14 @@
         const searchInput = document.getElementById('searchInput');
         const searchButton = document.getElementById('searchButton');
 
-        // دالة لجلب وعرض بيانات الطلاب
         async function fetchStudents(searchTerm = '') {
             loadingMessage.style.display = 'block';
             studentsTable.style.display = 'none';
             noStudentsMessage.style.display = 'none';
-            studentTableBody.innerHTML = ''; // مسح أي بيانات سابقة
+            studentTableBody.innerHTML = '';
 
             try {
-                // تم تغيير المسار هنا ليتوافق مع getStudent (بالمفرد)
+                // ******* المسار هنا: /api/getStudent (بالفعل كان صحيحاً) *******
                 const url = searchTerm ? `/api/getStudent?search=${encodeURIComponent(searchTerm)}` : '/api/getStudent';
                 const response = await fetch(url);
                 const students = await response.json();
@@ -81,7 +79,6 @@
 
                         const actionsCell = row.insertCell();
 
-                        // زر تعديل
                         const editButton = document.createElement('button');
                         editButton.textContent = 'تعديل';
                         editButton.classList.add('edit-btn');
@@ -90,7 +87,6 @@
                         };
                         actionsCell.appendChild(editButton);
 
-                        // زر طباعة الشهادة الأولى
                         const printCertOneButton = document.createElement('button');
                         printCertOneButton.textContent = 'شهادة (HTML)';
                         printCertOneButton.classList.add('print-btn');
@@ -99,7 +95,6 @@
                         };
                         actionsCell.appendChild(printCertOneButton);
 
-                        // زر طباعة الشهادة الثانية
                         const printCertTwoButton = document.createElement('button');
                         printCertTwoButton.textContent = 'شهادة (صورة)';
                         printCertTwoButton.classList.add('print-image-btn');
@@ -108,7 +103,6 @@
                         };
                         actionsCell.appendChild(printCertTwoButton);
 
-                        // زر حذف الطالب
                         const deleteButton = document.createElement('button');
                         deleteButton.textContent = 'حذف';
                         deleteButton.classList.add('delete-btn');
@@ -131,15 +125,14 @@
             }
         }
 
-        // دالة حذف الطالب (المسار يبقى /api/deleteStudent بناءً على سجلات Vercel)
         async function deleteStudent(studentId) {
             if (!confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟')) {
                 return;
             }
 
             try {
-                // يفترض أن اسم الملف هو deleteStudent.js (بالإنجليزي)
-                const response = await fetch('/api/deleteStudent', {
+                // ******* التعديل هنا: المسار أصبح بالإنجليزية الآن *******
+                const response = await fetch('/api/deleteStudent', { 
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -162,20 +155,17 @@
             }
         }
 
-        // إضافة مستمع لزر البحث
         searchButton.addEventListener('click', () => {
             const searchTerm = searchInput.value.trim();
             fetchStudents(searchTerm);
         });
 
-        // إضافة مستمع لحدث "Enter" في حقل البحث
         searchInput.addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {
                 searchButton.click();
             }
         });
 
-        // إضافة مستمع عام للنقر للتعامل مع أزرار الحذف
         document.addEventListener('click', function(event) {
             if (event.target.classList.contains('delete-btn')) {
                 const studentId = event.target.dataset.id;
@@ -183,10 +173,8 @@
             }
         });
 
-        // جلب الطلاب عند تحميل الصفحة لأول مرة
         window.onload = fetchStudents;
 
-        // منطق القائمة المنسدلة (شريط التنقل)
         const menuToggle = document.getElementById('menu-toggle');
         const dropdownMenu = document.getElementById('dropdown-menu');
 

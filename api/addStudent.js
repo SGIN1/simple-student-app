@@ -1,26 +1,24 @@
-// api/إضافة طالب.js  (اسم الملف الفعلي يجب أن يكون هكذا ليتوافق مع المسار الذي ظهر في سجلات Vercel)
+// api/addStudent.js
 const { MongoClient } = require('mongodb');
 
-// تعريف رابط الاتصال واسم قاعدة البيانات من متغيرات البيئة
 const uri = process.env.MONGODB_URI;
-const dbName = "Cluster0"; // تأكد من أن هذا هو اسم قاعدة البيانات الصحيح
-const collectionName = 'enrolled_students_tbl'; // تأكد من أن هذا هو اسم الكولكشن الصحيح
+const dbName = "Cluster0";
+const collectionName = 'enrolled_students_tbl';
 
-exports.handler = async (event, context) => {
-    // التحقق من أن الطلب هو POST
-    if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed. Only POST requests are accepted.' }) };
+module.exports = async (req, res) => {
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method Not Allowed. Only POST requests are accepted.' });
+        return;
     }
 
-    let client; // تعريف الـ client هنا ليكون متاحًا في الـ finally
+    let client;
 
     try {
-        // التحقق من وجود رابط الاتصال
         if (!uri) {
-            throw new Error('لم يتم العثور على رابط اتصال MongoDB في متغيرات البيئة. تأكد من إعداده في Vercel.');
+            res.status(500).json({ error: 'لم يتم العثور على رابط اتصال MongoDB في متغيرات البيئة.' });
+            return;
         }
 
-        // تحليل بيانات الـ JSON المرسلة في جسم الطلب
         const {
             serial_number,
             residency_number,
@@ -35,24 +33,18 @@ exports.handler = async (event, context) => {
             vehicle_model,
             color,
             serial_number_duplicate
-        } = JSON.parse(event.body);
+        } = req.body;
 
-        // التحقق من الحقول الإلزامية
         if (!serial_number || !residency_number) {
-            return {
-                statusCode: 400,
-                body: JSON.stringify({ error: 'الرقم التسلسلي ورقم الإقامة كلاهما مطلوبان لإضافة الطالب.' }),
-                headers: { 'Content-Type': 'application/json' },
-            };
+            res.status(400).json({ error: 'الرقم التسلسلي ورقم الإقامة كلاهما مطلوبان.' });
+            return;
         }
 
-        // إنشاء عميل MongoDB والاتصال بقاعدة البيانات
         client = new MongoClient(uri);
         await client.connect();
         const database = client.db(dbName);
         const studentsCollection = database.collection(collectionName);
 
-        // إدخال مستند الطالب الجديد إلى الكولكشن
         const result = await studentsCollection.insertOne({
             serial_number,
             residency_number,
@@ -62,41 +54,25 @@ exports.handler = async (event, context) => {
             manufacturer,
             inspection_expiry_date,
             car_type,
-            counter_reading: Number(counter_reading), // التأكد من تحويلها لرقم
+            counter_reading: Number(counter_reading),
             chassis_number,
             vehicle_model,
             color,
             serial_number_duplicate,
-            created_at: new Date() // إضافة تاريخ الإنشاء التلقائي
+            created_at: new Date()
         });
 
-        // التحقق من نجاح عملية الإدخال
         if (result.acknowledged && result.insertedId) {
-            return {
-                statusCode: 200,
-                body: JSON.stringify({ message: 'تم إضافة الطالب بنجاح!', id: result.insertedId.toString() }),
-                headers: { 'Content-Type': 'application/json' },
-            };
+            res.status(200).json({ message: 'تم إضافة الطالب بنجاح!', id: result.insertedId.toString() });
         } else {
-            // في حالة عدم نجاح الإدخال بالكامل
-            return {
-                statusCode: 500,
-                body: JSON.stringify({ error: 'فشل في إضافة الطالب إلى قاعدة البيانات. ربما لم يتم إدخال المستند.' }),
-                headers: { 'Content-Type': 'application/json' },
-            };
+            res.status(500).json({ error: 'فشل في إضافة الطالب إلى قاعدة البيانات.' });
         }
 
     } catch (error) {
-        // التعامل مع أي أخطاء تحدث أثناء العملية
         console.error('خطأ في وظيفة إضافة الطالب:', error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: error.message || 'حدث خطأ غير متوقع في الخادم أثناء إضافة الطالب.' }),
-            headers: { 'Content-Type': 'application/json' },
-        };
+        res.status(500).json({ error: error.message || 'حدث خطأ غير متوقع في الخادم.' });
     } finally {
         if (client) {
-            // إغلاق الاتصال بقاعدة البيانات لضمان عدم وجود اتصالات معلقة
             await client.close();
         }
     }

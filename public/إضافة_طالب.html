@@ -80,7 +80,6 @@
             dropdownMenu.classList.toggle('hidden');
         });
 
-        // إغلاق القائمة المنسدلة عند النقر خارجها
         document.addEventListener('click', (event) => {
             if (!menuToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
                 dropdownMenu.classList.add('hidden');
@@ -90,7 +89,6 @@
         const inspectionDateInput = document.getElementById('inspection_date');
         const expiryDateInput = document.getElementById('inspection_expiry_date');
 
-        // دالة لحساب تاريخ انتهاء الفحص بإضافة سنة واحدة
         function calculateExpiryDate(inspectionDate) {
             if (!inspectionDate) {
                 return '';
@@ -103,7 +101,6 @@
             return `${year}-${month}-${day}`;
         }
 
-        // إضافة مستمع لحدث تغيير حقل تاريخ الفحص
         inspectionDateInput.addEventListener('change', function() {
             expiryDateInput.value = calculateExpiryDate(this.value);
         });
@@ -128,39 +125,46 @@
             messageDiv.textContent = 'جاري إضافة الطالب...';
             messageDiv.className = 'message';
 
-            // تم تحديث المسار هنا لمحاولة استدعاء الدالة بالاسم العربي
-            // ملاحظة: هذا المسار قد لا يعمل بشكل موثوق على Vercel بسبب طبيعة المسارات.
-            const response = await fetch('/api/%D8%A5%D8%B6%D8%A7%D9%81%D8%A9%20%D8%B7%D8%A7%D9%84%D8%A8', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    serial_number: serialNumber,
-                    residency_number: residencyNumber,
-                    document_serial_number: documentSerialNumber,
-                    plate_number: plateNumber,
-                    inspection_date: inspectionDate,
-                    manufacturer: manufacturer,
-                    inspection_expiry_date: inspectionExpiryDate,
-                    car_type: carType,
-                    counter_reading: counterReading,
-                    chassis_number: chassisNumber,
-                    vehicle_model: vehicleModel,
-                    color: color,
-                    serial_number_duplicate: serialNumberDuplicate
-                }),
-            });
+            // ******* التعديل هنا: المسار أصبح بالإنجليزية الآن *******
+            const apiPath = '/api/addStudent'; 
 
-            const data = await response.json();
+            try {
+                const response = await fetch(apiPath, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        serial_number: serialNumber,
+                        residency_number: residencyNumber,
+                        document_serial_number: documentSerialNumber,
+                        plate_number: plateNumber,
+                        inspection_date: inspectionDate,
+                        manufacturer: manufacturer,
+                        inspection_expiry_date: inspectionExpiryDate,
+                        car_type: carType,
+                        counter_reading: counterReading,
+                        chassis_number: chassisNumber,
+                        vehicle_model: vehicleModel,
+                        color: color,
+                        serial_number_duplicate: serialNumberDuplicate
+                    }),
+                });
 
-            if (response.ok) {
-                messageDiv.textContent = data.message || 'تمت إضافة الطالب بنجاح! سيتم نقلك لصفحة البيانات.';
-                messageDiv.className = 'message success';
-                document.getElementById('addStudentForm').reset();
-                window.location.href = '/students';
-            } else {
-                messageDiv.textContent = data.error || 'حدث خطأ أثناء محاولة إضافة الطالب.';
+                const data = await response.json();
+
+                if (response.ok) {
+                    messageDiv.textContent = data.message || 'تمت إضافة الطالب بنجاح! سيتم نقلك لصفحة البيانات.';
+                    messageDiv.className = 'message success';
+                    document.getElementById('addStudentForm').reset();
+                    window.location.href = '/students';
+                } else {
+                    messageDiv.textContent = data.error || 'حدث خطأ أثناء محاولة إضافة الطالب.';
+                    messageDiv.className = 'message error';
+                }
+            } catch (error) {
+                console.error('Error during API call:', error);
+                messageDiv.textContent = 'حدث خطأ في الاتصال بالخادم. يرجى المحاولة لاحقًا.';
                 messageDiv.className = 'message error';
             }
         });
