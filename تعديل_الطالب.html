@@ -140,7 +140,8 @@
                 colorInput.value = 'جارٍ التحميل...';
                 serialNumberDuplicateInput.value = 'جارٍ التحميل...';
 
-                const response = await fetch(`/.netlify/functions/getStudent?id=${id}`);
+                // *** هذا هو التعديل الأساسي: إزالة ".netlify" من المسار ***
+                const response = await fetch(`/netlify/functions/getStudent?id=${id}`);
                 const data = await response.json();
 
                 if (response.ok) {
@@ -161,7 +162,8 @@
                 } else {
                     console.error('Failed to fetch student data:', data.error || 'Unknown error');
                     alert('حدث خطأ أثناء محاولة جلب بيانات الطالب.');
-                    serialNumberInput.value = ''; // مسح مؤشر التحميل في حالة الخطأ
+                    // مسح مؤشر التحميل في حالة الخطأ
+                    serialNumberInput.value = '';
                     residencyNumberInput.value = '';
                     documentSerialNumberInput.value = '';
                     plateNumberInput.value = '';
@@ -178,7 +180,8 @@
             } catch (error) {
                 console.error('Error fetching student data:', error);
                 alert('حدث خطأ أثناء محاولة جلب بيانات الطالب.');
-                serialNumberInput.value = ''; // مسح مؤشر التحميل في حالة الخطأ
+                // مسح مؤشر التحميل في حالة الخطأ
+                serialNumberInput.value = '';
                 residencyNumberInput.value = '';
                 documentSerialNumberInput.value = '';
                 plateNumberInput.value = '';
@@ -214,7 +217,8 @@
             };
 
             try {
-                const response = await fetch('/.netlify/functions/updateStudent', {
+                // *** هذا هو التعديل الأساسي: إزالة ".netlify" من المسار ***
+                const response = await fetch('/netlify/functions/updateStudent', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -246,6 +250,7 @@
 
         form.addEventListener('submit', updateStudentData);
 
+        // منطق القائمة المنسدلة (شريط التنقل)
         const menuToggle = document.getElementById('menu-toggle');
         const dropdownMenu = document.getElementById('dropdown-menu');
 
@@ -253,7 +258,6 @@
             dropdownMenu.classList.toggle('hidden');
         });
 
-        // إغلاق القائمة المنسدلة عند النقر خارجها
         document.addEventListener('click', (event) => {
             if (!menuToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
                 dropdownMenu.classList.add('hidden');

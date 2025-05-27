@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/certificate/:id",
+      "destination": "/netlify/functions/generateCertificateTwo2"
+    }
+  ]
+}
