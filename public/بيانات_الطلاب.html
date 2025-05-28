@@ -27,22 +27,12 @@
             <table id="studentsTable" class="students-table" style="display:none;">
                 <thead>
                     <tr>
-                        <th>المعرف</th>
                         <th>الرقم التسلسلي</th>
-                        <th>رقم الإقامة</th>
-                        <th>الرقم التسلسلي للوثيقة</th>
                         <th>رقم اللوحة</th>
-                        <th>تاريخ الفحص</th>
-                        <th>الشركة الصانعة</th>
-                        <th>تاريخ انتهاء الفحص</th>
-                        <th>نوع السيارة</th>
-                        <th>قراءة العداد</th>
                         <th>رقم الهيكل</th>
-                        <th>طراز المركبة</th>
                         <th>اللون</th>
-                        <th>الرقم التسلسلي (مكرر)</th>
-                        <th>تاريخ الإضافة</th>
-                        <th>الإجراءات</th>
+                        <th>الشركة الصانعة</th>
+                        <th>المعرف</th> <th>رقم الإقامة</th> <th>الرقم التسلسلي للوثيقة</th> <th>تاريخ الفحص</th> <th>تاريخ انتهاء الفحص</th> <th>نوع السيارة</th> <th>قراءة العداد</th> <th>طراز المركبة</th> <th>الرقم التسلسلي (مكرر)</th> <th>تاريخ الإضافة</th> <th>الإجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -73,34 +63,30 @@
             studentTableBody.innerHTML = ''; // مسح أي بيانات سابقة
 
             try {
-                // تأكد أن الـ API الخاص بك يرجع جميع هذه الحقول
                 const url = searchTerm ? `/api/getStudent?search=${encodeURIComponent(searchTerm)}` : '/api/getStudent';
                 const response = await fetch(url);
                 const students = await response.json();
 
                 if (response.ok && students.length > 0) {
-                    // عكس ترتيب الطلاب لعرض الأحدث أولاً، كما كان في الكود القديم
-                    const reversedStudents = [...students].reverse();
-
-                    reversedStudents.forEach(student => {
+                    students.forEach(student => {
                         const row = studentTableBody.insertRow();
-                        // تأكد أن أسماء الخصائص (مثل student.id, student.residency_number)
-                        // تتطابق مع ما يرجعه الـ API الخاص بك بالضبط
-                        row.insertCell().textContent = student.id || 'غير متوفر';
+                        // الحقول الأصلية في الكود الجديد
                         row.insertCell().textContent = student.serial_number || 'غير متوفر';
-                        row.insertCell().textContent = student.residency_number || 'غير متوفر';
-                        row.insertCell().textContent = student.document_serial_number || 'غير متوفر';
                         row.insertCell().textContent = student.plate_number || 'غير متوفر';
-                        row.insertCell().textContent = student.inspection_date || 'غير متوفر';
-                        row.insertCell().textContent = student.manufacturer || 'غير متوفر';
-                        row.insertCell().textContent = student.inspection_expiry_date || 'غير متوفر';
-                        row.insertCell().textContent = student.car_type || 'غير متوفر';
-                        row.insertCell().textContent = student.counter_reading || 'غير متوفر';
                         row.insertCell().textContent = student.chassis_number || 'غير متوفر';
-                        row.insertCell().textContent = student.vehicle_model || 'غير متوفر';
                         row.insertCell().textContent = student.color || 'غير متوفر';
-                        row.insertCell().textContent = student.serial_number_duplicate || 'غير متوفر';
-                        row.insertCell().textContent = student.created_at || 'غير متوفر';
+                        row.insertCell().textContent = student.manufacturer || 'غير متوفر';
+                        // الحقول المضافة من الكود القديم
+                        row.insertCell().textContent = student.id || 'غير متوفر'; // المعرف
+                        row.insertCell().textContent = student.residency_number || 'غير متوفر'; // رقم الإقامة
+                        row.insertCell().textContent = student.document_serial_number || 'غير متوفر'; // الرقم التسلسلي للوثيقة
+                        row.insertCell().textContent = student.inspection_date || 'غير متوفر'; // تاريخ الفحص
+                        row.insertCell().textContent = student.inspection_expiry_date || 'غير متوفر'; // تاريخ انتهاء الفحص
+                        row.insertCell().textContent = student.car_type || 'غير متوفر'; // نوع السيارة
+                        row.insertCell().textContent = student.counter_reading || 'غير متوفر'; // قراءة العداد
+                        row.insertCell().textContent = student.vehicle_model || 'غير متوفر'; // طراز المركبة
+                        row.insertCell().textContent = student.serial_number_duplicate || 'غير متوفر'; // الرقم التسلسلي (مكرر)
+                        row.insertCell().textContent = student.created_at || 'غير متوفر'; // تاريخ الإضافة
 
                         const actionsCell = row.insertCell();
 
