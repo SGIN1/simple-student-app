@@ -11,8 +11,7 @@
             <div class="menu-icon" id="menu-toggle">☰</div>
             <h1>إضافة طالب جديد</h1>
             <ul id="dropdown-menu" class="hidden">
-                {{!-- تم تحديث الرابط هنا --}}
-                <li><a href="/students">العودة إلى صفحة الطلاب</a></li>
+                <li><a href="بيانات_الطلاب.html">العودة إلى صفحة الطلاب</a></li>
             </ul>
         </div>
     </header>
@@ -63,8 +62,7 @@
         </form>
         <div id="message" class="message" style="display:none;"></div>
         <div class="back-link">
-            {{!-- تم تحديث الرابط هنا --}}
-            <a href="/students">الرجوع إلى صفحة البيانات</a>
+            <a href="بيانات_الطلاب.html">الرجوع إلى صفحة البيانات</a>
         </div>
     </div>
 
@@ -130,7 +128,7 @@
             messageDiv.textContent = 'جاري إضافة الطالب...';
             messageDiv.className = 'message';
 
-            // المسار الصحيح لدالة إضافة الطالب
+            // *** التعديل الوحيد هنا ليتوافق مع Vercel ***
             const response = await fetch('/api/addStudent', {
                 method: 'POST',
                 headers: {
@@ -159,8 +157,7 @@
                 messageDiv.textContent = data.message || 'تمت إضافة الطالب بنجاح! سيتم نقلك لصفحة البيانات.';
                 messageDiv.className = 'message success';
                 document.getElementById('addStudentForm').reset();
-                {{!-- تم تحديث الرابط هنا --}}
-                window.location.href = '/students'; // انتقال فوري بعد النجاح
+                window.location.href = 'بيانات_الطلاب.html'; // انتقال فوري بعد النجاح
             } else {
                 messageDiv.textContent = data.error || 'حدث خطأ أثناء محاولة إضافة الطالب.';
                 messageDiv.className = 'message error';
