@@ -6,181 +6,203 @@
     <link rel="stylesheet" href="القالب_المشترك2.css">
 </head>
 <body>
+    <header style="position: relative;">
+        <div class="container">
+            <div class="menu-icon" id="menu-toggle">☰</div>
+            <h1>بيانات الطلاب</h1>
+            <ul id="dropdown-menu" class="hidden">
+                
+                <li><a href="/add-student">إضافة طالب جديد</a></li>
+            </ul>
+        </div>
+    </header>
+
     <div class="container">
-        <h1>بيانات الطلاب</h1>
-        <div class="add-new">
-            <a href="إضافة_طالب.html">إصدار جديد</a>
+        
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="ابحث بالرقم التسلسلي، رقم اللوحة، أو رقم الهيكل...">
+            <button id="searchButton">بحث</button>
         </div>
-
-        <div class="search-form">
-            <input type="text" id="search_residency" placeholder="ابحث برقم الإقامة">
+        <div id="studentTableContainer">
+            <p id="loadingMessage">جارٍ تحميل بيانات الطلاب...</p>
+            <p id="noStudentsMessage" style="display:none;">لا توجد بيانات طلاب لعرضها.</p>
+            <table id="studentsTable" class="students-table" style="display:none;">
+                <thead>
+                    <tr>
+                        <th>الرقم التسلسلي</th>
+                        <th>رقم اللوحة</th>
+                        <th>رقم الهيكل</th>
+                        <th>اللون</th>
+                        <th><th>الشركة الصانعة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
         </div>
-
-        <table id="students_table">
-            <thead>
-                <tr>
-                    <th>المعرف</th>
-                    <th>الرقم التسلسلي</th>
-                    <th>رقم الإقامة</th>
-                    <th>الرقم التسلسلي للوثيقة</th>
-                    <th>رقم اللوحة</th>
-                    <th>تاريخ الفحص</th>
-                    <th>الشركة الصانعة</th>
-                    <th>تاريخ انتهاء الفحص</th>
-                    <th>نوع السيارة</th>
-                    <th>قراءة العداد</th>
-                    <th>رقم الهيكل</th>
-                    <th>طراز المركبة</th>
-                    <th>اللون</th>
-                    <th>الرقم التسلسلي (مكرر)</th>
-                    <th>تاريخ الإضافة</th>
-                    <th>تعديل</th>
-                    <th>حذف</th>
-                    <th>الشهادة الأولى</th>
-                    <th>الشهادة الثانية</th>
-                </tr>
-            </thead>
-            <tbody id="students_tbody">
-            </tbody>
-        </table>
-
-        <p id="no_results" class="no-results" style="display:none;">لا يوجد طلاب بهذا الرقم للإقامة.</p>
-        <div id="certificateContainer"></div>
     </div>
 
+    <footer>
+        <div class="container">
+            جميع الحقوق محفوظة - البوابة الوطنية الداعمة للمجتمع البلدي © 2023
+        </div>
+    </footer>
+
     <script>
-        const searchInput = document.getElementById('search_residency');
-        const studentsTable = document.getElementById('students_table');
-        const studentsTbody = document.getElementById('students_tbody');
-        const noResultsMessage = document.getElementById('no_results');
-        const certificateContainer = document.getElementById('certificateContainer');
+        const studentTableBody = document.querySelector('#studentsTable tbody');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const noStudentsMessage = document.getElementById('noStudentsMessage');
+        const studentsTable = document.getElementById('studentsTable');
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
 
-        let allStudents = []; // سيتم تعبئة هذه المصفوفة ببيانات الطلاب من الخادم
+        // دالة لجلب وعرض بيانات الطلاب
+        async function fetchStudents(searchTerm = '') {
+            loadingMessage.style.display = 'block';
+            studentsTable.style.display = 'none';
+            noStudentsMessage.style.display = 'none';
+            studentTableBody.innerHTML = ''; // مسح أي بيانات سابقة
 
-        // دالة لجلب بيانات الطلاب من Vercel API Route
-        async function fetchStudents() {
             try {
-                // تم تعديل الرابط ليتوافق مع Vercel API Route
-                const response = await fetch('/api/getStudent'); 
-                const data = await response.json();
+                // المسار الصحيح لدالة جلب الطلاب (باستخدام api/getStudent وليس api/getStudents)
+                const url = searchTerm ? `/api/getStudent?search=${encodeURIComponent(searchTerm)}` : '/api/getStudent';
+                const response = await fetch(url);
+                const students = await response.json();
 
-                if (response.ok) {
-                    allStudents = data;
-                    renderStudentsTable(allStudents);
+                if (response.ok && students.length > 0) {
+                    students.forEach(student => {
+                        const row = studentTableBody.insertRow();
+                        row.insertCell().textContent = student.serial_number || 'غير متوفر';
+                        row.insertCell().textContent = student.plate_number || 'غير متوفر';
+                        row.insertCell().textContent = student.chassis_number || 'غير متوفر';
+                        row.insertCell().textContent = student.color || 'غير متوفر';
+                        row.insertCell().textContent = student.manufacturer || 'غير متوفر';
+
+                        const actionsCell = row.insertCell();
+
+                        // زر تعديل
+                        const editButton = document.createElement('button');
+                        editButton.textContent = 'تعديل';
+                        editButton.classList.add('edit-btn');
+                        editButton.onclick = () => {
+                            // المسار النظيف لصفحة التعديل
+                            window.location.href = `/edit-student?id=${student.id}`;
+                        };
+                        actionsCell.appendChild(editButton);
+
+                        // زر طباعة الشهادة الأولى
+                        const printCertOneButton = document.createElement('button');
+                        printCertOneButton.textContent = 'شهادة (HTML)';
+                        printCertOneButton.classList.add('print-btn');
+                        printCertOneButton.onclick = () => {
+                            // المسار الصحيح لدالة توليد الشهادة الأولى
+                            window.open(`/api/generateCertificateOne1?id=${student.id}`, '_blank');
+                        };
+                        actionsCell.appendChild(printCertOneButton);
+
+                        // زر طباعة الشهادة الثانية
+                        const printCertTwoButton = document.createElement('button');
+                        printCertTwoButton.textContent = 'شهادة (صورة)';
+                        printCertTwoButton.classList.add('print-image-btn');
+                        printCertTwoButton.onclick = () => {
+                            // المسار النظيف لدالة توليد الشهادة الثانية (يتم التعامل معه بواسطة vercel.json)
+                            window.open(`/certificate/${student.id}`, '_blank');
+                        };
+                        actionsCell.appendChild(printCertTwoButton);
+
+                        // زر حذف الطالب
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'حذف';
+                        deleteButton.classList.add('delete-btn');
+                        deleteButton.setAttribute('data-id', student.id); // تخزين ID في خاصية data-id
+                        actionsCell.appendChild(deleteButton);
+                    });
+                    loadingMessage.style.display = 'none';
+                    studentsTable.style.display = 'table';
                 } else {
-                    console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
-                    studentsTbody.innerHTML = '<tr><td colspan="19">فشل في تحميل بيانات الطلاب.</td></tr>';
+                    loadingMessage.style.display = 'none';
+                    noStudentsMessage.textContent = 'لا توجد بيانات طلاب لعرضها.';
+                    noStudentsMessage.style.display = 'block';
+                    studentsTable.style.display = 'none';
                 }
             } catch (error) {
-                console.error('خطأ في جلب بيانات الطلاب:', error);
-                studentsTbody.innerHTML = '<tr><td colspan="19">حدث خطأ أثناء محاولة تحميل بيانات الطلاب.</td></tr>';
+                console.error('Error fetching students:', error);
+                loadingMessage.style.display = 'none';
+                noStudentsMessage.textContent = 'حدث خطأ أثناء تحميل البيانات.';
+                noStudentsMessage.style.display = 'block';
+                studentsTable.style.display = 'none';
             }
         }
 
-        // دالة لتحديث جدول الطلاب في المتصفح
-        function renderStudentsTable(students) {
-            studentsTbody.innerHTML = ''; // مسح الجدول الحالي
-
-            if (students.length > 0) {
-                noResultsMessage.style.display = 'none';
-                const reversedStudents = [...students].reverse(); // عرض أحدث الطلاب أولاً
-
-                reversedStudents.forEach(student => {
-                    const row = studentsTbody.insertRow();
-                    // استخدام student._id كمعرف فريد من MongoDB
-                    row.insertCell().textContent = student._id; 
-                    row.insertCell().textContent = student.serial_number || '';
-                    row.insertCell().textContent = student.residency_number || '';
-                    row.insertCell().textContent = student.document_serial_number || '';
-                    row.insertCell().textContent = student.plate_number || '';
-                    row.insertCell().textContent = student.inspection_date || '';
-                    row.insertCell().textContent = student.manufacturer || '';
-                    row.insertCell().textContent = student.inspection_expiry_date || '';
-                    row.insertCell().textContent = student.car_type || '';
-                    row.insertCell().textContent = student.counter_reading || '';
-                    row.insertCell().textContent = student.chassis_number || '';
-                    row.insertCell().textContent = student.vehicle_model || '';
-                    row.insertCell().textContent = student.color || '';
-                    row.insertCell().textContent = student.serial_number_duplicate || '';
-                    row.insertCell().textContent = student.created_at || ''; // تأكد أن لديك حقل created_at في وثائق MongoDB
-
-                    const editCell = row.insertCell();
-                    editCell.classList.add('actions');
-                    // تعديل رابط التعديل ليتناسب مع Vercel API Route
-                    editCell.innerHTML = `<a href="تعديل_الطالب.html?id=${student._id}" class="edit-btn">تعديل</a>`;
-
-                    const deleteCell = row.insertCell();
-                    deleteCell.classList.add('actions');
-                    // استخدام دالة deleteStudent لربطها بـ Vercel API Route
-                    deleteCell.innerHTML = `<button class="delete-btn" onclick="deleteStudent('${student._id}')">حذف</button>`;
-
-                    // إضافة زر عرض الشهادة الأولى
-                    const printCellOne = row.insertCell();
-                    printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/api/generateCertificateOne1?id=${student._id}')">عرض الأولى</button>`;
-
-                    // إضافة زر عرض الشهادة الثانية (باستخدام الرابط الأنيق كما في المثال)
-                    const printCellTwo = row.insertCell();
-                    const certificateButtonTwo = document.createElement('button');
-                    certificateButtonTwo.textContent = 'عرض الثانية';
-                    certificateButtonTwo.classList.add('print-btn'); // إضافة نفس الكلاس لأزرار الطباعة
-                    certificateButtonTwo.addEventListener('click', () => {
-                        // استخدام المسار الأنيق المُعرف في vercel.json
-                        const certificateUrlTwo = `/certificate/${student._id}`; 
-                        window.open(certificateUrlTwo, '_blank');
-                    });
-                    printCellTwo.appendChild(certificateButtonTwo);
-                });
-            } else {
-                studentsTbody.innerHTML = '<tr><td colspan="19">لا يوجد أي طلاب مسجلين.</td></tr>';
-            }
-        }
-
-        // دالة لحذف طالب
+        // دالة حذف الطالب
         async function deleteStudent(studentId) {
             if (!confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟')) {
-                return; // إلغاء عملية الحذف إذا لم يؤكد المستخدم
+                return; // إلغاء الحذف إذا لم يؤكد المستخدم
             }
+
             try {
-                // استخدام Vercel API Route لحذف الطالب
-                const response = await fetch(`/api/deleteStudent?id=${studentId}`, {
-                    method: 'DELETE', // أو 'POST' حسب ما ستحدده في وظيفة الحذف
+                // المسار الصحيح لدالة حذف الطلاب
+                const response = await fetch('/api/deleteStudent', {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    body: JSON.stringify({ id: studentId }) // إرسال المعرف في جسم الطلب
                 });
+
                 const result = await response.json();
 
                 if (response.ok) {
                     alert('تم حذف الطالب بنجاح!');
-                    fetchStudents(); // إعادة جلب وتحديث الجدول بعد الحذف
+                    fetchStudents(); // إعادة تحميل الطلاب بعد الحذف
                 } else {
-                    console.error('فشل في حذف الطالب:', result.error || 'حدث خطأ غير معروف');
-                    alert(`فشل في حذف الطالب: ${result.error || 'حدث خطأ غير معروف'}`);
+                    alert(`فشل الحذف: ${result.error || 'خطأ غير معروف'}`);
+                    console.error('Error deleting student:', result.error);
                 }
             } catch (error) {
-                console.error('خطأ في حذف الطالب:', error);
-                alert('حدث خطأ أثناء محاولة حذف الطالب.');
+                console.error('Network error during deletion:', error);
+                alert('حدث خطأ في الاتصال أثناء محاولة الحذف.');
             }
         }
 
-
-        // دالة لتصفية الطلاب بناءً على رقم الإقامة
-        searchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.trim();
-            const filteredStudents = allStudents.filter(student =>
-                student.residency_number && student.residency_number.includes(searchTerm) // تأكد من وجود residency_number قبل البحث
-            );
-            renderStudentsTable(filteredStudents);
-            noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
+        // إضافة مستمع لزر البحث
+        searchButton.addEventListener('click', () => {
+            const searchTerm = searchInput.value.trim();
+            fetchStudents(searchTerm);
         });
 
-        // دالة لفتح رابط الشهادة في نافذة جديدة
-        function showCertificate(url) {
-            window.open(url, '_blank');
-        }
+        // إضافة مستمع لحدث "Enter" في حقل البحث
+        searchInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                searchButton.click(); // محاكاة النقر على زر البحث
+            }
+        });
 
-        // جلب الطلاب عند تحميل الصفحة
-        fetchStudents();
+        // إضافة مستمع عام للنقر للتعامل مع أزرار الحذف
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('delete-btn')) {
+                const studentId = event.target.dataset.id;
+                deleteStudent(studentId);
+            }
+        });
+
+        // جلب الطلاب عند تحميل الصفحة لأول مرة
+        window.onload = fetchStudents;
+
+        // منطق القائمة المنسدلة (شريط التنقل)
+        const menuToggle = document.getElementById('menu-toggle');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+
+        menuToggle.addEventListener('click', () => {
+            dropdownMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!menuToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>
