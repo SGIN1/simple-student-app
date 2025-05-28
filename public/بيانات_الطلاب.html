@@ -33,7 +33,7 @@
                         <th>رقم اللوحة</th>
                         <th>رقم الهيكل</th>
                         <th>اللون</th>
-                        <th>الشركة الصانعة</th>
+                        <th><th>الشركة الصانعة</th>
                         <th>الإجراءات</th>
                     </tr>
                 </thead>
@@ -65,8 +65,8 @@
             studentTableBody.innerHTML = ''; // مسح أي بيانات سابقة
 
             try {
-                // تم تحديث المسار هنا
-                const url = searchTerm ? `/api/getStudents?search=${encodeURIComponent(searchTerm)}` : '/api/getStudents';
+                // المسار الصحيح لدالة جلب الطلاب (باستخدام api/getStudent وليس api/getStudents)
+                const url = searchTerm ? `/api/getStudent?search=${encodeURIComponent(searchTerm)}` : '/api/getStudent';
                 const response = await fetch(url);
                 const students = await response.json();
 
@@ -86,8 +86,8 @@
                         editButton.textContent = 'تعديل';
                         editButton.classList.add('edit-btn');
                         editButton.onclick = () => {
-                            // تم تحديث الرابط هنا
-                            window.location.href = `/edit-student?id=${student._id}`;
+                            // المسار النظيف لصفحة التعديل
+                            window.location.href = `/edit-student?id=${student.id}`;
                         };
                         actionsCell.appendChild(editButton);
 
@@ -96,8 +96,8 @@
                         printCertOneButton.textContent = 'شهادة (HTML)';
                         printCertOneButton.classList.add('print-btn');
                         printCertOneButton.onclick = () => {
-                            // تم تحديث المسار هنا
-                            window.open(`/api/generateCertificateOne1?id=${student._id}`, '_blank');
+                            // المسار الصحيح لدالة توليد الشهادة الأولى
+                            window.open(`/api/generateCertificateOne1?id=${student.id}`, '_blank');
                         };
                         actionsCell.appendChild(printCertOneButton);
 
@@ -106,9 +106,8 @@
                         printCertTwoButton.textContent = 'شهادة (صورة)';
                         printCertTwoButton.classList.add('print-image-btn');
                         printCertTwoButton.onclick = () => {
-                            // تم التأكد من صحة هذا المسار وvercel.json يعيد توجيهه بشكل صحيح
-                            // لا توجد تغييرات هنا لأن vercel.json يعالجها بالفعل
-                            window.open(`/certificate/${student._id}`, '_blank');
+                            // المسار النظيف لدالة توليد الشهادة الثانية (يتم التعامل معه بواسطة vercel.json)
+                            window.open(`/certificate/${student.id}`, '_blank');
                         };
                         actionsCell.appendChild(printCertTwoButton);
 
@@ -116,13 +115,14 @@
                         const deleteButton = document.createElement('button');
                         deleteButton.textContent = 'حذف';
                         deleteButton.classList.add('delete-btn');
-                        deleteButton.setAttribute('data-id', student._id); // تخزين ID في خاصية data-id
+                        deleteButton.setAttribute('data-id', student.id); // تخزين ID في خاصية data-id
                         actionsCell.appendChild(deleteButton);
                     });
                     loadingMessage.style.display = 'none';
                     studentsTable.style.display = 'table';
                 } else {
                     loadingMessage.style.display = 'none';
+                    noStudentsMessage.textContent = 'لا توجد بيانات طلاب لعرضها.';
                     noStudentsMessage.style.display = 'block';
                     studentsTable.style.display = 'none';
                 }
@@ -142,7 +142,7 @@
             }
 
             try {
-                // تم تحديث المسار هنا
+                // المسار الصحيح لدالة حذف الطلاب
                 const response = await fetch('/api/deleteStudent', {
                     method: 'POST',
                     headers: {

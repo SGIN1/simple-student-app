@@ -7,12 +7,11 @@ const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
 // التصدير الافتراضي لدالة معالجة الطلبات
-module.exports = async (req, res) => { // تم تغيير exports.handler إلى module.exports
+module.exports = async (req, res) => {
     let client;
 
     try {
         if (!uri) {
-            // استخدام res.status().json() لإرسال استجابة JSON مناسبة
             return res.status(500).json({ error: 'لم يتم العثور على رابط اتصال MongoDB في متغيرات البيئة. تأكد من إعداده في Vercel.' });
         }
 
@@ -23,10 +22,11 @@ module.exports = async (req, res) => { // تم تغيير exports.handler إلى
 
         // جلب مصطلح البحث أو مُعرف الطالب من req.query
         const searchTerm = req.query.search;
-        const studentId = req.query.id;
+        const studentId = req.query.id; // هذا هو معرف الطالب الذي يتم تمريره لجلب طالب واحد
 
         if (req.method === 'GET') {
             if (studentId) {
+                // إذا تم توفير مُعرف الطالب، قم بجلب طالب واحد
                 let query;
                 try {
                     const objectId = new ObjectId(studentId);
@@ -37,8 +37,9 @@ module.exports = async (req, res) => { // تم تغيير exports.handler إلى
                 const student = await studentsCollection.findOne(query);
 
                 if (student) {
+                    // أعد البيانات بصيغة id بدلاً من _id لتتناسب مع الواجهة الأمامية
                     return res.status(200).json({
-                        id: student._id.toString(),
+                        id: student._id.toString(), // تحويل _id إلى id كنص
                         serial_number: student.serial_number,
                         residency_number: student.residency_number,
                         document_serial_number: student.document_serial_number,
@@ -58,8 +59,10 @@ module.exports = async (req, res) => { // تم تغيير exports.handler إلى
                     return res.status(404).json({ error: 'لم يتم العثور على طالب بهذا المُعرّف.' });
                 }
             } else {
+                // إذا لم يتم توفير مُعرف الطالب، قم بجلب جميع الطلاب (مع أو بدون بحث)
                 let query = {};
                 if (searchTerm) {
+                    // بناء استعلام البحث باستخدام التعبيرات العادية لعدة حقول
                     query = {
                         $or: [
                             { serial_number: { $regex: searchTerm, $options: 'i' } },
@@ -69,8 +72,9 @@ module.exports = async (req, res) => { // تم تغيير exports.handler إلى
                     };
                 }
                 const students = await studentsCollection.find(query).toArray();
+                // تنسيق البيانات لـ id بدلاً من _id
                 const formattedStudents = students.map(student => ({
-                    id: student._id.toString(),
+                    id: student._id.toString(), // تحويل _id إلى id كنص
                     serial_number: student.serial_number,
                     residency_number: student.residency_number,
                     document_serial_number: student.document_serial_number,
