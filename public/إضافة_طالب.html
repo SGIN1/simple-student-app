@@ -11,6 +11,7 @@
             <div class="menu-icon" id="menu-toggle">☰</div>
             <h1>إضافة طالب جديد</h1>
             <ul id="dropdown-menu" class="hidden">
+                {{!-- تم تحديث الرابط هنا --}}
                 <li><a href="/students">العودة إلى صفحة الطلاب</a></li>
             </ul>
         </div>
@@ -62,6 +63,7 @@
         </form>
         <div id="message" class="message" style="display:none;"></div>
         <div class="back-link">
+            {{!-- تم تحديث الرابط هنا --}}
             <a href="/students">الرجوع إلى صفحة البيانات</a>
         </div>
     </div>
@@ -80,6 +82,7 @@
             dropdownMenu.classList.toggle('hidden');
         });
 
+        // إغلاق القائمة المنسدلة عند النقر خارجها
         document.addEventListener('click', (event) => {
             if (!menuToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
                 dropdownMenu.classList.add('hidden');
@@ -89,6 +92,7 @@
         const inspectionDateInput = document.getElementById('inspection_date');
         const expiryDateInput = document.getElementById('inspection_expiry_date');
 
+        // دالة لحساب تاريخ انتهاء الفحص بإضافة سنة واحدة
         function calculateExpiryDate(inspectionDate) {
             if (!inspectionDate) {
                 return '';
@@ -101,6 +105,7 @@
             return `${year}-${month}-${day}`;
         }
 
+        // إضافة مستمع لحدث تغيير حقل تاريخ الفحص
         inspectionDateInput.addEventListener('change', function() {
             expiryDateInput.value = calculateExpiryDate(this.value);
         });
@@ -125,46 +130,39 @@
             messageDiv.textContent = 'جاري إضافة الطالب...';
             messageDiv.className = 'message';
 
-            // ******* التعديل هنا: المسار أصبح بالإنجليزية الآن *******
-            const apiPath = '/api/addStudent'; 
+            // تم تحديث المسار هنا
+            const response = await fetch('/api/addStudent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    serial_number: serialNumber,
+                    residency_number: residencyNumber,
+                    document_serial_number: documentSerialNumber,
+                    plate_number: plateNumber,
+                    inspection_date: inspectionDate,
+                    manufacturer: manufacturer,
+                    inspection_expiry_date: inspectionExpiryDate,
+                    car_type: carType,
+                    counter_reading: counterReading,
+                    chassis_number: chassisNumber,
+                    vehicle_model: vehicleModel,
+                    color: color,
+                    serial_number_duplicate: serialNumberDuplicate
+                }),
+            });
 
-            try {
-                const response = await fetch(apiPath, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        serial_number: serialNumber,
-                        residency_number: residencyNumber,
-                        document_serial_number: documentSerialNumber,
-                        plate_number: plateNumber,
-                        inspection_date: inspectionDate,
-                        manufacturer: manufacturer,
-                        inspection_expiry_date: inspectionExpiryDate,
-                        car_type: carType,
-                        counter_reading: counterReading,
-                        chassis_number: chassisNumber,
-                        vehicle_model: vehicleModel,
-                        color: color,
-                        serial_number_duplicate: serialNumberDuplicate
-                    }),
-                });
+            const data = await response.json();
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    messageDiv.textContent = data.message || 'تمت إضافة الطالب بنجاح! سيتم نقلك لصفحة البيانات.';
-                    messageDiv.className = 'message success';
-                    document.getElementById('addStudentForm').reset();
-                    window.location.href = '/students';
-                } else {
-                    messageDiv.textContent = data.error || 'حدث خطأ أثناء محاولة إضافة الطالب.';
-                    messageDiv.className = 'message error';
-                }
-            } catch (error) {
-                console.error('Error during API call:', error);
-                messageDiv.textContent = 'حدث خطأ في الاتصال بالخادم. يرجى المحاولة لاحقًا.';
+            if (response.ok) {
+                messageDiv.textContent = data.message || 'تمت إضافة الطالب بنجاح! سيتم نقلك لصفحة البيانات.';
+                messageDiv.className = 'message success';
+                document.getElementById('addStudentForm').reset();
+                {{!-- تم تحديث الرابط هنا --}}
+                window.location.href = '/students'; // انتقال فوري بعد النجاح
+            } else {
+                messageDiv.textContent = data.error || 'حدث خطأ أثناء محاولة إضافة الطالب.';
                 messageDiv.className = 'message error';
             }
         });

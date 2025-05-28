@@ -1,24 +1,18 @@
-// api/addStudent.js
 const { MongoClient } = require('mongodb');
 
+// تعريف رابط الاتصال واسم قاعدة البيانات من متغيرات البيئة
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
-module.exports = async (req, res) => {
-    if (req.method !== 'POST') {
-        res.status(405).json({ error: 'Method Not Allowed. Only POST requests are accepted.' });
-        return;
+exports.handler = async (event, context) => {
+    if (event.httpMethod !== 'POST') {
+        return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
     }
 
-    let client;
+    let client; // تعريف الـ client هنا عشان يكون متاح في الـ finally
 
     try {
-        if (!uri) {
-            res.status(500).json({ error: 'لم يتم العثور على رابط اتصال MongoDB في متغيرات البيئة.' });
-            return;
-        }
-
         const {
             serial_number,
             residency_number,
@@ -33,14 +27,13 @@ module.exports = async (req, res) => {
             vehicle_model,
             color,
             serial_number_duplicate
-        } = req.body;
+        } = JSON.parse(event.body);
 
         if (!serial_number || !residency_number) {
-            res.status(400).json({ error: 'الرقم التسلسلي ورقم الإقامة كلاهما مطلوبان.' });
-            return;
+            return { statusCode: 400, body: JSON.stringify({ error: 'الرقم التسلسلي ورقم الإقامة كلاهما مطلوبان.' }) };
         }
 
-        client = new MongoClient(uri);
+        client = new MongoClient(uri); // إنشاء الـ client
         await client.connect();
         const database = client.db(dbName);
         const studentsCollection = database.collection(collectionName);
@@ -54,25 +47,25 @@ module.exports = async (req, res) => {
             manufacturer,
             inspection_expiry_date,
             car_type,
-            counter_reading: Number(counter_reading),
+            counter_reading,
             chassis_number,
             vehicle_model,
             color,
             serial_number_duplicate,
-            created_at: new Date()
+            created_at: new Date() // إضافة تاريخ الإنشاء التلقائي
         });
 
         if (result.acknowledged && result.insertedId) {
-            res.status(200).json({ message: 'تم إضافة الطالب بنجاح!', id: result.insertedId.toString() });
+            return { statusCode: 200, body: JSON.stringify({ message: 'تم إضافة الطالب بنجاح!' }) };
         } else {
-            res.status(500).json({ error: 'فشل في إضافة الطالب إلى قاعدة البيانات.' });
+            return { statusCode: 500, body: JSON.stringify({ error: 'فشل في إضافة الطالب إلى قاعدة البيانات.' }) };
         }
 
     } catch (error) {
         console.error('خطأ في وظيفة إضافة الطالب:', error);
-        res.status(500).json({ error: error.message || 'حدث خطأ غير متوقع في الخادم.' });
+        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
     } finally {
-        if (client) {
+        if (client) { // التأكد إن الـ client تم إنشاؤه قبل محاولة إغلاقه
             await client.close();
         }
     }
