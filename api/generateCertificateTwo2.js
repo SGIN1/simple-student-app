@@ -7,17 +7,14 @@ const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
 // الرابط العام (Public URL) للصورة الخلفية للشهادة.
-// تأكد من أن هذا المسار صحيح وأن الصورة موجودة في مجلد 'public' الخاص بك.
-// إذا كانت الصورة في 'public/images/full/wwee.jpg'، فالمسار النسبي هو '/images/full/wwee.jpg'.
-const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg'; // مسار الصورة في مجلد public
+// سنقوم ببناء هذا المسار ديناميكيا باستخدام عنوان الـ Host.
+// const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg'; // هذا سيكون مسارًا نسبيًا فقط، سنبني الرابط الكامل في الدالة
 
 module.exports = async (req, res) => {
-    // التأكد من أن الطلب من نوع GET
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // استخراج معرف الطالب من req.query
     const studentId = req.query.id;
     console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
@@ -33,11 +30,18 @@ module.exports = async (req, res) => {
             return res.status(500).send("<h1>Server Error</h1><p>MONGODB_URI is not configured. Please check Vercel environment variables.</p>");
         }
 
-        if (!process.env.SCREENSHOTONE_ACCESS_KEY) {
+        const SCREENSHOTONE_ACCESS_KEY = process.env.SCREENSHOTONE_ACCESS_KEY;
+        if (!SCREENSHOTONE_ACCESS_KEY) {
             console.warn("SCREENSHOTONE_ACCESS_KEY is not set. Screenshot generation will be skipped.");
             return res.status(501).send("<h1>Certificate Generation Unavailable</h1><p>Image certificate generation is temporarily disabled (SCREENSHOTONE_ACCESS_KEY is not set). Please contact the administrator.</p>");
         }
-        const SCREENSHOTONE_ACCESS_KEY = process.env.SCREENSHOTONE_ACCESS_KEY; // تم نقل هذا السطر لتعريفه هنا
+
+        // ***** الجزء المُضاف أو المُعدّل هنا لبناء المسار المطلق للصورة *****
+        const host = req.headers.host; // سيحتوي على 'your-app-name.vercel.app'
+        const protocol = req.headers['x-forwarded-proto'] || 'http'; // للحصول على 'http' أو 'https'
+        const absoluteImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
+        console.log("Absolute image path for certificate:", absoluteImagePath);
+        // *******************************************************************
 
         client = new MongoClient(uri);
         await client.connect();
@@ -54,10 +58,8 @@ module.exports = async (req, res) => {
 
         if (!student) {
             console.warn("Student not found, using fallback data for ID:", studentId);
-            // لاحظ: استخدام بيانات تجريبية هنا ليس مثاليًا في بيئة الإنتاج،
-            // يفضل إرجاع 404 أو صفحة خطأ واضحة. تم الاحتفاظ بها بناءً على كودك الأصلي.
             student = {
-                arabic_name: "اسم الطالب التجريبي",
+                arabic_name: "اسم الطالب التجريبي", // تأكد من وجود هذا الحقل في قاعدة بياناتك
                 serial_number: "SN-TEST-123",
                 document_serial_number: "DOC-TEST-456",
                 plate_number: "ABC-TEST-789",
@@ -65,6 +67,7 @@ module.exports = async (req, res) => {
                 color: "Red Test"
             };
         } else {
+            // ملاحظة: تأكد أن حقل اسم الطالب في قاعدة البيانات هو 'arabic_name'
             console.log("Student found:", student.arabic_name);
         }
 
@@ -75,9 +78,6 @@ module.exports = async (req, res) => {
         const carType = student.car_type || 'غير متوفر';
         const color = student.color || 'غير متوفر';
 
-        // بناء محتوى HTML الكامل للشهادة.
-        // **ملاحظة:** المسار النسبي للصورة '/images/full/wwee.jpg' سيعمل تلقائيًا على Vercel
-        // إذا كانت الصورة موجودة في مجلد `public`
         let htmlContent = `
             <!DOCTYPE html>
             <html>
@@ -93,9 +93,9 @@ module.exports = async (req, res) => {
                     }
                     .certificate-container {
                         position: relative;
-                        width: 978px; /* تم تحديث العرض بناءً على ImageMagick */
-                        height: 1280px; /* تم تحديث الارتفاع بناءً على ImageMagick */
-                        background-image: url('${CERTIFICATE_IMAGE_PATH}'); /* استخدام المسار النسبي */
+                        width: 978px;
+                        height: 1280px;
+                        background-image: url('${absoluteImagePath}'); /* هنا تم استخدام المسار المطلق */
                         background-size: cover;
                         background-repeat: no-repeat;
                         background-position: center;
@@ -140,7 +140,7 @@ module.exports = async (req, res) => {
             response_type: "by_format",
             viewport_width: 978,
             viewport_height: 1280,
-            full_page: true,
+            full_page: true, // تأكد أن هذا الخيار لا يسبب قص الصورة إذا كان الـ viewport_height لا يكفي
         };
 
         console.log("Sending HTML to ScreenshotOne API...");
@@ -172,7 +172,6 @@ module.exports = async (req, res) => {
             return res.status(500).send(`<h1>Error generating certificate</h1><p>ScreenshotOne API returned an empty image. There might be an issue with input data or plan limits.</p>`);
         }
 
-        // إرسال الصورة كاستجابة مباشرةً
         res.setHeader('Content-Type', 'image/jpeg');
         res.setHeader('Content-Disposition', `inline; filename="certificate.jpg"`);
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
