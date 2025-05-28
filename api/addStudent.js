@@ -1,71 +1,104 @@
-const { MongoClient } = require('mongodb');
+// api/getStudent.js
+const { MongoClient, ObjectId } = require('mongodb');
 
 // تعريف رابط الاتصال واسم قاعدة البيانات من متغيرات البيئة
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
-exports.handler = async (event, context) => {
-    if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
-    }
-
-    let client; // تعريف الـ client هنا عشان يكون متاح في الـ finally
+// التصدير الافتراضي لدالة معالجة الطلبات
+module.exports = async (req, res) => { // تم تغيير exports.handler إلى module.exports
+    let client;
 
     try {
-        const {
-            serial_number,
-            residency_number,
-            document_serial_number,
-            plate_number,
-            inspection_date,
-            manufacturer,
-            inspection_expiry_date,
-            car_type,
-            counter_reading,
-            chassis_number,
-            vehicle_model,
-            color,
-            serial_number_duplicate
-        } = JSON.parse(event.body);
-
-        if (!serial_number || !residency_number) {
-            return { statusCode: 400, body: JSON.stringify({ error: 'الرقم التسلسلي ورقم الإقامة كلاهما مطلوبان.' }) };
+        if (!uri) {
+            // استخدام res.status().json() لإرسال استجابة JSON مناسبة
+            return res.status(500).json({ error: 'لم يتم العثور على رابط اتصال MongoDB في متغيرات البيئة. تأكد من إعداده في Vercel.' });
         }
 
-        client = new MongoClient(uri); // إنشاء الـ client
+        client = new MongoClient(uri);
         await client.connect();
         const database = client.db(dbName);
         const studentsCollection = database.collection(collectionName);
 
-        const result = await studentsCollection.insertOne({
-            serial_number,
-            residency_number,
-            document_serial_number,
-            plate_number,
-            inspection_date,
-            manufacturer,
-            inspection_expiry_date,
-            car_type,
-            counter_reading,
-            chassis_number,
-            vehicle_model,
-            color,
-            serial_number_duplicate,
-            created_at: new Date() // إضافة تاريخ الإنشاء التلقائي
-        });
+        // جلب مصطلح البحث أو مُعرف الطالب من req.query
+        const searchTerm = req.query.search;
+        const studentId = req.query.id;
 
-        if (result.acknowledged && result.insertedId) {
-            return { statusCode: 200, body: JSON.stringify({ message: 'تم إضافة الطالب بنجاح!' }) };
+        if (req.method === 'GET') {
+            if (studentId) {
+                let query;
+                try {
+                    const objectId = new ObjectId(studentId);
+                    query = { _id: objectId };
+                } catch (error) {
+                    return res.status(400).json({ error: 'مُعرّف الطالب غير صالح. يجب أن يكون ObjectId صحيحًا.' });
+                }
+                const student = await studentsCollection.findOne(query);
+
+                if (student) {
+                    return res.status(200).json({
+                        id: student._id.toString(),
+                        serial_number: student.serial_number,
+                        residency_number: student.residency_number,
+                        document_serial_number: student.document_serial_number,
+                        plate_number: student.plate_number,
+                        inspection_date: student.inspection_date,
+                        manufacturer: student.manufacturer,
+                        inspection_expiry_date: student.inspection_expiry_date,
+                        car_type: student.car_type,
+                        counter_reading: student.counter_reading,
+                        chassis_number: student.chassis_number,
+                        vehicle_model: student.vehicle_model,
+                        color: student.color,
+                        serial_number_duplicate: student.serial_number_duplicate,
+                        created_at: student.created_at ? new Date(student.created_at).toLocaleDateString() : 'غير محدد'
+                    });
+                } else {
+                    return res.status(404).json({ error: 'لم يتم العثور على طالب بهذا المُعرّف.' });
+                }
+            } else {
+                let query = {};
+                if (searchTerm) {
+                    query = {
+                        $or: [
+                            { serial_number: { $regex: searchTerm, $options: 'i' } },
+                            { plate_number: { $regex: searchTerm, $options: 'i' } },
+                            { chassis_number: { $regex: searchTerm, $options: 'i' } }
+                        ]
+                    };
+                }
+                const students = await studentsCollection.find(query).toArray();
+                const formattedStudents = students.map(student => ({
+                    id: student._id.toString(),
+                    serial_number: student.serial_number,
+                    residency_number: student.residency_number,
+                    document_serial_number: student.document_serial_number,
+                    plate_number: student.plate_number,
+                    inspection_date: student.inspection_date,
+                    manufacturer: student.manufacturer,
+                    inspection_expiry_date: student.inspection_expiry_date,
+                    car_type: student.car_type,
+                    counter_reading: student.counter_reading,
+                    chassis_number: student.chassis_number,
+                    vehicle_model: student.vehicle_model,
+                    color: student.color,
+                    serial_number_duplicate: student.serial_number_duplicate,
+                    created_at: student.created_at ? new Date(student.created_at).toLocaleDateString() : 'غير محدد'
+                }));
+
+                return res.status(200).json(formattedStudents);
+            }
         } else {
-            return { statusCode: 500, body: JSON.stringify({ error: 'فشل في إضافة الطالب إلى قاعدة البيانات.' }) };
+            // إذا لم يكن الطلب من نوع GET
+            return res.status(405).json({ error: 'Method Not Allowed' });
         }
 
     } catch (error) {
-        console.error('خطأ في وظيفة إضافة الطالب:', error);
-        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+        console.error('خطأ في وظيفة جلب الطلاب:', error);
+        return res.status(500).json({ error: error.message || 'حدث خطأ غير متوقع في الخادم.' });
     } finally {
-        if (client) { // التأكد إن الـ client تم إنشاؤه قبل محاولة إغلاقه
+        if (client) {
             await client.close();
         }
     }
