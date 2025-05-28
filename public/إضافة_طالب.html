@@ -4,25 +4,6 @@
     <meta charset="UTF-8">
     <title>إضافة طالب جديد</title>
     <link rel="stylesheet" href="القالب_المشترك.css">
-    <style>
-        /* إضافة بعض الأنماط لرسائل الحالة لتكون مرئية */
-        .message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-    </style>
 </head>
 <body>
     <header style="position: relative;">
@@ -30,7 +11,8 @@
             <div class="menu-icon" id="menu-toggle">☰</div>
             <h1>إضافة طالب جديد</h1>
             <ul id="dropdown-menu" class="hidden">
-                <li><a href="بيانات_الطلاب.html">العودة إلى صفحة الطلاب</a></li>
+                {{!-- تم تحديث الرابط هنا --}}
+                <li><a href="/students">العودة إلى صفحة الطلاب</a></li>
             </ul>
         </div>
     </header>
@@ -81,7 +63,8 @@
         </form>
         <div id="message" class="message" style="display:none;"></div>
         <div class="back-link">
-            <a href="بيانات_الطلاب.html">الرجوع إلى صفحة البيانات</a>
+            {{!-- تم تحديث الرابط هنا --}}
+            <a href="/students">الرجوع إلى صفحة البيانات</a>
         </div>
     </div>
 
@@ -99,6 +82,7 @@
             dropdownMenu.classList.toggle('hidden');
         });
 
+        // إغلاق القائمة المنسدلة عند النقر خارجها
         document.addEventListener('click', (event) => {
             if (!menuToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
                 dropdownMenu.classList.add('hidden');
@@ -108,6 +92,7 @@
         const inspectionDateInput = document.getElementById('inspection_date');
         const expiryDateInput = document.getElementById('inspection_expiry_date');
 
+        // دالة لحساب تاريخ انتهاء الفحص بإضافة سنة واحدة
         function calculateExpiryDate(inspectionDate) {
             if (!inspectionDate) {
                 return '';
@@ -120,6 +105,7 @@
             return `${year}-${month}-${day}`;
         }
 
+        // إضافة مستمع لحدث تغيير حقل تاريخ الفحص
         inspectionDateInput.addEventListener('change', function() {
             expiryDateInput.value = calculateExpiryDate(this.value);
         });
@@ -144,45 +130,39 @@
             messageDiv.textContent = 'جاري إضافة الطالب...';
             messageDiv.className = 'message';
 
-            try {
-                // ****** مسار Vercel API الصحيح لـ addStudent.js ******
-                const response = await fetch('/api/addStudent', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        serial_number: serialNumber,
-                        residency_number: residencyNumber,
-                        document_serial_number: documentSerialNumber,
-                        plate_number: plateNumber,
-                        inspection_date: inspectionDate,
-                        manufacturer: manufacturer,
-                        inspection_expiry_date: inspectionExpiryDate,
-                        car_type: carType,
-                        counter_reading: counterReading,
-                        chassis_number: chassisNumber,
-                        vehicle_model: vehicleModel,
-                        color: color,
-                        serial_number_duplicate: serialNumberDuplicate
-                    }),
-                });
+            // المسار الصحيح لدالة إضافة الطالب
+            const response = await fetch('/api/addStudent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    serial_number: serialNumber,
+                    residency_number: residencyNumber,
+                    document_serial_number: documentSerialNumber,
+                    plate_number: plateNumber,
+                    inspection_date: inspectionDate,
+                    manufacturer: manufacturer,
+                    inspection_expiry_date: inspectionExpiryDate,
+                    car_type: carType,
+                    counter_reading: counterReading,
+                    chassis_number: chassisNumber,
+                    vehicle_model: vehicleModel,
+                    color: color,
+                    serial_number_duplicate: serialNumberDuplicate
+                }),
+            });
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (response.ok) {
-                    messageDiv.textContent = data.message || 'تمت إضافة الطالب بنجاح! سيتم نقلك لصفحة البيانات.';
-                    messageDiv.className = 'message success';
-                    document.getElementById('addStudentForm').reset();
-                    // ****** الانتقال إلى صفحة بيانات الطلاب (في نفس مجلد public) ******
-                    window.location.href = 'بيانات_الطلاب.html';
-                } else {
-                    messageDiv.textContent = data.error || 'حدث خطأ أثناء محاولة إضافة الطالب.';
-                    messageDiv.className = 'message error';
-                }
-            } catch (error) {
-                console.error('خطأ في إرسال الطلب:', error);
-                messageDiv.textContent = 'حدث خطأ في الاتصال بالخادم. يرجى المحاولة لاحقاً.';
+            if (response.ok) {
+                messageDiv.textContent = data.message || 'تمت إضافة الطالب بنجاح! سيتم نقلك لصفحة البيانات.';
+                messageDiv.className = 'message success';
+                document.getElementById('addStudentForm').reset();
+                {{!-- تم تحديث الرابط هنا --}}
+                window.location.href = '/students'; // انتقال فوري بعد النجاح
+            } else {
+                messageDiv.textContent = data.error || 'حدث خطأ أثناء محاولة إضافة الطالب.';
                 messageDiv.className = 'message error';
             }
         });
