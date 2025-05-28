@@ -11,12 +11,14 @@
             <div class="menu-icon" id="menu-toggle">☰</div>
             <h1>بيانات الطلاب</h1>
             <ul id="dropdown-menu" class="hidden">
+                
                 <li><a href="/add-student">إضافة طالب جديد</a></li>
             </ul>
         </div>
     </header>
 
     <div class="container">
+        
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="ابحث بالرقم التسلسلي، رقم اللوحة، أو رقم الهيكل...">
             <button id="searchButton">بحث</button>
@@ -31,12 +33,12 @@
                         <th>رقم اللوحة</th>
                         <th>رقم الهيكل</th>
                         <th>اللون</th>
-                        <th>الشركة الصانعة</th>
-                        <th>المعرف</th> <th>رقم الإقامة</th> <th>الرقم التسلسلي للوثيقة</th> <th>تاريخ الفحص</th> <th>تاريخ انتهاء الفحص</th> <th>نوع السيارة</th> <th>قراءة العداد</th> <th>طراز المركبة</th> <th>الرقم التسلسلي (مكرر)</th> <th>تاريخ الإضافة</th> <th>الإجراءات</th>
+                        <th><th>الشركة الصانعة</th>
+                        <th>الإجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
-                </tbody>
+                    </tbody>
             </table>
         </div>
     </div>
@@ -63,6 +65,7 @@
             studentTableBody.innerHTML = ''; // مسح أي بيانات سابقة
 
             try {
+                // المسار الصحيح لدالة جلب الطلاب (باستخدام api/getStudent وليس api/getStudents)
                 const url = searchTerm ? `/api/getStudent?search=${encodeURIComponent(searchTerm)}` : '/api/getStudent';
                 const response = await fetch(url);
                 const students = await response.json();
@@ -70,23 +73,11 @@
                 if (response.ok && students.length > 0) {
                     students.forEach(student => {
                         const row = studentTableBody.insertRow();
-                        // الحقول الأصلية في الكود الجديد
                         row.insertCell().textContent = student.serial_number || 'غير متوفر';
                         row.insertCell().textContent = student.plate_number || 'غير متوفر';
                         row.insertCell().textContent = student.chassis_number || 'غير متوفر';
                         row.insertCell().textContent = student.color || 'غير متوفر';
                         row.insertCell().textContent = student.manufacturer || 'غير متوفر';
-                        // الحقول المضافة من الكود القديم
-                        row.insertCell().textContent = student.id || 'غير متوفر'; // المعرف
-                        row.insertCell().textContent = student.residency_number || 'غير متوفر'; // رقم الإقامة
-                        row.insertCell().textContent = student.document_serial_number || 'غير متوفر'; // الرقم التسلسلي للوثيقة
-                        row.insertCell().textContent = student.inspection_date || 'غير متوفر'; // تاريخ الفحص
-                        row.insertCell().textContent = student.inspection_expiry_date || 'غير متوفر'; // تاريخ انتهاء الفحص
-                        row.insertCell().textContent = student.car_type || 'غير متوفر'; // نوع السيارة
-                        row.insertCell().textContent = student.counter_reading || 'غير متوفر'; // قراءة العداد
-                        row.insertCell().textContent = student.vehicle_model || 'غير متوفر'; // طراز المركبة
-                        row.insertCell().textContent = student.serial_number_duplicate || 'غير متوفر'; // الرقم التسلسلي (مكرر)
-                        row.insertCell().textContent = student.created_at || 'غير متوفر'; // تاريخ الإضافة
 
                         const actionsCell = row.insertCell();
 
@@ -95,6 +86,7 @@
                         editButton.textContent = 'تعديل';
                         editButton.classList.add('edit-btn');
                         editButton.onclick = () => {
+                            // المسار النظيف لصفحة التعديل
                             window.location.href = `/edit-student?id=${student.id}`;
                         };
                         actionsCell.appendChild(editButton);
@@ -104,6 +96,7 @@
                         printCertOneButton.textContent = 'شهادة (HTML)';
                         printCertOneButton.classList.add('print-btn');
                         printCertOneButton.onclick = () => {
+                            // المسار الصحيح لدالة توليد الشهادة الأولى
                             window.open(`/api/generateCertificateOne1?id=${student.id}`, '_blank');
                         };
                         actionsCell.appendChild(printCertOneButton);
@@ -113,6 +106,7 @@
                         printCertTwoButton.textContent = 'شهادة (صورة)';
                         printCertTwoButton.classList.add('print-image-btn');
                         printCertTwoButton.onclick = () => {
+                            // المسار النظيف لدالة توليد الشهادة الثانية (يتم التعامل معه بواسطة vercel.json)
                             window.open(`/certificate/${student.id}`, '_blank');
                         };
                         actionsCell.appendChild(printCertTwoButton);
@@ -121,7 +115,7 @@
                         const deleteButton = document.createElement('button');
                         deleteButton.textContent = 'حذف';
                         deleteButton.classList.add('delete-btn');
-                        deleteButton.setAttribute('data-id', student.id);
+                        deleteButton.setAttribute('data-id', student.id); // تخزين ID في خاصية data-id
                         actionsCell.appendChild(deleteButton);
                     });
                     loadingMessage.style.display = 'none';
@@ -141,26 +135,27 @@
             }
         }
 
-        // دالة حذف الطالب (لم تتغير)
+        // دالة حذف الطالب
         async function deleteStudent(studentId) {
             if (!confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟')) {
-                return;
+                return; // إلغاء الحذف إذا لم يؤكد المستخدم
             }
 
             try {
+                // المسار الصحيح لدالة حذف الطلاب
                 const response = await fetch('/api/deleteStudent', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ id: studentId })
+                    body: JSON.stringify({ id: studentId }) // إرسال المعرف في جسم الطلب
                 });
 
                 const result = await response.json();
 
                 if (response.ok) {
                     alert('تم حذف الطالب بنجاح!');
-                    fetchStudents();
+                    fetchStudents(); // إعادة تحميل الطلاب بعد الحذف
                 } else {
                     alert(`فشل الحذف: ${result.error || 'خطأ غير معروف'}`);
                     console.error('Error deleting student:', result.error);
@@ -171,18 +166,20 @@
             }
         }
 
-        // مستمعات الأحداث (لم تتغير)
+        // إضافة مستمع لزر البحث
         searchButton.addEventListener('click', () => {
             const searchTerm = searchInput.value.trim();
             fetchStudents(searchTerm);
         });
 
+        // إضافة مستمع لحدث "Enter" في حقل البحث
         searchInput.addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {
-                searchButton.click();
+                searchButton.click(); // محاكاة النقر على زر البحث
             }
         });
 
+        // إضافة مستمع عام للنقر للتعامل مع أزرار الحذف
         document.addEventListener('click', function(event) {
             if (event.target.classList.contains('delete-btn')) {
                 const studentId = event.target.dataset.id;
@@ -190,8 +187,10 @@
             }
         });
 
+        // جلب الطلاب عند تحميل الصفحة لأول مرة
         window.onload = fetchStudents;
 
+        // منطق القائمة المنسدلة (شريط التنقل)
         const menuToggle = document.getElementById('menu-toggle');
         const dropdownMenu = document.getElementById('dropdown-menu');
 
