@@ -1,79 +1,61 @@
-// netlify/functions/generateCertificateTwo2.js
+// api/generateCertificateTwo2.js
 const { MongoClient, ObjectId } = require('mongodb');
-const fetch = require('node-fetch'); // تأكد من تثبيت 'node-fetch' (npm install node-fetch)
+const fetch = require('node-fetch');
 
-// رابط اتصال قاعدة البيانات MongoDB.
 const uri = process.env.MONGODB_URI;
-// اسم قاعدة البيانات في MongoDB
 const dbName = 'Cluster0';
-// اسم المجموعة (Collection) في قاعدة البيانات
 const collectionName = 'enrolled_students_tbl';
 
-// مفتاح الوصول لخدمة ScreenshotOne API.
-// تم تعطيله مؤقتًا لتقليل المشاكل أثناء النقل.
-// يجب عليك إزالة التعليق وتعيين هذا المتغير في إعدادات Vercel كمتغير بيئة عند الحاجة.
-// const SCREENSHOTONE_ACCESS_KEY = process.env.SCREENSHOTONE_ACCESS_KEY;
-
 // الرابط العام (Public URL) للصورة الخلفية للشهادة.
-// تأكد أن هذا الرابط صحيح ويمكن الوصول إليه من الإنترنت.
-// تأكد أن هذه الصورة الموجودة على الرابط هي نفسها التي أبعادها 978x1280 بكسل.
-const CERTIFICATE_IMAGE_PUBLIC_URL = `https://ssadsd.kozow.com/images/full/wwee.jpg`;
+// تأكد من أن هذا المسار صحيح وأن الصورة موجودة في مجلد 'public' الخاص بك.
+// إذا كانت الصورة في 'public/images/full/wwee.jpg'، فالمسار النسبي هو '/images/full/wwee.jpg'.
+const CERTIFICATE_IMAGE_PATH = '/images/full/wwee.jpg'; // مسار الصورة في مجلد public
 
-// دالة Netlify الرئيسية التي ستُستدعى عند طلب الرابط.
-exports.handler = async (event, context) => {
-    // استخراج معرف الطالب من مسار URL (مثلاً: /certificate/SOME_ID_HERE)
-    const studentId = event.path.split('/').pop();
+module.exports = async (req, res) => {
+    // التأكد من أن الطلب من نوع GET
+    if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
+    }
 
-    let client; // متغير لتخزين كائن عميل MongoDB
+    // استخراج معرف الطالب من req.query
+    const studentId = req.query.id;
+    console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
+
+    if (!studentId) {
+        return res.status(400).send('<h1>معرف الطالب مطلوب</h1><p>الرابط الذي استخدمته غير صحيح. يرجى التأكد من صحة معرف الطالب.</p>');
+    }
+
+    let client;
 
     try {
-        // التحقق مما إذا كان URI الخاص بـ MongoDB مضبوطًا.
-        if (!uri) {
+        if (!process.env.MONGODB_URI) {
             console.error("MONGODB_URI is not set.");
-            return {
-                statusCode: 500,
-                body: "<h1>خطأ في الخادم</h1><p>MONGODB_URI غير مضبوط. يرجى التحقق من متغيرات البيئة في Vercel.</p>",
-                headers: { 'Content-Type': 'text/html; charset=utf-8' },
-            };
+            return res.status(500).send("<h1>Server Error</h1><p>MONGODB_URI is not configured. Please check Vercel environment variables.</p>");
         }
 
-        // تم تعطيل مفتاح ScreenshotOne مؤقتًا.
-        // إذا كان المفتاح غير معرف (لأنه معلق)، سنرجع رسالة خطأ.
-        // يجب إزالة التعليق وتعيينه في متغيرات البيئة ليعمل توليد الصور.
         if (!process.env.SCREENSHOTONE_ACCESS_KEY) {
             console.warn("SCREENSHOTONE_ACCESS_KEY is not set. Screenshot generation will be skipped.");
-            return {
-                statusCode: 501, // Not Implemented or Service Unavailable
-                body: "<h1>توليد الشهادة غير متاح حاليًا</h1><p>تم تعطيل وظيفة توليد الشهادة الصورية مؤقتًا (SCREENSHOTONE_ACCESS_KEY غير مضبوط). يرجى الاتصال بالمسؤول.</p>",
-                headers: { 'Content-Type': 'text/html; charset=utf-8' },
-            };
+            return res.status(501).send("<h1>Certificate Generation Unavailable</h1><p>Image certificate generation is temporarily disabled (SCREENSHOTONE_ACCESS_KEY is not set). Please contact the administrator.</p>");
         }
-        const SCREENSHOTONE_ACCESS_KEY = process.env.SCREENSHOTONE_ACCESS_KEY;
+        const SCREENSHOTONE_ACCESS_KEY = process.env.SCREENSHOTONE_ACCESS_KEY; // تم نقل هذا السطر لتعريفه هنا
 
-
-        // إنشاء اتصال بقاعدة بيانات MongoDB.
         client = new MongoClient(uri);
         await client.connect();
         const database = client.db(dbName);
         const studentsCollection = database.collection(collectionName);
 
-        let student; // متغير لتخزين بيانات الطالب
+        let student;
         try {
-            // البحث عن الطالب في قاعدة البيانات باستخدام المعرف.
             student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
         } catch (objectIdError) {
-            // التعامل مع خطأ إذا كان معرف الطالب غير صالح.
             console.error("MongoDB ObjectId conversion error for ID:", studentId, objectIdError);
-            return {
-                statusCode: 400,
-                body: '<h1>معرف الطالب غير صالح</h1><p>الرابط الذي استخدمته غير صحيح. يرجى التأكد من صحة معرف الطالب.</p>',
-                headers: { 'Content-Type': 'text/html; charset=utf-8' },
-            };
+            return res.status(400).send('<h1>Invalid Student ID</h1><p>The link you used is incorrect. Please ensure the student ID is valid.</p>');
         }
 
-        // إذا لم يتم العثور على الطالب، يتم استخدام بيانات تجريبية.
         if (!student) {
             console.warn("Student not found, using fallback data for ID:", studentId);
+            // لاحظ: استخدام بيانات تجريبية هنا ليس مثاليًا في بيئة الإنتاج،
+            // يفضل إرجاع 404 أو صفحة خطأ واضحة. تم الاحتفاظ بها بناءً على كودك الأصلي.
             student = {
                 arabic_name: "اسم الطالب التجريبي",
                 serial_number: "SN-TEST-123",
@@ -94,6 +76,8 @@ exports.handler = async (event, context) => {
         const color = student.color || 'غير متوفر';
 
         // بناء محتوى HTML الكامل للشهادة.
+        // **ملاحظة:** المسار النسبي للصورة '/images/full/wwee.jpg' سيعمل تلقائيًا على Vercel
+        // إذا كانت الصورة موجودة في مجلد `public`
         let htmlContent = `
             <!DOCTYPE html>
             <html>
@@ -111,7 +95,7 @@ exports.handler = async (event, context) => {
                         position: relative;
                         width: 978px; /* تم تحديث العرض بناءً على ImageMagick */
                         height: 1280px; /* تم تحديث الارتفاع بناءً على ImageMagick */
-                        background-image: url('${CERTIFICATE_IMAGE_PUBLIC_URL}');
+                        background-image: url('${CERTIFICATE_IMAGE_PATH}'); /* استخدام المسار النسبي */
                         background-size: cover;
                         background-repeat: no-repeat;
                         background-position: center;
@@ -147,23 +131,21 @@ exports.handler = async (event, context) => {
             </html>
         `.trim();
 
-        // نقطة نهاية API الخاصة بـ ScreenshotOne لتحويل HTML.
         const screenshotOneApiUrl = `https://api.screenshotone.com/take`;
 
-        // بناء جسم الطلب (Payload) لإرساله إلى ScreenshotOne.
         const screenshotOneRequestBody = {
-            access_key: SCREENSHOTONE_ACCESS_KEY, // سيتم استخدام المتغير المعرّف من process.env
-            html: htmlContent, // إرسال HTML مباشرةً
+            access_key: SCREENSHOTONE_ACCESS_KEY,
+            html: htmlContent,
             format: "jpeg",
             response_type: "by_format",
-            viewport_width: 978, // **تم تحديث العرض هنا**
-            viewport_height: 1280, // **تم تحديث الارتفاع هنا**
+            viewport_width: 978,
+            viewport_height: 1280,
             full_page: true,
         };
 
         console.log("Sending HTML to ScreenshotOne API...");
 
-        const response = await fetch(screenshotOneApiUrl, {
+        const responseFromScreenshotOne = await fetch(screenshotOneApiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -172,56 +154,35 @@ exports.handler = async (event, context) => {
             body: JSON.stringify(screenshotOneRequestBody),
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("ScreenshotOne API error response:", response.status, errorText);
+        if (!responseFromScreenshotOne.ok) {
+            const errorText = await responseFromScreenshotOne.text();
+            console.error("ScreenshotOne API error response:", responseFromScreenshotOne.status, errorText);
             try {
                 const errorData = JSON.parse(errorText);
-                return {
-                    statusCode: response.status,
-                    body: `<h1>خطأ في توليد الشهادة من ScreenshotOne</h1><p>تفاصيل الخطأ: ${JSON.stringify(errorData, null, 2)}</p>`,
-                    headers: { 'Content-Type': 'text/html; charset=utf-8' },
-                };
+                return res.status(responseFromScreenshotOne.status).send(`<h1>Error generating certificate from ScreenshotOne</h1><p>Error details: ${JSON.stringify(errorData, null, 2)}</p>`);
             } catch (jsonParseError) {
-                return {
-                    statusCode: response.status,
-                    body: `<h1>خطأ في توليد الشهادة من ScreenshotOne</h1><p>استجابة غير متوقعة: ${errorText}</p>`,
-                    headers: { 'Content-Type': 'text/html; charset=utf-8' },
-                };
+                return res.status(responseFromScreenshotOne.status).send(`<h1>Error generating certificate from ScreenshotOne</h1><p>Unexpected response: ${errorText}</p>`);
             }
         }
 
-        const imageBuffer = await response.buffer();
+        const imageBuffer = await responseFromScreenshotOne.buffer();
 
         if (imageBuffer.length === 0) {
             console.error("ScreenshotOne API returned an empty image buffer.");
-            return {
-                statusCode: 500,
-                body: `<h1>خطأ في توليد الشهادة</h1><p>ScreenshotOne API أرجعت صورة فارغة. قد يكون هناك مشكلة في البيانات المدخلة أو حدود الخطة.</p>`,
-                headers: { 'Content-Type': 'text/html; charset=utf-8' },
-            };
+            return res.status(500).send(`<h1>Error generating certificate</h1><p>ScreenshotOne API returned an empty image. There might be an issue with input data or plan limits.</p>`);
         }
 
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'image/jpeg',
-                'Content-Disposition': `inline; filename="certificate.jpg"`,
-                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0',
-            },
-            body: imageBuffer.toString('base64'),
-            isBase64Encoded: true,
-        };
+        // إرسال الصورة كاستجابة مباشرةً
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Content-Disposition', `inline; filename="certificate.jpg"`);
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        return res.status(200).send(imageBuffer);
 
     } catch (error) {
-        console.error("Unexpected error in Netlify function:", error);
-        return {
-            statusCode: 500,
-            body: `<h1>حدث خطأ أثناء توليد الشهادة</h1><p>تفاصيل الخطأ: ${error.message}</p><p>الرجاء مراجعة سجلات وظيفة Netlify.</p>`,
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        };
+        console.error("Unexpected error in Vercel function:", error);
+        return res.status(500).send(`<h1>An error occurred while generating the certificate</h1><p>Error details: ${error.message || 'حدث خطأ غير متوقع في الخادم.'}</p><p>Please check Vercel function logs.</p>`);
     } finally {
         if (client) {
             console.log("Closing MongoDB connection.");

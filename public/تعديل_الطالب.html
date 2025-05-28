@@ -104,7 +104,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         const studentId = urlParams.get('id');
 
-        // دالة لحساب تاريخ انتهاء الفحص بإضافة سنة واحدة
         function calculateExpiryDate(inspectionDate) {
             if (!inspectionDate) {
                 return '';
@@ -117,7 +116,6 @@
             return `${year}-${month}-${day}`;
         }
 
-        // إضافة مستمع لحدث تغيير حقل تاريخ الفحص
         inspectionDateInput.addEventListener('change', function() {
             inspectionExpiryDateInput.value = calculateExpiryDate(this.value);
         });
@@ -125,7 +123,6 @@
         async function fetchStudentData(id) {
             try {
                 console.log('Fetching student data for ID:', id);
-                // عرض مؤشر تحميل
                 serialNumberInput.value = 'جارٍ التحميل...';
                 residencyNumberInput.value = 'جارٍ التحميل...';
                 documentSerialNumberInput.value = 'جارٍ التحميل...';
@@ -140,8 +137,8 @@
                 colorInput.value = 'جارٍ التحميل...';
                 serialNumberDuplicateInput.value = 'جارٍ التحميل...';
 
-                // *** تم التأكد من صحة هذا المسار ***
-                const response = await fetch(`/netlify/functions/getStudent?id=${id}`);
+                // *** التغيير هنا: المسار الصحيح لوظيفة Vercel ***
+                const response = await fetch(`/api/getStudent?id=${id}`); // تم تغيير المسار
                 const data = await response.json();
 
                 if (response.ok) {
@@ -186,7 +183,6 @@
                 documentSerialNumberInput.value = '';
                 plateNumberInput.value = '';
                 inspectionDateInput.value = '';
-                manufacturerInput.value = '';
                 inspectionExpiryDateInput.value = '';
                 carTypeInput.value = '';
                 counterReadingInput.value = '';
@@ -217,8 +213,8 @@
             };
 
             try {
-                // *** تم التأكد من صحة هذا المسار ***
-                const response = await fetch('/netlify/functions/updateStudent', {
+                // *** التغيير هنا: المسار الصحيح لوظيفة Vercel ***
+                const response = await fetch('/api/updateStudent', { // تم تغيير المسار
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -240,7 +236,6 @@
             }
         }
 
-        // جلب بيانات الطالب عند تحميل الصفحة إذا كان هناك ID في URL
         if (studentId) {
             fetchStudentData(studentId);
         } else {
@@ -250,7 +245,6 @@
 
         form.addEventListener('submit', updateStudentData);
 
-        // منطق القائمة المنسدلة (شريط التنقل)
         const menuToggle = document.getElementById('menu-toggle');
         const dropdownMenu = document.getElementById('dropdown-menu');
 
