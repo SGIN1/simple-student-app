@@ -1,20 +1,23 @@
-// netlify/functions/updateStudent.js
+// api/updateStudent.js
 const { MongoClient, ObjectId } = require('mongodb');
 
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
-exports.handler = async (event, context) => {
-    if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+// التصدير الافتراضي لدالة معالجة الطلبات لـ Vercel
+module.exports = async (req, res) => {
+    // التأكد من أن الطلب من نوع POST
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
     let client;
 
     try {
+        // جلب البيانات من جسم الطلب (req.body) مباشرة
         const {
-            id,
+            id, // معرّف الطالب المطلوب تعديله
             serial_number,
             residency_number,
             document_serial_number,
@@ -28,10 +31,14 @@ exports.handler = async (event, context) => {
             vehicle_model,
             color,
             serial_number_duplicate
-        } = JSON.parse(event.body);
+        } = req.body; // هنا التغيير الأساسي
 
         if (!id || !serial_number || !residency_number) {
-            return { statusCode: 400, body: JSON.stringify({ error: 'مُعرّف الطالب والرقم التسلسلي ورقم الإقامة كلها مطلوبة.' }) };
+            return res.status(400).json({ error: 'مُعرّف الطالب والرقم التسلسلي ورقم الإقامة كلها مطلوبة.' });
+        }
+
+        if (!uri) {
+            return res.status(500).json({ error: 'لم يتم العثور على رابط اتصال MongoDB في متغيرات البيئة. تأكد من إعداده في Vercel.' });
         }
 
         client = new MongoClient(uri);
@@ -40,7 +47,7 @@ exports.handler = async (event, context) => {
         const studentsCollection = database.collection(collectionName);
 
         const updateResult = await studentsCollection.updateOne(
-            { _id: new ObjectId(id) },
+            { _id: new ObjectId(id) }, // البحث بواسطة _id
             {
                 $set: {
                     serial_number,
@@ -61,14 +68,19 @@ exports.handler = async (event, context) => {
         );
 
         if (updateResult.modifiedCount > 0) {
-            return { statusCode: 200, body: JSON.stringify({ message: 'تم تحديث بيانات الطالب بنجاح!' }) };
+            return res.status(200).json({ message: 'تم تحديث بيانات الطالب بنجاح!' });
         } else {
-            return { statusCode: 404, body: JSON.stringify({ error: 'لم يتم العثور على الطالب لتحديثه.' }) };
+            // يمكن أن يحدث هذا إذا كان ID غير صحيح أو لم يتم تغيير أي حقول
+            return res.status(404).json({ error: 'لم يتم العثور على الطالب لتحديثه، أو لم يتم تغيير أي بيانات.' });
         }
 
     } catch (error) {
         console.error('خطأ في وظيفة تحديث الطالب:', error);
-        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+        // التحقق مما إذا كان الخطأ متعلقًا بمعرف ObjectId غير صالح
+        if (error.message.includes('Argument passed in must be a string of 12 bytes or a string of 24 hex characters or an integer')) {
+            return res.status(400).json({ error: 'مُعرّف الطالب غير صالح. تأكد من أنه تنسيق صحيح.' });
+        }
+        return res.status(500).json({ error: error.message || 'حدث خطأ غير متوقع في الخادم.' });
     } finally {
         if (client) {
             await client.close();
