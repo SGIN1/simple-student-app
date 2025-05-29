@@ -1,8 +1,7 @@
 // api/generateCertificateTwo2.js
 
-// **تأكد أن كل الاستيرادات هنا تستخدم 'import' وليس 'require'**
 import { MongoClient, ObjectId } from 'mongodb';
-import { renderToBuffer } from '@react-pdf/renderer'; // المسار الصحيح
+import { renderToBuffer } from '@react-pdf/renderer';
 import React from 'react';
 import CertificatePdfDocument from '../components/CertificatePdfDocument';
 
@@ -10,7 +9,6 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **تأكد أن دالتك يتم تصديرها باستخدام 'export default'**
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
