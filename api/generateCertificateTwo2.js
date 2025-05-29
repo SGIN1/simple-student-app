@@ -1,51 +1,29 @@
-// api/generateCertificateTwo2.js
+// api/generateCertificateTwo2.js (ملف معدّل)
 
-// تحويل الاستيرادات (imports) إلى صيغة ES Modules عشان تشتغل في Edge Functions
-import { ImageResponse } from '@vercel/og';
-import React from 'react'; // React 19 بيدعم import React from 'react'
+import { ImageResponse } = from '@vercel/og';
+import React from 'react';
 
-// استيراد MongoDB: هذه المكتبة قد لا تعمل في Edge Functions. لو واجهت مشاكل، هيكون السبب منها.
-import { MongoClient, ObjectId } from 'mongodb';
-
-// --- إعدادات الدالة كـ Edge Function ---
+// --- Configuration for Edge Function ---
 export const config = {
-    runtime: 'edge', // هذا هو المفتاح الأساسي اللي بيخليها Edge Function
-    // regions: ['cdg1'], // اختياري: ممكن تحدد أقرب منطقة ليك لتحسين الأداء (مثلاً 'fra1' لأوروبا)
+    runtime: 'edge',
+    // regions: ['cdg1'], // يمكن تحديد أقرب منطقة لك
 };
-// --- نهاية الإعدادات ---
-
-const uri = process.env.MONGODB_URI;
-const dbName = 'Cluster0';
-const collectionName = 'enrolled_students_tbl';
+// --- End Configuration ---
 
 const fontUrl = 'https://fonts.gstatic.com/s/cairo/v29/SLXGc1gY6HPz_mkYx_U62B2JpB4.woff2';
 
-export default async function handler(req) { // في Edge Functions، الـ `req` هو Request object
+export default async function handler(req) {
     if (req.method !== 'GET') {
-        return new Response('Method Not Allowed', { status: 405 }); // الردود بتكون Response object في Edge
+        return new Response('Method Not Allowed', { status: 405 });
     }
 
-    const url = new URL(req.url); // لجلب الـ ID من الـ URL في Edge
+    const url = new URL(req.url);
     const studentId = url.searchParams.get('id');
-
-    console.log('ID المستلم في وظيفة generateCertificateTwo2 (Edge Function):', studentId);
 
     if (!studentId) {
         return new ImageResponse(
             (
-                <div
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        width: '100%',
-                        height: '100%',
-                        backgroundColor: '#fff',
-                        fontSize: 36,
-                        color: 'black',
-                    }}
-                >
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', backgroundColor: '#fff', fontSize: 36, color: 'black' }}>
                     <h1>معرف الطالب مطلوب</h1>
                     <p>الرابط الذي استخدمته غير صحيح.</p>
                 </div>
@@ -54,35 +32,46 @@ export default async function handler(req) { // في Edge Functions، الـ `re
         );
     }
 
-    let client;
     let student;
-
     try {
-        if (!process.env.MONGODB_URI) {
-            console.error("MONGODB_URI is not set.");
-            return new Response("Server Error: MONGODB_URI is not configured. Please check Vercel environment variables.", { status: 500 });
-        }
-
-        const host = req.headers.get('host'); // جلب الهوست من Request Headers
+        const host = req.headers.get('host');
         const protocol = req.headers.get('x-forwarded-proto') || 'http';
-        const absoluteBackgroundImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
 
-        // **هذا الجزء هو الأكثر عرضة للفشل في Edge Functions:**
-        // محاولة الاتصال بـ MongoDB مباشرة هنا.
-        client = new MongoClient(uri);
-        await client.connect();
-        const database = client.db(dbName);
-        const studentsCollection = database.collection(collectionName);
+        // **هنا نقوم بطلب البيانات من دالة api/getStudent.js الموجودة بالفعل**
+        const studentDataUrl = `${protocol}://${host}/api/getStudent?id=${studentId}`;
+        console.log("Fetching student data from:", studentDataUrl);
 
-        try {
-            student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
-        } catch (objectIdError) {
-            console.error("MongoDB ObjectId conversion error for ID:", studentId, objectIdError);
-            return new Response('Invalid Student ID: The link you used is incorrect.', { status: 400 });
+        const response = await fetch(studentDataUrl);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Failed to fetch student data from /api/getStudent: ${response.status} - ${errorText}`);
+            // حاول تفسير رسالة الخطأ من getStudent.js لو كانت JSON
+            let errorMessage = `Failed to get student data (Status: ${response.status})`;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.error || errorMessage;
+            } catch (e) {
+                // ليس JSON، استخدم النص كما هو
+                errorMessage = errorText;
+            }
+            return new ImageResponse(
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', backgroundColor: '#fff', fontSize: 36, color: 'red' }}>
+                    <h1>خطأ في جلب بيانات الطالب</h1>
+                    <p>{errorMessage.substring(0, 150)}</p>
+                </div>,
+                { width: 1200, height: 630 }
+            );
         }
+        
+        student = await response.json();
 
-        if (!student) {
-            console.warn("Student not found, using fallback data for ID:", studentId);
+        // لو الدالة اللي بتجيب البيانات رجعت بيانات افتراضية
+        // (إذا كانت دالة getStudent.js ترجع بيانات افتراضية في حالة عدم العثور)
+        // يمكنك إضافة هذا الشرط إذا كنت ترجع بيانات افتراضية من getStudent.js
+        /*
+        if (!student || Object.keys(student).length === 0) {
+            console.warn("Student data not found in DB or empty, using fallback data for image generation.");
             student = {
                 arabic_name: "اسم الطالب التجريبي",
                 serial_number: "SN-TEST-123",
@@ -92,9 +81,14 @@ export default async function handler(req) { // في Edge Functions، الـ `re
                 color: "Red Test"
             };
         } else {
-            console.log("Student found:", student.arabic_name);
+            console.log("Student data fetched successfully:", student.arabic_name);
         }
+        */
+        // ملاحظة: دالة getStudent.js لديك ترجع 404 لو الطالب مش موجود، فمش هنحتاج لـ fallback هنا
+        console.log("Student data fetched successfully:", student.arabic_name);
 
+
+        const absoluteBackgroundImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
         const fontData = await fetch(fontUrl).then((res) => res.arrayBuffer());
 
         return new ImageResponse(
@@ -158,10 +152,7 @@ export default async function handler(req) { // في Edge Functions، الـ `re
         );
 
     } catch (error) {
-        console.error("Unexpected error in Vercel Edge Function:", error);
-        return new Response(`An error occurred while generating the certificate image: ${error.message || 'An unexpected server error occurred.'}`, { status: 500 });
-    } finally {
-        // في Edge Functions، مش دايما بنحتاج نقفل الاتصال بـ client.close() صراحةً
-        // لو واجهت أخطاء MongoDB، إحنا محتاجين نفصل الدالتين
+        console.error("Unexpected error in Edge Function (generateCertificateTwo2):", error);
+        return new Response(`An error occurred: ${error.message || 'An unexpected server error occurred.'}`, { status: 500 });
     }
 }

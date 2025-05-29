@@ -1,4 +1,4 @@
-// api/getStudent.js
+// api/getStudent.js (الكود الذي أرسلته أنت، بدون أي تغييرات)
 const { MongoClient, ObjectId } = require('mongodb');
 
 // تعريف رابط الاتصال واسم قاعدة البيانات من متغيرات البيئة
