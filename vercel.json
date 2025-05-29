@@ -1,15 +1,4 @@
 {
-  "functions": {
-    "api/generateCertificateTwo2.js": {
-      "runtime": "nodejs20.x",
-      "includeFiles": [
-        "api/generateCertificateTwo2.js.build"
-      ],
-      "excludeFiles": [
-        "api/generateCertificateTwo2.js"
-      ]
-    }
-  },
   "rewrites": [
     {
       "source": "/",
@@ -33,7 +22,7 @@
     },
     {
       "source": "/certificate/:id",
-      "destination": "/api/generateCertificateTwo2.js.build?id=:id"
+      "destination": "/api/generateCertificateTwo2.js?id=:id"
     },
     {
       "source": "/api/addStudent",
@@ -57,7 +46,7 @@
     },
     {
       "source": "/api/generateCertificateTwo2",
-      "destination": "/api/generateCertificateTwo2.js.build"
+      "destination": "/api/generateCertificateTwo2.js"
     }
   ]
 }
