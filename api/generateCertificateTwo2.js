@@ -1,9 +1,18 @@
 // api/generateCertificateTwo2.js
 
-// تغيير 'require' إلى 'import'
-import { MongoClient, ObjectId } from 'mongodb'; // قد لا يعمل هذا في Edge Functions
+// تحويل الاستيرادات (imports) إلى صيغة ES Modules عشان تشتغل في Edge Functions
 import { ImageResponse } from '@vercel/og';
 import React from 'react'; // React 19 بيدعم import React from 'react'
+
+// استيراد MongoDB: هذه المكتبة قد لا تعمل في Edge Functions. لو واجهت مشاكل، هيكون السبب منها.
+import { MongoClient, ObjectId } from 'mongodb';
+
+// --- إعدادات الدالة كـ Edge Function ---
+export const config = {
+    runtime: 'edge', // هذا هو المفتاح الأساسي اللي بيخليها Edge Function
+    // regions: ['cdg1'], // اختياري: ممكن تحدد أقرب منطقة ليك لتحسين الأداء (مثلاً 'fra1' لأوروبا)
+};
+// --- نهاية الإعدادات ---
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -11,22 +20,36 @@ const collectionName = 'enrolled_students_tbl';
 
 const fontUrl = 'https://fonts.gstatic.com/s/cairo/v29/SLXGc1gY6HPz_mkYx_U62B2JpB4.woff2';
 
-// تعريف الدالة كـ Edge Function
-export default async function handler(req, res) {
+export default async function handler(req) { // في Edge Functions، الـ `req` هو Request object
     if (req.method !== 'GET') {
-        return new Response('Method Not Allowed', { status: 405 });
+        return new Response('Method Not Allowed', { status: 405 }); // الردود بتكون Response object في Edge
     }
 
-    const url = new URL(req.url);
-    const studentId = url.searchParams.get('id'); // جلب الـ ID من الـ URLSearchParams
-    console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
+    const url = new URL(req.url); // لجلب الـ ID من الـ URL في Edge
+    const studentId = url.searchParams.get('id');
+
+    console.log('ID المستلم في وظيفة generateCertificateTwo2 (Edge Function):', studentId);
 
     if (!studentId) {
         return new ImageResponse(
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', backgroundColor: '#fff', fontSize: 36, color: 'black' }}>
-                <h1>معرف الطالب مطلوب</h1>
-                <p>الرابط الذي استخدمته غير صحيح.</p>
-            </div>,
+            (
+                <div
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: '#fff',
+                        fontSize: 36,
+                        color: 'black',
+                    }}
+                >
+                    <h1>معرف الطالب مطلوب</h1>
+                    <p>الرابط الذي استخدمته غير صحيح.</p>
+                </div>
+            ),
             { width: 1200, height: 630 }
         );
     }
@@ -37,15 +60,15 @@ export default async function handler(req, res) {
     try {
         if (!process.env.MONGODB_URI) {
             console.error("MONGODB_URI is not set.");
-            return new Response("Server Error: MONGODB_URI is not configured.", { status: 500 });
+            return new Response("Server Error: MONGODB_URI is not configured. Please check Vercel environment variables.", { status: 500 });
         }
 
-        const host = req.headers.get('host'); // جلب الهوست في Edge Functions
+        const host = req.headers.get('host'); // جلب الهوست من Request Headers
         const protocol = req.headers.get('x-forwarded-proto') || 'http';
-        const absoluteBackgroundImagePath = `<span class="math-inline">\{protocol\}\://</span>{host}/images/full/wwee.jpg`;
+        const absoluteBackgroundImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
 
-        // **نقطة مهمة:** اتصال MongoDB قد لا يعمل بشكل مباشر في Edge Functions.
-        // إذا واجهت مشاكل هنا، قد نحتاج لفصل جلب البيانات إلى Serverless Function منفصلة.
+        // **هذا الجزء هو الأكثر عرضة للفشل في Edge Functions:**
+        // محاولة الاتصال بـ MongoDB مباشرة هنا.
         client = new MongoClient(uri);
         await client.connect();
         const database = client.db(dbName);
@@ -136,17 +159,9 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Unexpected error in Vercel Edge Function:", error);
-        return new Response(`An error occurred: ${error.message || 'An unexpected server error occurred.'}`, { status: 500 });
+        return new Response(`An error occurred while generating the certificate image: ${error.message || 'An unexpected server error occurred.'}`, { status: 500 });
     } finally {
-        if (client) {
-            console.log("Closing MongoDB connection.");
-            await client.close();
-        }
+        // في Edge Functions، مش دايما بنحتاج نقفل الاتصال بـ client.close() صراحةً
+        // لو واجهت أخطاء MongoDB، إحنا محتاجين نفصل الدالتين
     }
 }
-
-// إعداد الدالة كـ Edge Function
-export const config = {
-    runtime: 'edge', // هذا هو المفتاح!
-    regions: ['cdg1'], // يمكن تحديد أقرب منطقة لـ Ma'rib لو عايز سرعة أكبر
-};
