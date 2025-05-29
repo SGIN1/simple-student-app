@@ -1,25 +1,34 @@
 // api/generateCertificateTwo2.js
 
-const { MongoClient, ObjectId } = require('mongodb');
-const { ImageResponse } = require('@vercel/og');
-const React = require('react');
+// تغيير 'require' إلى 'import'
+import { MongoClient, ObjectId } from 'mongodb'; // قد لا يعمل هذا في Edge Functions
+import { ImageResponse } from '@vercel/og';
+import React from 'react'; // React 19 بيدعم import React from 'react'
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-const fontUrl = 'https://fonts.gstatic.com/s/cairo/v29/SLXGc1gY6HPz_mkYx_U62B2JpB4.woff2'; // استخدام خط القاهرة
+const fontUrl = 'https://fonts.gstatic.com/s/cairo/v29/SLXGc1gY6HPz_mkYx_U62B2JpB4.woff2';
 
-module.exports = async function handler(req, res) {
+// تعريف الدالة كـ Edge Function
+export default async function handler(req, res) {
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+        return new Response('Method Not Allowed', { status: 405 });
     }
 
-    const studentId = req.query.id;
+    const url = new URL(req.url);
+    const studentId = url.searchParams.get('id'); // جلب الـ ID من الـ URLSearchParams
     console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
     if (!studentId) {
-        return res.status(400).send('<h1>معرف الطالب مطلوب</h1><p>الرابط الذي استخدمته غير صحيح. يرجى التأكد من صحة معرف الطالب.</p>');
+        return new ImageResponse(
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', backgroundColor: '#fff', fontSize: 36, color: 'black' }}>
+                <h1>معرف الطالب مطلوب</h1>
+                <p>الرابط الذي استخدمته غير صحيح.</p>
+            </div>,
+            { width: 1200, height: 630 }
+        );
     }
 
     let client;
@@ -28,13 +37,15 @@ module.exports = async function handler(req, res) {
     try {
         if (!process.env.MONGODB_URI) {
             console.error("MONGODB_URI is not set.");
-            return res.status(500).send("<h1>Server Error</h1><p>MONGODB_URI is not configured. Please check Vercel environment variables.</p>");
+            return new Response("Server Error: MONGODB_URI is not configured.", { status: 500 });
         }
 
-        const host = req.headers.host;
-        const protocol = req.headers['x-forwarded-proto'] || 'http';
-        const absoluteBackgroundImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
+        const host = req.headers.get('host'); // جلب الهوست في Edge Functions
+        const protocol = req.headers.get('x-forwarded-proto') || 'http';
+        const absoluteBackgroundImagePath = `<span class="math-inline">\{protocol\}\://</span>{host}/images/full/wwee.jpg`;
 
+        // **نقطة مهمة:** اتصال MongoDB قد لا يعمل بشكل مباشر في Edge Functions.
+        // إذا واجهت مشاكل هنا، قد نحتاج لفصل جلب البيانات إلى Serverless Function منفصلة.
         client = new MongoClient(uri);
         await client.connect();
         const database = client.db(dbName);
@@ -44,7 +55,7 @@ module.exports = async function handler(req, res) {
             student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
         } catch (objectIdError) {
             console.error("MongoDB ObjectId conversion error for ID:", studentId, objectIdError);
-            return res.status(400).send('<h1>Invalid Student ID</h1><p>The link you used is incorrect. Please ensure the student ID is valid.</p>');
+            return new Response('Invalid Student ID: The link you used is incorrect.', { status: 400 });
         }
 
         if (!student) {
@@ -124,12 +135,18 @@ module.exports = async function handler(req, res) {
         );
 
     } catch (error) {
-        console.error("Unexpected error in Vercel function (OG Image):", error);
-        return res.status(500).send(`<h1>An error occurred while generating the certificate image</h1><p>Error details: ${error.message || 'An unexpected server error occurred.'}</p><p>Please check Vercel function logs.</p>`);
+        console.error("Unexpected error in Vercel Edge Function:", error);
+        return new Response(`An error occurred: ${error.message || 'An unexpected server error occurred.'}`, { status: 500 });
     } finally {
         if (client) {
             console.log("Closing MongoDB connection.");
             await client.close();
         }
     }
+}
+
+// إعداد الدالة كـ Edge Function
+export const config = {
+    runtime: 'edge', // هذا هو المفتاح!
+    regions: ['cdg1'], // يمكن تحديد أقرب منطقة لـ Ma'rib لو عايز سرعة أكبر
 };
