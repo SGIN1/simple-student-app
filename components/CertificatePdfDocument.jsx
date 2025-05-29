@@ -3,9 +3,12 @@
 const React = require('react');
 const { Page, Text, View, Document, StyleSheet, Font, Image } = require('@react-pdf/renderer');
 
+// **** التعديل هنا: اسم الخط والمسار ****
+// تأكد أن ملف الخط 'HacenEgypt.ttf' موجود في مجلد 'public/fonts/' في مشروعك
+// (قم بإعادة تسمية 'Hacen Egypt.ttf' إلى 'HacenEgypt.ttf' لإزالة المسافات)
 Font.register({
-  family: 'ArialCustom',
-  src: '/fonts/arial.ttf',
+  family: 'HacenCustomFont', // يمكنك اختيار أي اسم هنا، ولكن يجب أن يكون هذا هو الاسم المستخدم في 'fontFamily'
+  src: '/fonts/HacenEgypt.ttf', // المسار إلى ملف الخط داخل مجلد 'public'
 });
 
 const styles = StyleSheet.create({
@@ -34,7 +37,7 @@ const styles = StyleSheet.create({
     width: '100%',
     textAlign: 'center',
     fontSize: 36,
-    fontFamily: 'ArialCustom',
+    fontFamily: 'HacenCustomFont', // **** استخدم الاسم الذي سجلته هنا ****
     color: '#000000',
   },
   serialNumber: {
@@ -44,7 +47,7 @@ const styles = StyleSheet.create({
     width: '30%',
     textAlign: 'left',
     fontSize: 16,
-    fontFamily: 'ArialCustom',
+    fontFamily: 'HacenCustomFont', // **** استخدم الاسم الذي سجلته هنا ****
     color: '#FFFFFF',
   },
   documentSerialNumber: {
@@ -54,7 +57,7 @@ const styles = StyleSheet.create({
     width: '100%',
     textAlign: 'center',
     fontSize: 16,
-    fontFamily: 'ArialCustom',
+    fontFamily: 'HacenCustomFont', // **** استخدم الاسم الذي سجلته هنا ****
     color: '#000000',
   },
   plateNumber: {
@@ -64,7 +67,7 @@ const styles = StyleSheet.create({
     width: '100%',
     textAlign: 'center',
     fontSize: 16,
-    fontFamily: 'ArialCustom',
+    fontFamily: 'HacenCustomFont', // **** استخدم الاسم الذي سجلته هنا ****
     color: '#000000',
   },
   carType: {
@@ -74,7 +77,7 @@ const styles = StyleSheet.create({
     width: '100%',
     textAlign: 'center',
     fontSize: 16,
-    fontFamily: 'ArialCustom',
+    fontFamily: 'HacenCustomFont', // **** استخدم الاسم الذي سجلته هنا ****
     color: '#000000',
   },
   color: {
@@ -84,7 +87,7 @@ const styles = StyleSheet.create({
     width: '100%',
     textAlign: 'center',
     fontSize: 16,
-    fontFamily: 'ArialCustom',
+    fontFamily: 'HacenCustomFont', // **** استخدم الاسم الذي سجلته هنا ****
     color: '#000000',
   },
 });
