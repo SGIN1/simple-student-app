@@ -1,23 +1,17 @@
-// api/generateCertificateOne1.js
-const { MongoClient, ObjectId } = require('mongodb');
-const QRCode = require('qrcode');
+import { MongoClient, ObjectId } from 'mongodb';
+import QRCode from 'qrcode'; // تم تغيير صيغة الاستيراد لـ qrcode
 
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
-// Vercel يوفر متغير بيئة VERCEL_URL تلقائيًا.
-// نستخدمه هنا لإنشاء الرابط الكامل للشهادة الثانية.
-// في بيئة التطوير المحلية، سيستخدم 'http://localhost:3000'
 const VERCEL_BASE_URL = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
 
-module.exports = async (req, res) => {
-    // التأكد من أن الطلب من نوع GET
+export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // جلب مُعرف الطالب من req.query
     const studentId = req.query.id;
     console.log('ID المستلم في وظيفة generateCertificateOne1:', studentId);
 
@@ -25,7 +19,7 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'معرف الطالب مطلوب.' });
     }
 
-    let client; // تعريف الـ client هنا عشان يكون متاح في الـ finally
+    let client;
 
     try {
         if (!uri) {
@@ -39,20 +33,15 @@ module.exports = async (req, res) => {
 
         let student;
         try {
-            // البحث عن الطالب باستخدام ObjectId
             student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
         } catch (objectIdError) {
-            // إذا كان مُعرف الطالب غير صالح
             return res.status(400).send(`<h1>معرف الطالب غير صالح: ${studentId}</h1><p>${objectIdError.message}</p>`);
         }
-
 
         if (!student) {
             return res.status(404).send(`<h1>لم يتم العثور على طالب بالمعرف: ${studentId}</h1>`);
         }
 
-        // إنشاء رابط URL كامل للشهادة الثانية، مع استخدام مسار Vercel API
-        // هذه الدالة ستستدعي `api/generateCertificateTwo2.js`
         const certificateTwoUrl = `${VERCEL_BASE_URL}/api/generateCertificateTwo2?id=${student._id}`;
 
         let qrCodeDataUri;
@@ -130,9 +119,8 @@ module.exports = async (req, res) => {
                     window.onload = function() {
                         setTimeout(function() {
                             window.print();
-                            // إغلاق النافذة بعد الطباعة، ولكن قد لا يعمل في كل المتصفحات
                             setTimeout(function() { window.close(); }, 1000);
-                        }, 500); // تأخير 500 ملي ثانية
+                        }, 500);
                     };
                 </script>
             </body>
@@ -150,4 +138,4 @@ module.exports = async (req, res) => {
             await client.close();
         }
     }
-};
+}

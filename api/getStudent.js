@@ -1,3 +1,4 @@
+// api/getStudent.js
 import { MongoClient, ObjectId } from 'mongodb';
 
 const uri = process.env.MONGODB_URI;
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
                         color: student.color,
                         serial_number_duplicate: student.serial_number_duplicate,
                         created_at: student.created_at ? new Date(student.created_at).toLocaleDateString() : 'غير محدد',
-                        arabic_name: student.arabic_name || '' // تأكد أن هذا الحقل موجود في الـ DB أو أضف قيمة افتراضية
+                        arabic_name: student.arabic_name || ''
                     });
                 } else {
                     return res.status(404).json({ error: 'لم يتم العثور على طالب بهذا المُعرّف.' });
