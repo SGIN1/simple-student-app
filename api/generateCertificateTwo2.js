@@ -2,8 +2,8 @@
 
 const { MongoClient, ObjectId } = require('mongodb');
 const React = require('react');
-// **** هنا التعديل الذي طلبته: تحديد امتداد الملف .jsx ****
-const CertificatePdfDocument = require('../components/CertificatePdfDocument.jsx');
+// **** التعديل هنا: المسار يشير إلى الملف المبني .js ****
+const CertificatePdfDocument = require('../components/CertificatePdfDocument.js'); // هذا سيكون الملف الذي تم تحويله من JSX
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -25,8 +25,6 @@ module.exports = async function handler(req, res) {
     let renderToBuffer;
 
     try {
-        // استخدام import() ديناميكي لـ @react-pdf/renderer
-        // هذا السطر يجب أن يكون داخل الـ try block
         ({ renderToBuffer } = await import('@react-pdf/renderer'));
 
         if (!process.env.MONGODB_URI) {
@@ -36,7 +34,6 @@ module.exports = async function handler(req, res) {
 
         const host = req.headers.host;
         const protocol = req.headers['x-forwarded-proto'] || 'http';
-        // هذا المسار يستخدم لصور الخلفية داخل PDF (يجب أن تكون الصورة موجودة في مجلد public)
         const absoluteImagePath = `${protocol}://${host}/images/full/wwee.jpg`; 
         console.log("Absolute image path for certificate:", absoluteImagePath);
 

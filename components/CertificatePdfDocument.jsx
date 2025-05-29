@@ -3,10 +3,9 @@
 const React = require('react');
 const { Page, Text, View, Document, StyleSheet, Font, Image } = require('@react-pdf/renderer');
 
-// تأكد أن ملف الخط 'arial.ttf' موجود في مجلد 'public/fonts/' في مشروعك
 Font.register({
-  family: 'ArialCustom', // اسم الخط الذي ستستخدمه في خاصية fontFamily
-  src: '/fonts/arial.ttf', // المسار إلى ملف الخط داخل مجلد 'public'
+  family: 'ArialCustom',
+  src: '/fonts/arial.ttf',
 });
 
 const styles = StyleSheet.create({
