@@ -10,11 +10,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@react-pdf/renderer": "^4.3.0",
     "chrome-aws-lambda": "^10.1.0",
     "mongodb": "^6.6.0",
     "node-fetch": "^2.7.0",
     "puppeteer-core": "^10.4.0",
-    "qrcode": "^1.5.3"
+    "qrcode": "^1.5.3",
+    "react": "^19.1.0"
   },
   "devDependencies": {
     "esbuild": "^0.25.3"
