@@ -2,7 +2,8 @@
 
 const { MongoClient, ObjectId } = require('mongodb');
 const React = require('react');
-const CertificatePdfDocument = require('../components/CertificatePdfDocument');
+// **** التعديل الجديد هنا: إضافة .jsx للمسار ****
+const CertificatePdfDocument = require('../components/CertificatePdfDocument.jsx');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -21,13 +22,10 @@ module.exports = async function handler(req, res) {
     }
 
     let client;
-    let renderToBuffer; // تعريف renderToBuffer هنا
+    let renderToBuffer;
 
     try {
-        // *** التعديل هنا: استخدام import() ديناميكي لـ @react-pdf/renderer ***
-        // هذا السطر يجب أن يكون داخل الـ try block
         ({ renderToBuffer } = await import('@react-pdf/renderer'));
-        // *** نهاية التعديل ***
 
         if (!process.env.MONGODB_URI) {
             console.error("MONGODB_URI is not set.");
