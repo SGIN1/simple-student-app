@@ -1,13 +1,10 @@
-// api/getStudent.js
-const { MongoClient, ObjectId } = require('mongodb');
+import { MongoClient, ObjectId } from 'mongodb';
 
-// تعريف رابط الاتصال واسم قاعدة البيانات من متغيرات البيئة
 const uri = process.env.MONGODB_URI;
 const dbName = "Cluster0";
 const collectionName = 'enrolled_students_tbl';
 
-// التصدير الافتراضي لدالة معالجة الطلبات
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
     let client;
 
     try {
@@ -20,13 +17,11 @@ module.exports = async (req, res) => {
         const database = client.db(dbName);
         const studentsCollection = database.collection(collectionName);
 
-        // جلب مصطلح البحث أو مُعرف الطالب من req.query
         const searchTerm = req.query.search;
-        const studentId = req.query.id; // هذا هو معرف الطالب الذي يتم تمريره لجلب طالب واحد
+        const studentId = req.query.id;
 
         if (req.method === 'GET') {
             if (studentId) {
-                // إذا تم توفير مُعرف الطالب، قم بجلب طالب واحد
                 let query;
                 try {
                     const objectId = new ObjectId(studentId);
@@ -37,9 +32,8 @@ module.exports = async (req, res) => {
                 const student = await studentsCollection.findOne(query);
 
                 if (student) {
-                    // أعد البيانات بصيغة id بدلاً من _id لتتناسب مع الواجهة الأمامية
                     return res.status(200).json({
-                        id: student._id.toString(), // تحويل _id إلى id كنص
+                        id: student._id.toString(),
                         serial_number: student.serial_number,
                         residency_number: student.residency_number,
                         document_serial_number: student.document_serial_number,
@@ -53,16 +47,15 @@ module.exports = async (req, res) => {
                         vehicle_model: student.vehicle_model,
                         color: student.color,
                         serial_number_duplicate: student.serial_number_duplicate,
-                        created_at: student.created_at ? new Date(student.created_at).toLocaleDateString() : 'غير محدد'
+                        created_at: student.created_at ? new Date(student.created_at).toLocaleDateString() : 'غير محدد',
+                        arabic_name: student.arabic_name || '' // تأكد أن هذا الحقل موجود في الـ DB أو أضف قيمة افتراضية
                     });
                 } else {
                     return res.status(404).json({ error: 'لم يتم العثور على طالب بهذا المُعرّف.' });
                 }
             } else {
-                // إذا لم يتم توفير مُعرف الطالب، قم بجلب جميع الطلاب (مع أو بدون بحث)
                 let query = {};
                 if (searchTerm) {
-                    // بناء استعلام البحث باستخدام التعبيرات العادية لعدة حقول
                     query = {
                         $or: [
                             { serial_number: { $regex: searchTerm, $options: 'i' } },
@@ -72,9 +65,8 @@ module.exports = async (req, res) => {
                     };
                 }
                 const students = await studentsCollection.find(query).toArray();
-                // تنسيق البيانات لـ id بدلاً من _id
                 const formattedStudents = students.map(student => ({
-                    id: student._id.toString(), // تحويل _id إلى id كنص
+                    id: student._id.toString(),
                     serial_number: student.serial_number,
                     residency_number: student.residency_number,
                     document_serial_number: student.document_serial_number,
@@ -88,13 +80,13 @@ module.exports = async (req, res) => {
                     vehicle_model: student.vehicle_model,
                     color: student.color,
                     serial_number_duplicate: student.serial_number_duplicate,
-                    created_at: student.created_at ? new Date(student.created_at).toLocaleDateString() : 'غير محدد'
+                    created_at: student.created_at ? new Date(student.created_at).toLocaleDateString() : 'غير محدد',
+                    arabic_name: student.arabic_name || ''
                 }));
 
                 return res.status(200).json(formattedStudents);
             }
         } else {
-            // إذا لم يكن الطلب من نوع GET
             return res.status(405).json({ error: 'Method Not Allowed' });
         }
 
@@ -106,4 +98,4 @@ module.exports = async (req, res) => {
             await client.close();
         }
     }
-};
+}
