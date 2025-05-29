@@ -1,6 +1,10 @@
 // api/generateCertificateTwo2.js
 const { MongoClient, ObjectId } = require('mongodb');
-const { renderToBuffer } = require('@react-pdf/renderer/lib/react-dom');
+// التعديل هنا:
+// بدل هذا السطر: const { renderToBuffer } = require('@react-pdf/renderer/lib/react-dom');
+// استخدم هذا السطر:
+const { renderToBuffer } = require('@react-pdf/renderer'); // المسار الصحيح للإصدارات الحديثة من react-pdf
+
 const React = require('react');
 const CertificatePdfDocument = require('../components/CertificatePdfDocument').default;
 
