@@ -3,8 +3,8 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font, Image } from '@react-pdf/renderer';
 
 Font.register({
-  family: 'ArialCustom',
-  src: '/fonts/arial.ttf',
+  family: 'ArialCustom', // اسم الخط الذي ستستخدمه في خاصية fontFamily
+  src: '/fonts/arial.ttf', // المسار إلى ملف الخط داخل مجلد 'public'
 });
 
 const styles = StyleSheet.create({

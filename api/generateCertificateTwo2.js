@@ -1,22 +1,17 @@
 // api/generateCertificateTwo2.js
 
-// **التغييرات هنا: استخدام import بدلاً من require**
+// **تأكد أن كل الاستيرادات هنا تستخدم 'import' وليس 'require'**
 import { MongoClient, ObjectId } from 'mongodb';
-import { renderToBuffer } from '@react-pdf/renderer'; // الآن يتم استيراده بشكل صحيح
-import React from 'react'; // استخدام import بدلاً من require
-import CertificatePdfDocument from '../components/CertificatePdfDocument'; // استخدام import بدلاً من require
-
-// **تعديل جديد: لإتاحة بعض المتغيرات العامة التي كانت موجودة في بيئة CommonJS**
-// في بيئة ESM، لا توجد متغيرات مثل __dirname و require بشكل عام
-// لحل هذا في دوال Vercel، يمكننا استخدام حل بديل.
-// لحسن الحظ، في Vercel، `process.env` يعمل بشكل طبيعي.
+import { renderToBuffer } from '@react-pdf/renderer'; // المسار الصحيح
+import React from 'react';
+import CertificatePdfDocument from '../components/CertificatePdfDocument';
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **التغيير هنا: استخدام export default بدلاً من module.exports**
-export default async function handler(req, res) { // يمكن تسمية الدالة بأي اسم، غالباً ما تُسمى `handler`
+// **تأكد أن دالتك يتم تصديرها باستخدام 'export default'**
+export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
