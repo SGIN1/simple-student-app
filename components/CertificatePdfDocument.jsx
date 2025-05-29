@@ -2,25 +2,10 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font, Image } from '@react-pdf/renderer';
 
-// =======================================================================
-// هام جداً: تسجيل الخطوط المخصصة
-// -----------------------------------------------------------------------
-// تم تسجيل خط Arial.ttf من المسار الذي حددته.
-// تأكد أن هذا الملف موجود في مجلد public/fonts في مشروعك.
-// =======================================================================
-
 Font.register({
-  family: 'ArialCustom', // اسم الخط الذي ستستخدمه في خاصية fontFamily (اخترت 'ArialCustom' لتجنب التضارب مع أي خط Arial افتراضي)
-  src: '/fonts/arial.ttf', // المسار إلى ملف الخط داخل مجلد 'public'
+  family: 'ArialCustom',
+  src: '/fonts/arial.ttf',
 });
-
-// يمكنك إضافة خطوط أخرى إذا احتجت (مثلاً خط عربي آخر، أو خط للأرقام الإنجليزية)
-/*
-Font.register({
-  family: 'Amiri',
-  src: '/fonts/Amiri-Regular.ttf',
-});
-*/
 
 const styles = StyleSheet.create({
   page: {
@@ -41,9 +26,6 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
   },
-  // =======================================================================
-  // أنماط النصوص ومواقعها (تذكر تعديل هذه القيم مرة واحدة لتناسب تصميمك)
-  // =======================================================================
   studentName: {
     position: 'absolute',
     top: '40%',
@@ -51,7 +33,7 @@ const styles = StyleSheet.create({
     width: '100%',
     textAlign: 'center',
     fontSize: 36,
-    fontFamily: 'ArialCustom', // استخدام الخط Arial الذي سجلناه
+    fontFamily: 'ArialCustom',
     color: '#000000',
   },
   serialNumber: {
@@ -61,7 +43,7 @@ const styles = StyleSheet.create({
     width: '30%',
     textAlign: 'left',
     fontSize: 16,
-    fontFamily: 'ArialCustom', // استخدام الخط Arial أيضًا
+    fontFamily: 'ArialCustom',
     color: '#FFFFFF',
   },
   documentSerialNumber: {

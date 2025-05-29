@@ -1,18 +1,22 @@
 // api/generateCertificateTwo2.js
-const { MongoClient, ObjectId } = require('mongodb');
-// التعديل هنا:
-// بدل هذا السطر: const { renderToBuffer } = require('@react-pdf/renderer/lib/react-dom');
-// استخدم هذا السطر:
-const { renderToBuffer } = require('@react-pdf/renderer'); // المسار الصحيح للإصدارات الحديثة من react-pdf
 
-const React = require('react');
-const CertificatePdfDocument = require('../components/CertificatePdfDocument').default;
+// **التغييرات هنا: استخدام import بدلاً من require**
+import { MongoClient, ObjectId } from 'mongodb';
+import { renderToBuffer } from '@react-pdf/renderer'; // الآن يتم استيراده بشكل صحيح
+import React from 'react'; // استخدام import بدلاً من require
+import CertificatePdfDocument from '../components/CertificatePdfDocument'; // استخدام import بدلاً من require
+
+// **تعديل جديد: لإتاحة بعض المتغيرات العامة التي كانت موجودة في بيئة CommonJS**
+// في بيئة ESM، لا توجد متغيرات مثل __dirname و require بشكل عام
+// لحل هذا في دوال Vercel، يمكننا استخدام حل بديل.
+// لحسن الحظ، في Vercel، `process.env` يعمل بشكل طبيعي.
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-module.exports = async (req, res) => {
+// **التغيير هنا: استخدام export default بدلاً من module.exports**
+export default async function handler(req, res) { // يمكن تسمية الدالة بأي اسم، غالباً ما تُسمى `handler`
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
@@ -80,11 +84,11 @@ module.exports = async (req, res) => {
 
     } catch (error) {
         console.error("Unexpected error in Vercel function:", error);
-        return res.status(500).send(`<h1>An error occurred while generating the certificate</h1><p>Error details: ${error.message || 'حدث خطأ غير متوقع في الخادم.'}</p><p>Please check Vercel function logs.</p>`);
+        return res.status(500).send(`<h1>An error occurred while generating the certificate</h1><p>Error details: ${error.message || 'An unexpected server error occurred.'}</p><p>Please check Vercel function logs.</p>`);
     } finally {
         if (client) {
             console.log("Closing MongoDB connection.");
             await client.close();
         }
     }
-};
+}
