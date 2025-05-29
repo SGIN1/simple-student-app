@@ -8,7 +8,7 @@ const { Page, Text, View, Document, StyleSheet, Font, Image } = require('@react-
 // (قم بإعادة تسمية 'Hacen Egypt.ttf' إلى 'HacenEgypt.ttf' لإزالة المسافات)
 Font.register({
   family: 'HacenCustomFont', // يمكنك اختيار أي اسم هنا، ولكن يجب أن يكون هذا هو الاسم المستخدم في 'fontFamily'
-  src: '/fonts/HacenEgypt.ttf', // المسار إلى ملف الخط داخل مجلد 'public'
+  src: '/fonts/Hacen Egypt.ttf', // المسار إلى ملف الخط داخل مجلد 'public'
 });
 
 const styles = StyleSheet.create({
