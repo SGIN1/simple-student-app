@@ -1,23 +1,14 @@
 // api/generateCertificateTwo2.js
 
 const { MongoClient, ObjectId } = require('mongodb');
-const { ImageResponse } = require('@vercel/og'); // **الجديد: استيراد ImageResponse**
-const React = require('react'); // هنحتاجه لـ JSX
+const { ImageResponse } = require('@vercel/og');
+const React = require('react');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// يمكنك تضمين محتوى تصميم الشهادة هنا مباشرة كـ JSX
-// أو استيرادها من ملف آخر (وهو الأفضل لتنظيم الكود)
-// ولكن لتبسيط الأمور، سنضع التصميم الأساسي هنا مؤقتًا.
-
-// *** ملاحظة هامة: الخطوط في @vercel/og تعمل بشكل مختلف.
-// ستحتاج لتحميل الخطوط من URL مباشر أو استخدام خطوط Google Fonts.
-// سنستخدم خط Google Fonts هنا كمثال.
-// لو أردت استخدام Hacen Egypt، ستحتاج لاستضافته على Vercel Public directory
-// وتستخدم مساره المطلق هنا.
-const fontPath = 'https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap'; // مثال لخط عربي من Google Fonts
+const fontUrl = 'https://fonts.gstatic.com/s/cairo/v29/SLXGc1gY6HPz_mkYx_U62B2JpB4.woff2'; // استخدام خط القاهرة
 
 module.exports = async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -42,7 +33,6 @@ module.exports = async function handler(req, res) {
 
         const host = req.headers.host;
         const protocol = req.headers['x-forwarded-proto'] || 'http';
-        // المسار المطلق للصورة الخلفية (يجب أن تكون في مجلد public)
         const absoluteBackgroundImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
 
         client = new MongoClient(uri);
@@ -71,17 +61,10 @@ module.exports = async function handler(req, res) {
             console.log("Student found:", student.arabic_name);
         }
 
-        // تحضير الخط (fetch)
-        // هذا مثال لتحميل خط Cairo من Google Fonts
-        // لو عندك Hacen Egypt.ttf في مجلد public/fonts/، ممكن تستخدم:
-        // const fontData = await fetch(`${protocol}://${host}/fonts/HacenEgypt.ttf`).then((res) => res.arrayBuffer());
-        const fontData = await fetch('https://fonts.gstatic.com/s/cairo/v29/SLXGc1gY6HPz_mkYx_U62B2JpB4.woff2').then((res) => res.arrayBuffer());
+        const fontData = await fetch(fontUrl).then((res) => res.arrayBuffer());
 
-
-        // إنشاء الصورة باستخدام ImageResponse
         return new ImageResponse(
             (
-                // هنا تبدأ بكتابة تصميم الشهادة كـ JSX
                 <div
                     style={{
                         display: 'flex',
@@ -93,16 +76,13 @@ module.exports = async function handler(req, res) {
                         position: 'relative',
                         backgroundColor: '#fff',
                         fontSize: 36,
-                        fontFamily: 'Cairo', // استخدم اسم الخط المسجل هنا
-                        // يمكن استخدام صورة خلفية مباشرة هنا في الـ div
+                        fontFamily: 'Cairo',
                         backgroundImage: `url(${absoluteBackgroundImagePath})`,
                         backgroundSize: '100% 100%',
                         backgroundRepeat: 'no-repeat',
                         color: 'black',
                     }}
                 >
-                    {/* يمكنك تعديل هذه الـ divs لتتناسب مع تصميم الشهادة الخاص بك */}
-                    {/* الأنماط هنا هي Inline styles لأن Vercel OG لا يدعم StyleSheet.create */}
                     <div style={{ position: 'absolute', top: '40%', width: '100%', textAlign: 'center', fontSize: '36px' }}>
                         {student.arabic_name || 'اسم غير معروف'}
                     </div>
@@ -124,24 +104,22 @@ module.exports = async function handler(req, res) {
                 </div>
             ),
             {
-                width: 1200, // عرض الصورة (يمكنك تعديله)
-                height: 630, // ارتفاع الصورة (يمكنك تعديله)
+                width: 1200,
+                height: 630,
                 fonts: [
                     {
-                        name: 'Cairo', // اسم الخط الذي ستستخدمه في تصميم الـ JSX
+                        name: 'Cairo',
                         data: fontData,
                         style: 'normal',
                         weight: 400,
                     },
-                    // لو في أوزان أخرى للخط، أضفها هنا
                     {
                         name: 'Cairo',
-                        data: fontData, // استخدم نفس البيانات لو الوزن مش بيفرق كتير في الخط العربي
+                        data: fontData,
                         style: 'normal',
                         weight: 700,
                     },
                 ],
-                // headers: { 'Cache-Control': 'no-cache' } // يمكنك إضافة هيدرات للتحكم في الكاش
             }
         );
 
