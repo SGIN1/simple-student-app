@@ -1,15 +1,14 @@
 // api/generateCertificateTwo2.js
 
 const { MongoClient, ObjectId } = require('mongodb');
-const { renderToBuffer } = require('@react-pdf/renderer');
-const React = require('react'); // يجب أن نستخدم require لـ React أيضاً
-const CertificatePdfDocument = require('../components/CertificatePdfDocument'); // ويجب أن يكون مسار المكون باستخدام require
+const React = require('react');
+const CertificatePdfDocument = require('../components/CertificatePdfDocument');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-module.exports = async function handler(req, res) { // استخدام module.exports كبداية لدالة الـ API
+module.exports = async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
@@ -22,8 +21,14 @@ module.exports = async function handler(req, res) { // استخدام module.exp
     }
 
     let client;
+    let renderToBuffer; // تعريف renderToBuffer هنا
 
     try {
+        // *** التعديل هنا: استخدام import() ديناميكي لـ @react-pdf/renderer ***
+        // هذا السطر يجب أن يكون داخل الـ try block
+        ({ renderToBuffer } = await import('@react-pdf/renderer'));
+        // *** نهاية التعديل ***
+
         if (!process.env.MONGODB_URI) {
             console.error("MONGODB_URI is not set.");
             return res.status(500).send("<h1>Server Error</h1><p>MONGODB_URI is not configured. Please check Vercel environment variables.</p>");
@@ -84,4 +89,4 @@ module.exports = async function handler(req, res) { // استخدام module.exp
             await client.close();
         }
     }
-}; // يجب أن تنتهي بـ module.exports للدالة
+};
