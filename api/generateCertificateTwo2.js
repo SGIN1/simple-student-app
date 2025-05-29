@@ -1,13 +1,11 @@
-// api/generateCertificateTwo2.js (ملف معدّل)
+// api/generateCertificateTwo2.js
 
 import { ImageResponse } from '@vercel/og';
 import React from 'react';
-import { MongoClient, ObjectId } from 'mongodb'; // ستحتاج لـ MongoDB هنا إذا كنت تريد جلب البيانات مباشرةً
 
-// ---  هنا لا يوجد Configuration for Edge Function ---
-//  تم إزالة: export const config = { runtime: 'edge', regions: ['cdg1'], };
-//  لجعلها تعمل كـ Node.js Runtime Function افتراضية
-// --- End Configuration ---
+// --- لا يوجد هنا export const config = { runtime: 'edge' }; ---
+// هذا يعني أن الدالة ستعمل كـ Node.js Runtime Function افتراضية
+// وبالتالي تدعم جميع الوحدات مثل React و MongoDB (غير المستخدمة مباشرة هنا)
 
 const fontUrl = 'https://fonts.gstatic.com/s/cairo/v29/SLXGc1gY6HPz_mkYx_U62B2JpB4.woff2';
 
@@ -36,9 +34,7 @@ export default async function handler(req) {
         const host = req.headers.get('host');
         const protocol = req.headers.get('x-forwarded-proto') || 'http';
 
-        // **هنا نقوم بطلب البيانات من دالة api/getStudent.js الموجودة بالفعل**
-        // هذا هو الأسلوب الصحيح، لأن getStudent.js هي Node.js Function
-        // وبالتالي يمكنها الاتصال بـ MongoDB
+        // هذا هو الاستدعاء لدالة getStudent.js، والتي هي Node.js Function ويمكنها الاتصال بـ MongoDB
         const studentDataUrl = `${protocol}://${host}/api/getStudent?id=${studentId}`;
         console.log("Fetching student data from:", studentDataUrl);
 
@@ -64,7 +60,6 @@ export default async function handler(req) {
         }
         
         student = await response.json();
-
         console.log("Student data fetched successfully:", student.arabic_name);
 
         const absoluteBackgroundImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
