@@ -2,9 +2,9 @@ import { ImageResponse } from '@vercel/og';
 import React from 'react';
 
 // تم إزالة السطر: export const config = { runtime: 'edge' };
-// هذا يعني أن الوظيفة ستعمل كـ Node.js Serverless Function افتراضيًا.
 
-const fontUrl = 'https://fonts.gstatic.com/s/cairo/v29/SLXGc1gY6HPz_mkYx_U62B2JpB4.woff2';
+// تم إزالة تعريف fontUrl لأننا سنستخدم الخط الافتراضي
+// const fontUrl = 'https://fonts.gstatic.com/s/cairo/v29/SLXGc1gY6HPz_mkYx_U62B2JpB4.woff2';
 
 export default async function handler(req) {
     if (req.method !== 'GET') {
@@ -62,8 +62,10 @@ export default async function handler(req) {
         student = await response.json();
         console.log("Student data fetched successfully:", student.arabic_name);
 
-        const absoluteBackgroundImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
-        const fontData = await fetch(fontUrl).then((res) => res.arrayBuffer());
+        // تم إزالة تحميل الصورة الخلفية واستبدالها بخلفية بيضاء
+        // const absoluteBackgroundImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
+        // تم إزالة تحميل بيانات الخط
+        // const fontData = await fetch(fontUrl).then((res) => res.arrayBuffer());
 
         return new ImageResponse(
             (
@@ -76,19 +78,22 @@ export default async function handler(req) {
                         width: '100%',
                         height: '100%',
                         position: 'relative',
-                        backgroundColor: '#fff',
+                        backgroundColor: '#fff', // خلفية بيضاء بسيطة
                         fontSize: 36,
-                        fontFamily: 'Cairo',
-                        backgroundImage: `url(${absoluteBackgroundImagePath})`,
-                        backgroundSize: '100% 100%',
-                        backgroundRepeat: 'no-repeat',
+                        // تم إزالة تحديد fontFamily ليستخدم الخط الافتراضي
+                        // fontFamily: 'Cairo',
+                        // تم إزالة الصورة الخلفية
+                        // backgroundImage: `url(${absoluteBackgroundImagePath})`,
+                        // backgroundSize: '100% 100%',
+                        // backgroundRepeat: 'no-repeat',
                         color: 'black',
                     }}
                 >
                     <div style={{ position: 'absolute', top: '40%', width: '100%', textAlign: 'center', fontSize: '36px' }}>
                         {student.arabic_name || 'اسم غير معروف'}
                     </div>
-                    <div style={{ position: 'absolute', top: '15%', left: '10%', width: '30%', textAlign: 'left', fontSize: '16px', color: 'white' }}>
+                    {/* يمكنك تعديل الألوان هنا إذا أردت أن تكون مقروءة على الخلفية البيضاء */}
+                    <div style={{ position: 'absolute', top: '15%', left: '10%', width: '30%', textAlign: 'left', fontSize: '16px', color: 'black' }}>
                         {student.serial_number || 'غير متوفر'}
                     </div>
                     <div style={{ position: 'absolute', top: '55%', width: '100%', textAlign: 'center', fontSize: '16px' }}>
@@ -108,25 +113,14 @@ export default async function handler(req) {
             {
                 width: 1200,
                 height: 630,
-                fonts: [
-                    {
-                        name: 'Cairo',
-                        data: fontData,
-                        style: 'normal',
-                        weight: 400,
-                    },
-                    {
-                        name: 'Cairo',
-                        data: fontData,
-                        style: 'normal',
-                        weight: 700,
-                    },
-                ],
+                // تم إزالة قسم الخطوط بالكامل
+                // fonts: [...]
             }
         );
 
     } catch (error) {
         console.error("Unexpected error in generateCertificateTwo2:", error);
-        return new Response(`An error occurred: ${error.message || 'An unexpected server error occurred.'}`, { status: 500 });
+        // جعل رسالة الخطأ أكثر تفصيلاً للمساعدة في تصحيح الأخطاء إذا استمرت
+        return new Response(`An error occurred: ${error.message || 'An unexpected server error occurred.'}\nStack: ${error.stack || 'No stack trace'}`, { status: 500 });
     }
 }
