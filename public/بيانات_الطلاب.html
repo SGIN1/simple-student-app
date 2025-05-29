@@ -57,10 +57,8 @@
 
         let allStudents = [];
 
-        // دالة لجلب بيانات الطلاب من Vercel API Function
         async function fetchStudents() {
             try {
-                // التعديل هنا: تغيير رابط Netlify إلى Vercel API
                 const response = await fetch('/api/getStudent');
                 const data = await response.json();
 
@@ -77,9 +75,8 @@
             }
         }
 
-        // دالة لتحديث جدول الطلاب في المتصفح
         function renderStudentsTable(students) {
-            studentsTbody.innerHTML = ''; // مسح الجدول الحالي
+            studentsTbody.innerHTML = '';
 
             if (students.length > 0) {
                 noResultsMessage.style.display = 'none';
@@ -105,25 +102,19 @@
 
                     const editCell = row.insertCell();
                     editCell.classList.add('actions');
-                    // التعديل هنا: استخدام المسار النظيف لتعديل الطالب
                     editCell.innerHTML = `<a href="/edit-student?id=${student.id}" class="edit-btn">تعديل</a>`;
 
                     const deleteCell = row.insertCell();
                     deleteCell.classList.add('actions');
-                    // التعديل هنا: استخدام مسار Vercel API لدالة الحذف
                     deleteCell.innerHTML = `<button class="delete-btn" onclick="deleteStudent('${student.id}')">حذف</button>`;
 
-                    // إضافة زر عرض الشهادة الأولى
                     const printCellOne = row.insertCell();
-                    // التعديل هنا: استخدام مسار Vercel API لدالة الشهادة الأولى
                     printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/api/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
 
-                    // إضافة زر عرض الشهادة الثانية (باستخدام الرابط الأنيق كما في المثال)
                     const printCellTwo = row.insertCell();
                     const certificateButtonTwo = document.createElement('button');
                     certificateButtonTwo.textContent = 'عرض الثانية';
                     certificateButtonTwo.addEventListener('click', () => {
-                        // هذا المسار `/certificate/${student.id}` سيتم توجيهه بواسطة vercel.json
                         const certificateUrlTwo = `/certificate/${student.id}`;
                         window.open(certificateUrlTwo, '_blank');
                     });
@@ -143,20 +134,17 @@
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
-        // دالة لفتح رابط الشهادة في نافذة جديدة
         function showCertificate(url) {
             window.open(url, '_blank');
         }
 
-        // دالة لحذف الطالب
         async function deleteStudent(studentId) {
             if (!confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟')) {
-                return; // إلغاء الحذف إذا لم يؤكد المستخدم
+                return;
             }
             try {
-                // استخدام مسار Vercel API لدالة الحذف
                 const response = await fetch('/api/deleteStudent', {
-                    method: 'POST', // أو 'DELETE' إذا كانت دالة الحذف في Vercel تستخدم DELETE
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
@@ -166,7 +154,7 @@
 
                 if (response.ok) {
                     alert(data.message || 'تم حذف الطالب بنجاح!');
-                    fetchStudents(); // إعادة تحميل قائمة الطلاب بعد الحذف
+                    fetchStudents();
                 } else {
                     alert(data.error || 'حدث خطأ أثناء محاولة حذف الطالب.');
                     console.error('فشل الحذف:', data.error);
@@ -177,7 +165,7 @@
             }
         }
 
-        fetchStudents(); // استدعاء الدالة لجلب وعرض الطلاب عند تحميل الصفحة
+        fetchStudents();
     </script>
 </body>
 </html>
