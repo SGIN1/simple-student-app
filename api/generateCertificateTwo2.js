@@ -1,13 +1,12 @@
 // api/generateCertificateTwo2.js (ملف معدّل)
 
-import { ImageResponse } = from '@vercel/og';
+import { ImageResponse } from '@vercel/og';
 import React from 'react';
+import { MongoClient, ObjectId } from 'mongodb'; // ستحتاج لـ MongoDB هنا إذا كنت تريد جلب البيانات مباشرةً
 
-// --- Configuration for Edge Function ---
-export const config = {
-    runtime: 'edge',
-    // regions: ['cdg1'], // يمكن تحديد أقرب منطقة لك
-};
+// ---  هنا لا يوجد Configuration for Edge Function ---
+//  تم إزالة: export const config = { runtime: 'edge', regions: ['cdg1'], };
+//  لجعلها تعمل كـ Node.js Runtime Function افتراضية
 // --- End Configuration ---
 
 const fontUrl = 'https://fonts.gstatic.com/s/cairo/v29/SLXGc1gY6HPz_mkYx_U62B2JpB4.woff2';
@@ -38,6 +37,8 @@ export default async function handler(req) {
         const protocol = req.headers.get('x-forwarded-proto') || 'http';
 
         // **هنا نقوم بطلب البيانات من دالة api/getStudent.js الموجودة بالفعل**
+        // هذا هو الأسلوب الصحيح، لأن getStudent.js هي Node.js Function
+        // وبالتالي يمكنها الاتصال بـ MongoDB
         const studentDataUrl = `${protocol}://${host}/api/getStudent?id=${studentId}`;
         console.log("Fetching student data from:", studentDataUrl);
 
@@ -46,13 +47,11 @@ export default async function handler(req) {
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Failed to fetch student data from /api/getStudent: ${response.status} - ${errorText}`);
-            // حاول تفسير رسالة الخطأ من getStudent.js لو كانت JSON
             let errorMessage = `Failed to get student data (Status: ${response.status})`;
             try {
                 const errorJson = JSON.parse(errorText);
                 errorMessage = errorJson.error || errorMessage;
             } catch (e) {
-                // ليس JSON، استخدم النص كما هو
                 errorMessage = errorText;
             }
             return new ImageResponse(
@@ -66,27 +65,7 @@ export default async function handler(req) {
         
         student = await response.json();
 
-        // لو الدالة اللي بتجيب البيانات رجعت بيانات افتراضية
-        // (إذا كانت دالة getStudent.js ترجع بيانات افتراضية في حالة عدم العثور)
-        // يمكنك إضافة هذا الشرط إذا كنت ترجع بيانات افتراضية من getStudent.js
-        /*
-        if (!student || Object.keys(student).length === 0) {
-            console.warn("Student data not found in DB or empty, using fallback data for image generation.");
-            student = {
-                arabic_name: "اسم الطالب التجريبي",
-                serial_number: "SN-TEST-123",
-                document_serial_number: "DOC-TEST-456",
-                plate_number: "ABC-TEST-789",
-                car_type: "Sedan Test",
-                color: "Red Test"
-            };
-        } else {
-            console.log("Student data fetched successfully:", student.arabic_name);
-        }
-        */
-        // ملاحظة: دالة getStudent.js لديك ترجع 404 لو الطالب مش موجود، فمش هنحتاج لـ fallback هنا
         console.log("Student data fetched successfully:", student.arabic_name);
-
 
         const absoluteBackgroundImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
         const fontData = await fetch(fontUrl).then((res) => res.arrayBuffer());
@@ -152,7 +131,7 @@ export default async function handler(req) {
         );
 
     } catch (error) {
-        console.error("Unexpected error in Edge Function (generateCertificateTwo2):", error);
+        console.error("Unexpected error in generateCertificateTwo2:", error);
         return new Response(`An error occurred: ${error.message || 'An unexpected server error occurred.'}`, { status: 500 });
     }
 }
