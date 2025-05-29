@@ -1,7 +1,9 @@
 // components/CertificatePdfDocument.jsx
-import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Font, Image } from '@react-pdf/renderer';
 
+const React = require('react');
+const { Page, Text, View, Document, StyleSheet, Font, Image } = require('@react-pdf/renderer');
+
+// تأكد أن ملف الخط 'arial.ttf' موجود في مجلد 'public/fonts/' في مشروعك
 Font.register({
   family: 'ArialCustom', // اسم الخط الذي ستستخدمه في خاصية fontFamily
   src: '/fonts/arial.ttf', // المسار إلى ملف الخط داخل مجلد 'public'
@@ -9,6 +11,7 @@ Font.register({
 
 const styles = StyleSheet.create({
   page: {
+    // هنا تحدد أبعاد الصفحة لمرة واحدة (A4 في الوضع الأفقي)
     size: "A4",
     orientation: "landscape",
     backgroundColor: '#FFFFFF',
@@ -26,14 +29,15 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
   },
+  // هنا تحدد أماكن النصوص وتنسيقاتها
   studentName: {
     position: 'absolute',
-    top: '40%',
+    top: '40%', // تحديد الموقع بنسبة مئوية يوفر مرونة
     left: '0%',
     width: '100%',
     textAlign: 'center',
     fontSize: 36,
-    fontFamily: 'ArialCustom',
+    fontFamily: 'ArialCustom', // استخدام الخط المخصص
     color: '#000000',
   },
   serialNumber: {
@@ -105,4 +109,4 @@ const CertificatePdfDocument = ({ studentData, absoluteImagePath }) => (
   </Document>
 );
 
-export default CertificatePdfDocument;
+module.exports = CertificatePdfDocument; // استخدام module.exports لتصدير المكون

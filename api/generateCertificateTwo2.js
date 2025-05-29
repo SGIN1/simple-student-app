@@ -1,15 +1,15 @@
 // api/generateCertificateTwo2.js
 
-import { MongoClient, ObjectId } from 'mongodb';
-import { renderToBuffer } from '@react-pdf/renderer';
-import React from 'react';
-import CertificatePdfDocument from '../components/CertificatePdfDocument';
+const { MongoClient, ObjectId } = require('mongodb');
+const { renderToBuffer } = require('@react-pdf/renderer');
+const React = require('react'); // يجب أن نستخدم require لـ React أيضاً
+const CertificatePdfDocument = require('../components/CertificatePdfDocument'); // ويجب أن يكون مسار المكون باستخدام require
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) { // استخدام module.exports كبداية لدالة الـ API
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
         const host = req.headers.host;
         const protocol = req.headers['x-forwarded-proto'] || 'http';
-        const absoluteImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
+        const absoluteImagePath = `${protocol}://${host}/images/full/wwee.jpg`; 
         console.log("Absolute image path for certificate:", absoluteImagePath);
 
         client = new MongoClient(uri);
@@ -84,4 +84,4 @@ export default async function handler(req, res) {
             await client.close();
         }
     }
-}
+}; // يجب أن تنتهي بـ module.exports للدالة
