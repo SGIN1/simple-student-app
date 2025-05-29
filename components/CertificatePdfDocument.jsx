@@ -11,7 +11,6 @@ Font.register({
 
 const styles = StyleSheet.create({
   page: {
-    // هنا تحدد أبعاد الصفحة لمرة واحدة (A4 في الوضع الأفقي)
     size: "A4",
     orientation: "landscape",
     backgroundColor: '#FFFFFF',
@@ -29,15 +28,14 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
   },
-  // هنا تحدد أماكن النصوص وتنسيقاتها
   studentName: {
     position: 'absolute',
-    top: '40%', // تحديد الموقع بنسبة مئوية يوفر مرونة
+    top: '40%',
     left: '0%',
     width: '100%',
     textAlign: 'center',
     fontSize: 36,
-    fontFamily: 'ArialCustom', // استخدام الخط المخصص
+    fontFamily: 'ArialCustom',
     color: '#000000',
   },
   serialNumber: {
@@ -109,4 +107,4 @@ const CertificatePdfDocument = ({ studentData, absoluteImagePath }) => (
   </Document>
 );
 
-module.exports = CertificatePdfDocument; // استخدام module.exports لتصدير المكون
+module.exports = CertificatePdfDocument;
