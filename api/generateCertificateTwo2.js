@@ -1,207 +1,211 @@
-import path from 'path';
-import { promises as fs } from 'fs';
-import { fileURLToPath } from 'url';
+// api/generateCertificateTwo2.js
+// تأكد من أن هذا الملف موجود في مجلد 'api' داخل جذر مشروعك.
 
-import nodeHtmlToImage from 'node-html-to-image';
+const { MongoClient, ObjectId } = require('mongodb');
+const sharp = require('sharp');
+const path = require('path');
 
-export const config = {
-    maxDuration: 60 // 60 ثانية هو الحد الأقصى لخطة Vercel المجانية
+// **ملاحظة هامة:** تأكد من إضافة MONGODB_URI في متغيرات البيئة الخاصة بمشروعك على Vercel
+// (Settings -> Environment Variables)
+const uri = process.env.MONGODB_URI;
+const dbName = 'Cluster0'; // تأكد من اسم قاعدة البيانات الخاصة بك
+const collectionName = 'enrolled_students_tbl'; // تأكد من اسم المجموعة الخاصة بك
+
+// **مسار صورة الشهادة:**
+// هذا المسار يفترض أن صورة 'wwee.jpg' موجودة في مجلد 'public/images_temp'
+// داخل جذر مشروعك على Vercel.
+const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public/images_temp/wwee.jpg');
+
+// تعريف أنماط النصوص وألوانها
+const TEXT_COLOR_HEX = '#000000'; // أسود
+const WHITE_COLOR_HEX = '#FFFFFF'; // أبيض
+
+// تعريف إحداثيات النصوص (قد تحتاج لتعديلها بدقة بعد التجربة على Vercel)
+// هذه القيم تقريبية وقد تحتاج إلى تعديل بناءً على الخط وحجم الصورة
+const TEXT_POSITIONS = {
+    STUDENT_NAME: { x: 300, y: 150, fontSize: 48, color: WHITE_COLOR_HEX, alignment: 'middle' },
+    SERIAL_NUMBER: { x: 90, y: 220, fontSize: 28, color: WHITE_COLOR_HEX, alignment: 'middle' },
+    DOCUMENT_SERIAL_NUMBER: { x: 300, y: 280, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'middle' },
+    PLATE_NUMBER: { x: 300, y: 320, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'middle' },
+    CAR_TYPE: { x: 300, y: 360, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'middle' },
+    COLOR: { x: 300, y: 400, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'middle' },
 };
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// ---
 
-const LOCAL_FONT_PATH = path.join(__dirname, '..', 'public', 'fonts', 'andlso.ttf');
-const BACKGROUND_IMAGE_PATH = path.join(__dirname, '..', 'public', 'images', 'full', 'wwee.jpg');
+/**
+ * دالة مساعدة لإنشاء نص SVG يمكن لـ sharp تركيبه على الصورة.
+ * نستخدم خطوط نظامية شائعة لضمان التوافقية في بيئة Serverless.
+ * @param {string} text - النص المراد عرضه.
+ * @param {number} fontSize - حجم الخط بالبكسل.
+ * @param {string} color - لون النص (مثال: '#000000').
+ * @param {number} imageWidth - عرض الصورة الأساسية للمساعدة في تحديد عرض SVG.
+ * @returns {Buffer} - كائن Buffer يحتوي على بيانات SVG.
+ */
+async function createTextSVG(text, fontSize, color, imageWidth) {
+    const svgWidth = imageWidth;
+    const svgHeight = fontSize * 1.5; // لتوفير مساحة كافية للنص
 
-export default async function handler(req) {
-    try {
-        console.log('--- Function Invoked (node-html-to-image) ---');
-        console.log('Current Working Directory (process.cwd()):', process.cwd());
-        console.log('Directory Name (__dirname):', __dirname);
-        console.log('Attempting to load font from path:', LOCAL_FONT_PATH);
-        console.log('Attempting to load image from path:', BACKGROUND_IMAGE_PATH);
-
-        if (req.method !== 'GET') {
-            return new Response('Method Not Allowed', { status: 405 });
-        }
-
-        const host = req.headers.host;
-        const protocol = req.headers['x-forwarded-proto'] || 'http';
-
-        const fullUrlString = `${protocol}://${host}${req.url}`;
-        const url = new URL(fullUrlString);
-        console.log("Full URL received:", fullUrlString);
-
-        let studentId = url.searchParams.get('id');
-
-        if (!studentId) {
-            const pathSegments = url.pathname.split('/');
-            const certIndex = pathSegments.indexOf('certificate');
-            if (certIndex !== -1 && pathSegments.length > certIndex + 1) {
-                const possibleId = pathSegments[certIndex + 1];
-                if (possibleId && possibleId.trim() !== '') {
-                    studentId = possibleId.trim();
+    const svg = `
+        <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" xmlns="http://www.w3.org/2000/svg">
+            <style>
+                /* استخدام خط نظامي شائع (مثل Arial أو Helvetica أو أي خط sans-serif) */
+                text {
+                    font-family: 'Arial', sans-serif;
+                    font-size: ${fontSize}px;
+                    fill: ${color};
+                    text-anchor: middle; /* للمحاذاة الأفقية في المنتصف */
+                    dominant-baseline: central; /* للمحاذاة الرأسية في المنتصف */
                 }
-            }
-        }
-        console.log("Extracted Student ID:", studentId);
+            </style>
+            <text x="${svgWidth / 2}" y="${svgHeight / 2}">${text}</text>
+        </svg>
+    `;
+    return Buffer.from(svg);
+}
 
-        if (!studentId) {
-            return new Response('<h1>معرف الطالب مطلوب</h1><p>الرابط الذي استخدمته غير صحيح أو لا يحتوي على معرف الطالب.</p>', {
-                status: 400,
-                headers: { 'Content-Type': 'text/html' },
-            });
-        }
+// ---
+
+/**
+ * وظيفة Vercel Serverless Function لإنشاء الشهادة.
+ * هذه الوظيفة ستستقبل طلب GET مع معرف الطالب في المسار.
+ *
+ * @param {Object} event - كائن الحدث الذي يحتوي على معلومات الطلب الوارد (HTTP request).
+ * @returns {Object} - كائن الاستجابة (HTTP response).
+ */
+exports.handler = async (event) => {
+    // استخراج معرف الطالب من مسار الطلب (مثال: /api/generateCertificateTwo2/65e9c0b1f1a5b6c7d8e9f0a1)
+    const studentId = event.path.split('/').pop();
+    console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
+
+    let client; // تعريف متغير العميل خارج try لضمان إغلاقه في finally
+
+    try {
+        // الاتصال بقاعدة بيانات MongoDB
+        client = new MongoClient(uri);
+        await client.connect();
+        const database = client.db(dbName);
+        const studentsCollection = database.collection(collectionName);
 
         let student;
-        let fontData;
-        let backgroundImageBase64 = '';
-
         try {
-            const studentDataUrl = `${protocol}://${host}/api/getStudent?id=${studentId}`;
-            console.log("Fetching student data from:", studentDataUrl);
-
-            // لا حاجة لإضافة رؤوس المصادقة هنا ما دامت getStudent.js لا تتطلبها داخلياً
-            const response = await fetch(studentDataUrl);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error(`Failed to fetch student data from /api/getStudent: ${response.status} - ${errorText}`);
-                let errorMessage = `فشل في جلب بيانات الطالب (الحالة: ${response.status}).`;
-                try {
-                    if (response.headers.get('content-type')?.includes('application/json')) {
-                        const errorJson = JSON.parse(errorText);
-                        errorMessage = errorJson.error || errorMessage;
-                    } else {
-                        // قص الرسالة الطويلة لتكون أوضح
-                        // رسالة Vercel "Authentication Required" تكون طويلة جداً كـ HTML
-                        errorMessage = `تفاصيل الخطأ: ${errorText.substring(0, 300)}...`; 
-                    }
-                } catch (e) {
-                    errorMessage = `تفاصيل الخطأ: ${errorText.substring(0, 300)}...`;
-                }
-                // تعديل رسالة الخطأ لتكون أكثر وضوحًا للمستخدم
-                return new Response(`
-                    <h1>خطأ في جلب بيانات الطالب</h1>
-                    <p>المشكلة قد تكون بسبب: <b>${errorMessage}</b></p>
-                    <p>الرجاء التأكد من أن رابط بيانات الطالب صحيح وأن دالة جلب البيانات لا تتطلب مصادقة غير مبررة في إعدادات Vercel.</p>
-                `, {
-                    status: response.status,
-                    headers: { 'Content-Type': 'text/html' },
-                });
-            }
-
-            student = await response.json();
-            console.log("Student data fetched successfully:", student.arabic_name);
-
-            try {
-                fontData = await fs.readFile(LOCAL_FONT_PATH);
-                console.log("Font loaded successfully from file system.");
-            } catch (fontFileError) {
-                console.error("Failed to load font from file system at path:", LOCAL_FONT_PATH, "Error:", fontFileError.message);
-                fontData = null; // استمر حتى لو فشل تحميل الخط، لكن الشهادة قد لا تظهر بشكل صحيح
-            }
-
-            try {
-                const imageBuffer = await fs.readFile(BACKGROUND_IMAGE_PATH);
-                backgroundImageBase64 = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
-                console.log("Background image loaded successfully from file system and converted to Base64.");
-            } catch (imageFileError) {
-                console.error("Failed to load background image from file system at path:", BACKGROUND_IMAGE_PATH, "Error:", imageFileError.message);
-                backgroundImageBase64 = ''; // استمر بدون خلفية إذا فشل التحميل
-            }
-
-            const htmlContent = `
-            <html>
-            <head>
-                <style>
-                    @font-face {
-                        font-family: 'andlso';
-                        src: url('data:font/ttf;base64,${fontData ? fontData.toString('base64') : ''}') format('truetype');
-                    }
-                    body {
-                        width: 1200px;
-                        height: 630px;
-                        margin: 0;
-                        padding: 0;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                        align-items: center;
-                        position: relative;
-                        background-color: #fff;
-                        font-family: 'andlso', sans-serif;
-                        color: black;
-                        background-image: url('${backgroundImageBase64}');
-                        background-size: 100% 100%;
-                        background-repeat: no-repeat;
-                    }
-                    .arabic-name {
-                        position: absolute;
-                        top: 40%;
-                        width: 100%;
-                        text-align: center;
-                        font-size: 36px;
-                        direction: rtl;
-                        unicode-bidi: embed;
-                    }
-                    .detail {
-                        position: absolute;
-                        font-size: 16px;
-                        color: white;
-                        direction: rtl;
-                        unicode-bidi: embed;
-                    }
-                    .serial-number { top: 15%; left: 10%; width: 30%; text-align: left; }
-                    .document-serial-number { top: 55%; width: 100%; text-align: center; }
-                    .plate-number { top: 60%; width: 100%; text-align: center; }
-                    .car-type { top: 65%; width: 100%; text-align: center; }
-                    .color { top: 70%; width: 100%; text-align: center; }
-                </style>
-            </head>
-            <body>
-                <div class="arabic-name">${student.arabic_name || 'اسم غير معروف'}</div>
-                <div class="detail serial-number">${student.serial_number || 'غير متوفر'}</div>
-                <div class="detail document-serial-number">${student.document_serial_number || 'غير متوفر'}</div>
-                <div class="detail plate-number">${student.plate_number || 'غير متوفر'}</div>
-                <div class="detail car-type">${student.car_type || 'غير متوفر'}</div>
-                <div class="detail color">${student.color || 'غير متوفر'}</div>
-            </body>
-            </html>
-            `;
-
-            const imageBuffer = await nodeHtmlToImage({
-                html: htmlContent,
-                puppeteerArgs: {
-                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-                    headless: 'new'
-                },
-                encoding: 'binary',
-            });
-            console.log("Image generated successfully with node-html-to-image.");
-
-            return new Response(imageBuffer, {
-                status: 200,
-                headers: {
-                    'Content-Type': 'image/jpeg',
-                    'Cache-Control': 's-maxage=315336000, stale-while-revalidate', // 1 سنة كاش
-                },
-            });
-
-        } catch (error) {
-            console.error("Critical error inside handler (node-html-to-image):", error);
-            return new Response(`<h1>حدث خطأ فادح</h1><p>${error.message || 'حدث خطأ غير متوقع في الخادم.'}</p><pre>${error.stack || 'لا يوجد تتبع خطأ'}</pre>`, {
-                status: 500,
-                headers: { 'Content-Type': 'text/html' },
-            });
+            // البحث عن الطالب باستخدام معرف ObjectId
+            student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
+        } catch (objectIdError) {
+            console.error('خطأ في إنشاء ObjectId:', objectIdError);
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ error: 'معرف الطالب غير صالح' }),
+                headers: { 'Content-Type': 'application/json' },
+            };
         }
-    } catch (globalError) {
-        console.error("Global error outside handler (node-html-to-image):", globalError);
-        return new Response(`<h1>حدث خطأ عام قبل المعالج</h1><p>${globalError.message || 'حدث خطأ غير متوقع في الخادم.'}</p><pre>${globalError.stack || 'لا يوجد تتبع خطأ'}</pre>`, {
-            status: 500,
-            headers: { 'Content-Type': 'text/html' },
-        });
+
+        // التحقق مما إذا كان الطالب موجودًا
+        if (!student) {
+            return {
+                statusCode: 404,
+                body: JSON.stringify({ error: `لم يتم العثور على طالب بالمعرف: ${studentId}` }),
+                headers: { 'Content-Type': 'application/json' },
+            };
+        }
+
+        // استخراج بيانات الطالب
+        const serialNumber = student.serial_number;
+        const studentNameArabic = student.arabic_name || '';
+        const documentSerialNumber = student.document_serial_number || '';
+        const plateNumber = student.plate_number || '';
+        const carType = student.car_type || '';
+        const color = student.color || '';
+
+        // قراءة صورة الشهادة الأساسية باستخدام sharp
+        const baseImage = sharp(CERTIFICATE_IMAGE_PATH);
+        const metadata = await baseImage.metadata();
+        const imageWidth = metadata.width;
+
+        // تجهيز مصفوفة الطبقات (overlays) لإضافة النصوص
+        const overlays = [];
+
+        // إنشاء نصوص SVG وإضافتها إلى مصفوفة الطبقات
+        // اسم الطالب
+        const studentNameSVG = await createTextSVG(
+            studentNameArabic,
+            TEXT_POSITIONS.STUDENT_NAME.fontSize,
+            TEXT_POSITIONS.STUDENT_NAME.color,
+            imageWidth
+        );
+        overlays.push({ input: studentNameSVG, top: TEXT_POSITIONS.STUDENT_NAME.y, left: TEXT_POSITIONS.STUDENT_NAME.x, blend: 'overlay' });
+
+        // الرقم التسلسلي
+        const serialNumberSVG = await createTextSVG(
+            serialNumber,
+            TEXT_POSITIONS.SERIAL_NUMBER.fontSize,
+            TEXT_POSITIONS.SERIAL_NUMBER.color,
+            imageWidth
+        );
+        overlays.push({ input: serialNumberSVG, top: TEXT_POSITIONS.SERIAL_NUMBER.y, left: TEXT_POSITIONS.SERIAL_NUMBER.x, blend: 'overlay' });
+
+        // رقم الوثيقة التسلسلي
+        const documentSerialNumberSVG = await createTextSVG(
+            documentSerialNumber,
+            TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.fontSize,
+            TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.color,
+            imageWidth
+        );
+        overlays.push({ input: documentSerialNumberSVG, top: TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.y, left: TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.x, blend: 'overlay' });
+
+        // رقم اللوحة
+        const plateNumberSVG = await createTextSVG(
+            `رقم اللوحة: ${plateNumber}`,
+            TEXT_POSITIONS.PLATE_NUMBER.fontSize,
+            TEXT_POSITIONS.PLATE_NUMBER.color,
+            imageWidth
+        );
+        overlays.push({ input: plateNumberSVG, top: TEXT_POSITIONS.PLATE_NUMBER.y, left: TEXT_POSITIONS.PLATE_NUMBER.x, blend: 'overlay' });
+
+        // نوع السيارة
+        const carTypeSVG = await createTextSVG(
+            `نوع السيارة: ${carType}`,
+            TEXT_POSITIONS.CAR_TYPE.fontSize,
+            TEXT_POSITIONS.CAR_TYPE.color,
+            imageWidth
+        );
+        overlays.push({ input: carTypeSVG, top: TEXT_POSITIONS.CAR_TYPE.y, left: TEXT_POSITIONS.CAR_TYPE.x, blend: 'overlay' });
+
+        // اللون
+        const colorSVG = await createTextSVG(
+            `اللون: ${color}`,
+            TEXT_POSITIONS.COLOR.fontSize,
+            TEXT_POSITIONS.COLOR.color,
+            imageWidth
+        );
+        overlays.push({ input: colorSVG, top: TEXT_POSITIONS.COLOR.y, left: TEXT_POSITIONS.COLOR.x, blend: 'overlay' });
+
+        // تركيب النصوص على الصورة وإنشاء الصورة النهائية
+        const processedImageBuffer = await baseImage
+            .composite(overlays)
+            .jpeg() // يمكنك استخدام .png() أو .webp() حسب الحاجة
+            .toBuffer();
+
+        // إرجاع الصورة كـ base64 في استجابة HTTP
+        return {
+            statusCode: 200,
+            headers: {
+                'Content-Type': 'image/jpeg', // تحديد نوع المحتوى كصورة JPEG
+            },
+            body: processedImageBuffer.toString('base64'),
+            isBase64Encoded: true, // إعلام العميل بأن الجسم مشفر بـ base64
+        };
+
+    } catch (error) {
+        // معالجة الأخطاء وطباعتها في سجلات Vercel
+        console.error('خطأ في وظيفة توليد الشهادة:', error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: 'حدث خطأ أثناء توليد الشهادة', details: error.message }),
+            headers: { 'Content-Type': 'application/json' },
+        };
+    } finally {
+        // إغلاق اتصال MongoDB دائمًا لضمان عدم تراكم الاتصالات
+        if (client) await client.close();
     }
-}
-    
+};
