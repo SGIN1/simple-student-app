@@ -4,16 +4,13 @@ import { fileURLToPath } from 'url';
 
 import nodeHtmlToImage from 'node-html-to-image';
 
-// ***** التعديل هنا: تم تعيين المهلة القصوى إلى 60 ثانية *****
 export const config = {
     maxDuration: 60 // 60 ثانية هو الحد الأقصى لخطة Vercel المجانية
 };
 
-// تعريف __filename و __dirname يدويًا لوحدات ES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// المسارات الأكثر موثوقية:
 const LOCAL_FONT_PATH = path.join(__dirname, '..', 'public', 'fonts', 'andlso.ttf');
 const BACKGROUND_IMAGE_PATH = path.join(__dirname, '..', 'public', 'images', 'full', 'wwee.jpg');
 
@@ -29,17 +26,17 @@ export default async function handler(req) {
             return new Response('Method Not Allowed', { status: 405 });
         }
 
-        // بناء عنوان URL كاملاً بشكل صحيح
+        // ***** التعديل هنا: الوصول إلى الرؤوس بشكل صحيح *****
         const host = req.headers.get('host');
         const protocol = req.headers.get('x-forwarded-proto') || 'http';
+        // ***** نهاية التعديل *****
+
         const fullUrlString = `${protocol}://${host}${req.url}`;
         const url = new URL(fullUrlString);
         console.log("Full URL received:", fullUrlString);
 
-
         let studentId = url.searchParams.get('id');
 
-        // إذا لم يكن الـ ID في query params، حاول استخلاصه من المسار
         if (!studentId) {
             const pathSegments = url.pathname.split('/');
             const certIndex = pathSegments.indexOf('certificate');
@@ -51,7 +48,6 @@ export default async function handler(req) {
             }
         }
         console.log("Extracted Student ID:", studentId);
-
 
         if (!studentId) {
             return new Response('<h1>معرف الطالب مطلوب</h1><p>الرابط الذي استخدمته غير صحيح أو لا يحتوي على معرف الطالب.</p>', {
@@ -93,7 +89,6 @@ export default async function handler(req) {
             student = await response.json();
             console.log("Student data fetched successfully:", student.arabic_name);
 
-            // --- قراءة الخط والصورة كـ Base64 ---
             try {
                 fontData = await fs.readFile(LOCAL_FONT_PATH);
                 console.log("Font loaded successfully from file system.");
@@ -111,7 +106,6 @@ export default async function handler(req) {
                 backgroundImageBase64 = '';
             }
 
-            // --- بناء قالب HTML للصورة ---
             const htmlContent = `
             <html>
             <head>
@@ -133,7 +127,7 @@ export default async function handler(req) {
                         background-color: #fff;
                         font-family: 'andlso', sans-serif;
                         color: black;
-                        background-image: url('${backgroundImageBase66}');
+                        background-image: url('${backgroundImageBase64}');
                         background-size: 100% 100%;
                         background-repeat: no-repeat;
                     }
@@ -171,7 +165,6 @@ export default async function handler(req) {
             </html>
             `;
 
-            // --- توليد الصورة باستخدام node-html-to-image ---
             const imageBuffer = await nodeHtmlToImage({
                 html: htmlContent,
                 puppeteerArgs: {
