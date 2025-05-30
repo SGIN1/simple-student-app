@@ -1,20 +1,19 @@
 import path from 'path';
 import { promises as fs } from 'fs';
-// قم بإزالة استيراد ImageResponse و React
-// import { ImageResponse } from '@vercel/og';
-// import React from 'react';
+import { fileURLToPath } from 'url'; // هذا الاستيراد الجديد والمهم
 
-// استيراد المكتبة الجديدة
 import nodeHtmlToImage from 'node-html-to-image';
-// sharp (اختياري، إذا احتجت لمعالجة إضافية للصورة)
-// import sharp from 'sharp';
 
 // *******************************************************************
-// تأكد من أن هذا السطر غير موجود إطلاقًا في هذا الملف:
+// تأكد أن هذا السطر غير موجود إطلاقًا في هذا الملف:
 // export const config = { runtime: 'edge' };
 // *******************************************************************
 
-// المسارات الأكثر موثوقية لمجلد public
+// تعريف __filename و __dirname يدويًا لوحدات ES
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// المسارات الأكثر موثوقية:
 const LOCAL_FONT_PATH = path.join(__dirname, '..', 'public', 'fonts', 'andlso.ttf');
 const BACKGROUND_IMAGE_PATH = path.join(__dirname, '..', 'public', 'images', 'full', 'wwee.jpg');
 
@@ -31,7 +30,21 @@ export default async function handler(req) {
         }
 
         const url = new URL(req.url);
-        const studentId = url.searchParams.get('id');
+        const studentId = url.searchParams.get('id'); // يفترض أن ID يأتي كـ /api/generateCertificateTwo2?id=xxxx
+        // أو، إذا كان المسار هو /شهادة/:id
+        if (!studentId) {
+            const pathSegments = url.pathname.split('/');
+            // البحث عن الـ ID بعد 'certificate' في المسار
+            const certIndex = pathSegments.indexOf('certificate');
+            if (certIndex !== -1 && pathSegments.length > certIndex + 1) {
+                const possibleId = pathSegments[certIndex + 1];
+                // تأكد أن الـ ID ليس فارغًا أو مجرد مسافة
+                if (possibleId && possibleId.trim() !== '') {
+                    studentId = possibleId.trim();
+                }
+            }
+        }
+
 
         if (!studentId) {
             return new Response('<h1>معرف الطالب مطلوب</h1><p>الرابط الذي استخدمته غير صحيح.</p>', {
@@ -80,11 +93,9 @@ export default async function handler(req) {
             try {
                 fontData = await fs.readFile(LOCAL_FONT_PATH);
                 console.log("Font loaded successfully from file system.");
-                // يمكن تحويل الخط إلى Base64 هنا إذا كان سيتم تضمينه في CSS
-                // const fontBase64 = fontData.toString('base64');
             } catch (fontFileError) {
                 console.error("Failed to load font from file system at path:", LOCAL_FONT_PATH, "Error:", fontFileError.message);
-                fontData = null;
+                fontData = null; // اجعله null إذا فشل التحميل
             }
 
             try {
@@ -142,6 +153,7 @@ export default async function handler(req) {
                         unicode-bidi: embed;
                     }
                     .serial-number { top: 15%; left: 10%; width: 30%; text-align: left; } /* ملاحظة: left: 10% قد يحتاج تعديل لـ RTL */
+                    .document-serial-number { top: 55%; width: 100%; text-align: center; }
                     .document-serial-number { top: 55%; width: 100%; text-align: center; }
                     .plate-number { top: 60%; width: 100%; text-align: center; }
                     .car-type { top: 65%; width: 100%; text-align: center; }
