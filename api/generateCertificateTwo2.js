@@ -1,12 +1,12 @@
 import { ImageResponse } from '@vercel/og';
 import React from 'react';
-// لا نحتاج إلى إزالة export const config = { runtime: 'edge' };
-// لأننا تأكدنا من أنها Node.js Function بالفعل.
 
-// مسار الخط المحلي من مجلد public
-// تأكد من وجود ملف andlso.ttf داخل public/fonts/ في جذر مشروعك
-const LOCAL_FONT_PATH = 'public/fonts/andlso.ttf'; // مسار الملف داخل مشروعك
-const BACKGROUND_IMAGE_PATH = 'public/images/full/wwee.jpg'; // مسار الصورة داخل مشروعك
+export const config = {
+  runtime: 'edge', // تأكد من تفعيل Edge Runtime
+};
+
+const FONT_URL = 'https://your-deployment-url.vercel.app/fonts/andlso.ttf'; // استبدل بمسار مشروعك الفعلي
+const BACKGROUND_IMAGE_URL = 'https://your-deployment-url.vercel.app/images/full/wwee.jpg'; // استبدل بمسار مشروعك الفعلي
 
 export default async function handler(req) {
     if (req.method !== 'GET') {
@@ -30,23 +30,25 @@ export default async function handler(req) {
 
     let student;
     let fontData;
-    let backgroundImageData; // لبيانات الصورة إذا احتجنا لتحميلها كـ Buffer
+    let backgroundImageData;
 
     try {
         const host = req.headers.get('host');
         const protocol = req.headers.get('x-forwarded-proto') || 'http';
 
-        const studentDataUrl = `${protocol}://${host}/api/getStudent?id=${studentId}`;
-        console.log("Fetching student data from:", studentDataUrl);
+        // إذا أردت استخدام المسار الديناميكي، تأكد من صحته
+        const dynamicFontUrl = `<span class="math-inline">\{protocol\}\://</span>{host}/fonts/andlso.ttf`;
+        const dynamicBackgroundImageUrl = `<span class="math-inline">\{protocol\}\://</span>{host}/images/full/wwee.jpg`;
 
-        const response = await fetch(studentDataUrl);
+        console.log("Fetching student data from:", `<span class="math-inline">\{protocol\}\://</span>{host}/api/getStudent?id=${studentId}`);
+        const studentResponse = await fetch(`<span class="math-inline">\{protocol\}\://</span>{host}/api/getStudent?id=${studentId}`);
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Failed to fetch student data from /api/getStudent: ${response.status} - ${errorText}`);
-            let errorMessage = `Failed to get student data (Status: ${response.status})`;
+        if (!studentResponse.ok) {
+            const errorText = await studentResponse.text();
+            console.error(`Failed to fetch student data from /api/getStudent: ${studentResponse.status} - ${errorText}`);
+            let errorMessage = `Failed to get student data (Status: ${studentResponse.status})`;
             try {
-                if (response.headers.get('content-type')?.includes('application/json')) {
+                if (studentResponse.headers.get('content-type')?.includes('application/json')) {
                     const errorJson = JSON.parse(errorText);
                     errorMessage = errorJson.error || errorMessage;
                 } else {
@@ -63,38 +65,34 @@ export default async function handler(req) {
                 { width: 1200, height: 630 }
             );
         }
-        
-        student = await response.json();
+
+        student = await studentResponse.json();
         console.log("Student data fetched successfully:", student.arabic_name);
 
-        // --- محاولة تحميل الخط والصورة بشكل مباشر من مجلد المشروع ---
-        // هذا يتطلب استخدام Node.js 'fs' module
-        // Vercel Serverless Functions تدعم 'fs' لقراءة الملفات المضمنة في النشر.
-        const path = await import('path'); // استيراد path ديناميكيًا
-        const fs = await import('fs/promises'); // استيراد fs/promises ديناميكيًا
-
+        // جلب الخط كـ ArrayBuffer
         try {
-            // استخدام process.cwd() للحصول على المسار الأساسي للمشروع
-            const fontFilePath = path.join(process.cwd(), LOCAL_FONT_PATH);
-            fontData = await fs.readFile(fontFilePath);
-            console.log("Font loaded successfully from file system.");
-        } catch (fontFileError) {
-            console.error("Failed to load font from file system:", fontFileError.message);
-            // سنستمر بدون خط مخصص إذا فشل التحميل
-            fontData = null; // تأكد من أن fontData فارغ إذا فشل التحميل
+            const fontResponse = await fetch(dynamicFontUrl); // أو FONT_URL الثابت
+            if (!fontResponse.ok) throw new Error(`Failed to fetch font: ${fontResponse.statusText}`);
+            fontData = await fontResponse.arrayBuffer();
+            console.log("Font loaded successfully via HTTP.");
+        } catch (fontFetchError) {
+            console.error("Failed to fetch font via HTTP:", fontFetchError.message);
+            fontData = null;
         }
 
+        // جلب الصورة كـ ArrayBuffer ثم تحويلها إلى Base64
         try {
-            const imageFilePath = path.join(process.cwd(), BACKGROUND_IMAGE_PATH);
-            backgroundImageData = await fs.readFile(imageFilePath); // قراءة الصورة كـ Buffer
-            console.log("Background image loaded successfully from file system.");
-        } catch (imageFileError) {
-            console.error("Failed to load background image from file system:", imageFileError.message);
-            backgroundImageData = null; // تأكد من أن backgroundImageData فارغ إذا فشل التحميل
+            const imageResponse = await fetch(dynamicBackgroundImageUrl); // أو BACKGROUND_IMAGE_URL الثابت
+            if (!imageResponse.ok) throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+            const imageBuffer = await imageResponse.arrayBuffer();
+            backgroundImageData = Buffer.from(imageBuffer).toString('base64');
+            console.log("Background image loaded successfully via HTTP.");
+        } catch (imageFetchError) {
+            console.error("Failed to fetch background image via HTTP:", imageFetchError.message);
+            backgroundImageData = null;
         }
 
-        const imageUrl = backgroundImageData ? `data:image/jpeg;base64,${backgroundImageData.toString('base64')}` : undefined;
-
+        const imageUrl = backgroundImageData ? `data:image/jpeg;base64,${backgroundImageData}` : undefined;
 
         return new ImageResponse(
             (
@@ -109,17 +107,16 @@ export default async function handler(req) {
                         position: 'relative',
                         backgroundColor: '#fff',
                         fontSize: 36,
-                        fontFamily: 'andlso', // اسم الخط الذي سيتم استخدامه في CSS
-                        backgroundImage: imageUrl ? `url(${imageUrl})` : undefined, // استخدام بيانات الصورة كـ Data URL
+                        fontFamily: 'andlso',
+                        backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
                         backgroundSize: '100% 100%',
                         backgroundRepeat: 'no-repeat',
-                        color: 'black', // يجب أن يكون اللون واضحًا على الخلفية
+                        color: 'black',
                     }}
                 >
                     <div style={{ position: 'absolute', top: '40%', width: '100%', textAlign: 'center', fontSize: '36px' }}>
                         {student.arabic_name || 'اسم غير معروف'}
                     </div>
-                    {/* أعدت الألوان إلى الأبيض بناءً على تصميمك مع صورة الخلفية */}
                     <div style={{ position: 'absolute', top: '15%', left: '10%', width: '30%', textAlign: 'left', fontSize: '16px', color: 'white' }}>
                         {student.serial_number || 'غير متوفر'}
                     </div>
@@ -140,19 +137,21 @@ export default async function handler(req) {
             {
                 width: 1200,
                 height: 630,
-                fonts: fontData ? [ // نرسل بيانات الخط فقط إذا تم تحميلها بنجاح
-                    {
-                        name: 'andlso', // اسم الخط الذي تم تحميله
-                        data: fontData,
-                        style: 'normal',
-                        weight: 400,
-                    },
-                ] : [], // إذا لم يتم تحميل الخط، نرسل مصفوفة فارغة
+                fonts: fontData ? [{ name: 'andlso', data: fontData, style: 'normal', weight: 400 }] : [],
             }
         );
 
     } catch (error) {
         console.error("Critical error in generateCertificateTwo2:", error);
-        return new Response(`A critical error occurred: ${error.message || 'An unexpected server error occurred.'}\nStack: ${error.stack || 'No stack trace'}`, { status: 500 });
+        // يمكنك تخصيص صفحة الخطأ أكثر هنا
+        return new ImageResponse(
+            (
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', backgroundColor: '#fdd', fontSize: 36, color: 'darkred' }}>
+                    <h1>خطأ غير متوقع</h1>
+                    <p>{error.message || 'حدث خطأ غير متوقع.'}</p>
+                </div>
+            ),
+            { width: 1200, height: 630, status: 500 }
+        );
     }
 }
