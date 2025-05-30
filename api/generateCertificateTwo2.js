@@ -1,27 +1,26 @@
-// قم بإزالة هذه الاستيرادات من الأعلى
+import path from 'path';
+import { promises as fs } from 'fs';
+// قم بإزالة استيراد ImageResponse و React
 // import { ImageResponse } from '@vercel/og';
 // import React from 'react';
 
-import path from 'path';
-import { promises as fs } from 'fs';
+// استيراد المكتبة الجديدة
+import nodeHtmlToImage from 'node-html-to-image';
+// sharp (اختياري، إذا احتجت لمعالجة إضافية للصورة)
+// import sharp from 'sharp';
 
 // *******************************************************************
 // تأكد من أن هذا السطر غير موجود إطلاقًا في هذا الملف:
 // export const config = { runtime: 'edge' };
 // *******************************************************************
 
-// المسارات الأكثر موثوقية:
+// المسارات الأكثر موثوقية لمجلد public
 const LOCAL_FONT_PATH = path.join(__dirname, '..', 'public', 'fonts', 'andlso.ttf');
 const BACKGROUND_IMAGE_PATH = path.join(__dirname, '..', 'public', 'images', 'full', 'wwee.jpg');
 
 export default async function handler(req) {
     try {
-        // استيراد ImageResponse و React داخل الدالة بشكل ديناميكي
-        // هذا قد يتجاوز مشكلات التهيئة المبكرة
-        const { ImageResponse } = await import('@vercel/og');
-        const React = await import('react');
-
-        console.log('--- Function Invoked ---');
+        console.log('--- Function Invoked (node-html-to-image) ---');
         console.log('Current Working Directory (process.cwd()):', process.cwd());
         console.log('Directory Name (__dirname):', __dirname);
         console.log('Attempting to load font from path:', LOCAL_FONT_PATH);
@@ -35,20 +34,15 @@ export default async function handler(req) {
         const studentId = url.searchParams.get('id');
 
         if (!studentId) {
-            return new ImageResponse(
-                (
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', backgroundColor: '#fff', fontSize: 36, color: 'black' }}>
-                        <h1>معرف الطالب مطلوب</h1>
-                        <p>الرابط الذي استخدمته غير صحيح.</p>
-                    </div>
-                ),
-                { width: 1200, height: 630 }
-            );
+            return new Response('<h1>معرف الطالب مطلوب</h1><p>الرابط الذي استخدمته غير صحيح.</p>', {
+                status: 400,
+                headers: { 'Content-Type': 'text/html' },
+            });
         }
 
         let student;
-        let fontData = null;
-        let backgroundImageData = null;
+        let fontData;
+        let backgroundImageBase64 = ''; // لتخزين الصورة كـ Base64
 
         try {
             const host = req.headers.get('host');
@@ -73,98 +67,136 @@ export default async function handler(req) {
                 } catch (e) {
                     errorMessage = errorText.substring(0, 150) || errorMessage;
                 }
-                return new ImageResponse(
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', backgroundColor: '#fff', fontSize: 36, color: 'red' }}>
-                        <h1>خطأ في جلب بيانات الطالب</h1>
-                        <p>{errorMessage}</p>
-                    </div>,
-                    { width: 1200, height: 630 }
-                );
+                return new Response(`<h1>خطأ في جلب بيانات الطالب</h1><p>${errorMessage}</p>`, {
+                    status: response.status,
+                    headers: { 'Content-Type': 'text/html' },
+                });
             }
 
             student = await response.json();
             console.log("Student data fetched successfully:", student.arabic_name);
 
-            // --- محاولة تحميل الخط والصورة بشكل مباشر من مجلد المشروع باستخدام fs/promises ---
+            // --- قراءة الخط والصورة كـ Base64 ---
             try {
                 fontData = await fs.readFile(LOCAL_FONT_PATH);
                 console.log("Font loaded successfully from file system.");
+                // يمكن تحويل الخط إلى Base64 هنا إذا كان سيتم تضمينه في CSS
+                // const fontBase64 = fontData.toString('base64');
             } catch (fontFileError) {
                 console.error("Failed to load font from file system at path:", LOCAL_FONT_PATH, "Error:", fontFileError.message);
                 fontData = null;
             }
 
             try {
-                backgroundImageData = await fs.readFile(BACKGROUND_IMAGE_PATH);
-                console.log("Background image loaded successfully from file system.");
+                const imageBuffer = await fs.readFile(BACKGROUND_IMAGE_PATH);
+                backgroundImageBase64 = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+                console.log("Background image loaded successfully from file system and converted to Base64.");
             } catch (imageFileError) {
                 console.error("Failed to load background image from file system at path:", BACKGROUND_IMAGE_PATH, "Error:", imageFileError.message);
-                backgroundImageData = null;
+                backgroundImageBase64 = ''; // فارغ إذا فشل التحميل
             }
 
-            const imageUrl = backgroundImageData ? `data:image/jpeg;base64,${backgroundImageData.toString('base64')}` : undefined;
+            // --- بناء قالب HTML للصورة ---
+            const htmlContent = `
+            <html>
+            <head>
+                <style>
+                    /* استيراد الخط مباشرة في CSS للقالب */
+                    @font-face {
+                        font-family: 'andlso';
+                        src: url('data:font/ttf;base64,${fontData ? fontData.toString('base64') : ''}') format('truetype');
+                        /* تأكد من أن الخط تم تحميله بشكل صحيح */
+                    }
+                    body {
+                        width: 1200px;
+                        height: 630px;
+                        margin: 0;
+                        padding: 0;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        position: relative;
+                        background-color: #fff;
+                        font-family: 'andlso', sans-serif;
+                        color: black;
+                        background-image: url('${backgroundImageBase64}');
+                        background-size: 100% 100%;
+                        background-repeat: no-repeat;
+                    }
+                    .arabic-name {
+                        position: absolute;
+                        top: 40%;
+                        width: 100%;
+                        text-align: center;
+                        font-size: 36px;
+                        /* أضف خصائص CSS لدعم اللغة العربية */
+                        direction: rtl;
+                        unicode-bidi: embed;
+                    }
+                    .detail {
+                        position: absolute;
+                        font-size: 16px;
+                        color: white; /* تأكد من وضوح النص على الخلفية */
+                        direction: rtl;
+                        unicode-bidi: embed;
+                    }
+                    .serial-number { top: 15%; left: 10%; width: 30%; text-align: left; } /* ملاحظة: left: 10% قد يحتاج تعديل لـ RTL */
+                    .document-serial-number { top: 55%; width: 100%; text-align: center; }
+                    .plate-number { top: 60%; width: 100%; text-align: center; }
+                    .car-type { top: 65%; width: 100%; text-align: center; }
+                    .color { top: 70%; width: 100%; text-align: center; }
+                </style>
+            </head>
+            <body>
+                <div class="arabic-name">${student.arabic_name || 'اسم غير معروف'}</div>
+                <div class="detail serial-number">${student.serial_number || 'غير متوفر'}</div>
+                <div class="detail document-serial-number">${student.document_serial_number || 'غير متوفر'}</div>
+                <div class="detail plate-number">${student.plate_number || 'غير متوفر'}</div>
+                <div class="detail car-type">${student.car_type || 'غير متوفر'}</div>
+                <div class="detail color">${student.color || 'غير متوفر'}</div>
+            </body>
+            </html>
+            `;
 
-            return new ImageResponse(
-                (
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            width: '100%',
-                            height: '100%',
-                            position: 'relative',
-                            backgroundColor: '#fff',
-                            fontSize: 36,
-                            fontFamily: 'andlso',
-                            backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
-                            backgroundSize: '100% 100%',
-                            backgroundRepeat: 'no-repeat',
-                            color: 'black',
-                        }}
-                    >
-                        <div style={{ position: 'absolute', top: '40%', width: '100%', textAlign: 'center', fontSize: '36px' }}>
-                            {student.arabic_name || 'اسم غير معروف'}
-                        </div>
-                        <div style={{ position: 'absolute', top: '15%', left: '10%', width: '30%', textAlign: 'left', fontSize: '16px', color: 'white' }}>
-                            {student.serial_number || 'غير متوفر'}
-                        </div>
-                        <div style={{ position: 'absolute', top: '55%', width: '100%', textAlign: 'center', fontSize: '16px' }}>
-                            {student.document_serial_number || 'غير متوفر'}
-                        </div>
-                        <div style={{ position: 'absolute', top: '60%', width: '100%', textAlign: 'center', fontSize: '16px' }}>
-                            {student.plate_number || 'غير متوفر'}
-                        </div>
-                        <div style={{ position: 'absolute', top: '65%', width: '100%', textAlign: 'center', fontSize: '16px' }}>
-                            {student.car_type || 'غير متوفر'}
-                        </div>
-                        <div style={{ position: 'absolute', top: '70%', width: '100%', textAlign: 'center', fontSize: '16px' }}>
-                            {student.color || 'غير متوفر'}
-                        </div>
-                    </div>
-                ),
-                {
-                    width: 1200,
-                    height: 630,
-                    fonts: fontData ? [
-                        {
-                            name: 'andlso',
-                            data: fontData,
-                            style: 'normal',
-                            weight: 400,
-                        },
-                    ] : [],
-                }
-            );
+            // --- توليد الصورة باستخدام node-html-to-image ---
+            const imageBuffer = await nodeHtmlToImage({
+                html: htmlContent,
+                puppeteerArgs: {
+                    args: ['--no-sandbox', '--disable-setuid-sandbox'], // ضروري لبيئات Serverless
+                    executablePath: process.env.CHROMIUM_PATH || undefined, // قد تحتاج إلى هذا في بعض البيئات
+                },
+                encoding: 'binary', // لإرجاع Buffer
+                // If you want to use sharp for further processing:
+                // type: 'jpeg', // or 'png'
+                // quality: 80, // for jpeg
+            });
+            console.log("Image generated successfully with node-html-to-image.");
+
+            // إذا كنت تحتاج sharp لمعالجة إضافية (مثلاً دمج صور معقدة)
+            // const finalImageBuffer = await sharp(imageBuffer).toBuffer();
+
+            return new Response(imageBuffer, {
+                status: 200,
+                headers: {
+                    'Content-Type': 'image/jpeg', // أو 'image/png' حسب نوع الصورة
+                    'Cache-Control': 's-maxage=31536000, stale-while-revalidate',
+                },
+            });
 
         } catch (error) {
-            console.error("Critical error inside handler:", error);
-            return new Response(`A critical error occurred: ${error.message || 'An unexpected server error occurred.'}\nStack: ${error.stack || 'No stack trace'}`, { status: 500 });
+            console.error("Critical error inside handler (node-html-to-image):", error);
+            // إرجاع رسالة خطأ HTML بدلاً من ImageResponse في حالة الفشل لتسهيل التصحيح
+            return new Response(`<h1>Critical Error Occurred</h1><p>${error.message || 'An unexpected server error occurred.'}</p><pre>${error.stack || 'No stack trace'}</pre>`, {
+                status: 500,
+                headers: { 'Content-Type': 'text/html' },
+            });
         }
     } catch (globalError) {
-        // هذا catch سيظهر أي أخطاء تحدث حتى قبل تنفيذ الدالة handler
-        console.error("Global error outside handler:", globalError);
-        return new Response(`A global error occurred before handler: ${globalError.message || 'An unexpected server error occurred.'}\nStack: ${globalError.stack || 'No stack trace'}`, { status: 500 });
+        console.error("Global error outside handler (node-html-to-image):", globalError);
+        return new Response(`<h1>Global Error Occurred Before Handler</h1><p>${globalError.message || 'An unexpected server error occurred.'}</p><pre>${globalError.stack || 'No stack trace'}</pre>`, {
+            status: 500,
+            headers: { 'Content-Type': 'text/html' },
+        });
     }
 }
