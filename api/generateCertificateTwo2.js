@@ -1,12 +1,12 @@
 import { ImageResponse } from '@vercel/og';
 import React from 'react';
 
+// 1. تحديد Edge Runtime: هذا السطر حيوي لتشغيل الدالة كـ Edge Function
 export const config = {
-  runtime: 'edge', // تأكد من تفعيل Edge Runtime
+  runtime: 'edge',
 };
 
-const FONT_URL = 'https://your-deployment-url.vercel.app/fonts/andlso.ttf'; // استبدل بمسار مشروعك الفعلي
-const BACKGROUND_IMAGE_URL = 'https://your-deployment-url.vercel.app/images/full/wwee.jpg'; // استبدل بمسار مشروعك الفعلي
+// لا نحتاج إلى مسارات الملفات المحلية بعد الآن، سنقوم بجلبها عبر HTTP
 
 export default async function handler(req) {
     if (req.method !== 'GET') {
@@ -36,12 +36,14 @@ export default async function handler(req) {
         const host = req.headers.get('host');
         const protocol = req.headers.get('x-forwarded-proto') || 'http';
 
-        // إذا أردت استخدام المسار الديناميكي، تأكد من صحته
-        const dynamicFontUrl = `<span class="math-inline">\{protocol\}\://</span>{host}/fonts/andlso.ttf`;
-        const dynamicBackgroundImageUrl = `<span class="math-inline">\{protocol\}\://</span>{host}/images/full/wwee.jpg`;
+        // 2. بناء مسارات URL للخط والصورة
+        // هذه المسارات ستشير إلى أصولك الثابتة (static assets) على Vercel
+        const fontUrl = `${protocol}://${host}/fonts/andlso.ttf`;
+        const backgroundImageUrl = `${protocol}://${host}/images/full/wwee.jpg`;
 
-        console.log("Fetching student data from:", `<span class="math-inline">\{protocol\}\://</span>{host}/api/getStudent?id=${studentId}`);
-        const studentResponse = await fetch(`<span class="math-inline">\{protocol\}\://</span>{host}/api/getStudent?id=${studentId}`);
+        // 3. جلب بيانات الطالب
+        console.log("Fetching student data from:", `${protocol}://${host}/api/getStudent?id=${studentId}`);
+        const studentResponse = await fetch(`${protocol}://${host}/api/getStudent?id=${studentId}`);
 
         if (!studentResponse.ok) {
             const errorText = await studentResponse.text();
@@ -69,29 +71,47 @@ export default async function handler(req) {
         student = await studentResponse.json();
         console.log("Student data fetched successfully:", student.arabic_name);
 
-        // جلب الخط كـ ArrayBuffer
+        // 4. جلب الخط كـ ArrayBuffer باستخدام 'fetch'
         try {
-            const fontResponse = await fetch(dynamicFontUrl); // أو FONT_URL الثابت
-            if (!fontResponse.ok) throw new Error(`Failed to fetch font: ${fontResponse.statusText}`);
-            fontData = await fontResponse.arrayBuffer();
-            console.log("Font loaded successfully via HTTP.");
+            console.log("Fetching font from:", fontUrl);
+            const fontResponse = await fetch(fontUrl);
+            if (!fontResponse.ok) {
+                // إذا فشل جلب الخط، أبلغ عن الخطأ واستمر بدون الخط المخصص
+                console.error(`Failed to fetch font: ${fontResponse.status} - ${fontResponse.statusText}`);
+                fontData = null;
+            } else {
+                fontData = await fontResponse.arrayBuffer(); // Edge Runtime يتوقع ArrayBuffer
+                console.log("Font loaded successfully via HTTP.");
+            }
         } catch (fontFetchError) {
-            console.error("Failed to fetch font via HTTP:", fontFetchError.message);
+            console.error("Critical error fetching font via HTTP:", fontFetchError.message);
             fontData = null;
         }
 
-        // جلب الصورة كـ ArrayBuffer ثم تحويلها إلى Base64
+        // 5. جلب الصورة كـ ArrayBuffer ثم تحويلها إلى Base64
         try {
-            const imageResponse = await fetch(dynamicBackgroundImageUrl); // أو BACKGROUND_IMAGE_URL الثابت
-            if (!imageResponse.ok) throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
-            const imageBuffer = await imageResponse.arrayBuffer();
-            backgroundImageData = Buffer.from(imageBuffer).toString('base64');
-            console.log("Background image loaded successfully via HTTP.");
+            console.log("Fetching background image from:", backgroundImageUrl);
+            const imageResponse = await fetch(backgroundImageUrl);
+            if (!imageResponse.ok) {
+                // إذا فشل جلب الصورة، أبلغ عن الخطأ واستمر بدون الصورة
+                console.error(`Failed to fetch background image: ${imageResponse.status} - ${imageResponse.statusText}`);
+                backgroundImageData = null;
+            } else {
+                const imageBuffer = await imageResponse.arrayBuffer();
+                // في Edge Runtime، لا يوجد 'Buffer' بنفس طريقة Node.js.
+                // يمكنك استخدام 'btoa' أو تحويل ArrayBuffer إلى Base64 بطريقة أخرى إذا كان 'ImageResponse' لا يقبله مباشرة.
+                // ومع ذلك، `ImageResponse` عادة ما تتعامل مع `data:image` URLs بشكل جيد.
+                // لنستخدم طريقة لتحويل ArrayBuffer إلى Base64:
+                const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+                backgroundImageData = base64Image;
+                console.log("Background image loaded successfully via HTTP.");
+            }
         } catch (imageFetchError) {
-            console.error("Failed to fetch background image via HTTP:", imageFetchError.message);
+            console.error("Critical error fetching background image via HTTP:", imageFetchError.message);
             backgroundImageData = null;
         }
 
+        // 6. استخدام بيانات الصورة كـ Data URL
         const imageUrl = backgroundImageData ? `data:image/jpeg;base64,${backgroundImageData}` : undefined;
 
         return new ImageResponse(
@@ -111,12 +131,13 @@ export default async function handler(req) {
                         backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
                         backgroundSize: '100% 100%',
                         backgroundRepeat: 'no-repeat',
-                        color: 'black',
+                        color: 'black', // تأكد أن اللون واضح على الخلفية
                     }}
                 >
                     <div style={{ position: 'absolute', top: '40%', width: '100%', textAlign: 'center', fontSize: '36px' }}>
                         {student.arabic_name || 'اسم غير معروف'}
                     </div>
+                    {/* أعدت الألوان إلى الأبيض بناءً على تصميمك مع صورة الخلفية */}
                     <div style={{ position: 'absolute', top: '15%', left: '10%', width: '30%', textAlign: 'left', fontSize: '16px', color: 'white' }}>
                         {student.serial_number || 'غير متوفر'}
                     </div>
@@ -137,7 +158,15 @@ export default async function handler(req) {
             {
                 width: 1200,
                 height: 630,
-                fonts: fontData ? [{ name: 'andlso', data: fontData, style: 'normal', weight: 400 }] : [],
+                // 7. تمرير بيانات الخط فقط إذا تم تحميلها بنجاح
+                fonts: fontData ? [
+                    {
+                        name: 'andlso',
+                        data: fontData,
+                        style: 'normal',
+                        weight: 400,
+                    },
+                ] : [],
             }
         );
 
@@ -149,6 +178,7 @@ export default async function handler(req) {
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', backgroundColor: '#fdd', fontSize: 36, color: 'darkred' }}>
                     <h1>خطأ غير متوقع</h1>
                     <p>{error.message || 'حدث خطأ غير متوقع.'}</p>
+                    <p>يرجى التحقق من السجلات لمزيد من التفاصيل.</p>
                 </div>
             ),
             { width: 1200, height: 630, status: 500 }
