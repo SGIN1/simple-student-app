@@ -1,20 +1,27 @@
 import { ImageResponse } from '@vercel/og';
 import React from 'react';
-import path from 'path'; // يجب استيراد path
-import { promises as fs } from 'fs'; // يجب استيراد fs/promises
+import path from 'path';
+import { promises as fs } from 'fs';
 
 // *******************************************************************
-// تأكد من أن هذا السطر غير موجود إطلاقًا في هذا الملف
-// أو في أي ملف تهيئة آخر يخص هذه الدالة:
+// تأكد من أن هذا السطر غير موجود إطلاقًا في هذا الملف:
 // export const config = { runtime: 'edge' };
 // *******************************************************************
 
-// مسار الخط والصورة المحليين من مجلد public
-// تأكد أن these paths are correct relative to your project root.
-const LOCAL_FONT_PATH = 'public/fonts/andlso.ttf';
-const BACKGROUND_IMAGE_PATH = 'public/images/full/wwee.jpg';
+// تعديل المسارات لتعمل بشكل أكثر موثوقية في بيئة Vercel Node.js Function
+// __dirname هو المسار المطلق لمجلد الدالة (مثلاً: /var/task/api)
+// '..' ترجعنا مستوى واحد إلى الأعلى (إلى /var/task وهو جذر الدالة المعبأة)
+// ثم ندخل إلى مجلد 'public'
+const LOCAL_FONT_PATH = path.join(__dirname, '..', 'public', 'fonts', 'andlso.ttf');
+const BACKGROUND_IMAGE_PATH = path.join(__dirname, '..', 'public', 'images', 'full', 'wwee.jpg');
 
 export default async function handler(req) {
+    console.log('--- Function Invoked ---'); // رسالة لتتبع بداية تنفيذ الدالة
+    console.log('Current Working Directory (process.cwd()):', process.cwd());
+    console.log('Directory Name (__dirname):', __dirname);
+    console.log('Attempting to load font from path:', LOCAL_FONT_PATH);
+    console.log('Attempting to load image from path:', BACKGROUND_IMAGE_PATH);
+
     if (req.method !== 'GET') {
         return new Response('Method Not Allowed', { status: 405 });
     }
@@ -35,8 +42,8 @@ export default async function handler(req) {
     }
 
     let student;
-    let fontData;
-    let backgroundImageData;
+    let fontData = null; // تهيئة بـ null تحسبًا للفشل
+    let backgroundImageData = null; // تهيئة بـ null تحسبًا للفشل
 
     try {
         const host = req.headers.get('host');
@@ -59,7 +66,7 @@ export default async function handler(req) {
                     errorMessage = errorText.substring(0, 150) || errorMessage;
                 }
             } catch (e) {
-                    errorMessage = errorText.substring(0, 150) || errorMessage;
+                errorMessage = errorText.substring(0, 150) || errorMessage;
             }
             return new ImageResponse(
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', backgroundColor: '#fff', fontSize: 36, color: 'red' }}>
@@ -69,28 +76,27 @@ export default async function handler(req) {
                 { width: 1200, height: 630 }
             );
         }
-        
+
         student = await response.json();
         console.log("Student data fetched successfully:", student.arabic_name);
 
         // --- محاولة تحميل الخط والصورة بشكل مباشر من مجلد المشروع باستخدام fs/promises ---
-        // هذا سيعمل في بيئة Node.js Serverless Function
         try {
-            const fontFilePath = path.join(process.cwd(), LOCAL_FONT_PATH);
-            fontData = await fs.readFile(fontFilePath); // قراءة الخط كـ Buffer
+            fontData = await fs.readFile(LOCAL_FONT_PATH);
             console.log("Font loaded successfully from file system.");
         } catch (fontFileError) {
-            console.error("Failed to load font from file system:", fontFileError.message);
-            fontData = null; // تأكد من أن fontData فارغ إذا فشل التحميل
+            // هذه الرسالة ستكون مهمة جدًا إذا حدث خطأ، وستظهر في سجلات Vercel
+            console.error("Failed to load font from file system at path:", LOCAL_FONT_PATH, "Error:", fontFileError.message);
+            fontData = null;
         }
 
         try {
-            const imageFilePath = path.join(process.cwd(), BACKGROUND_IMAGE_PATH);
-            backgroundImageData = await fs.readFile(imageFilePath); // قراءة الصورة كـ Buffer
+            backgroundImageData = await fs.readFile(BACKGROUND_IMAGE_PATH);
             console.log("Background image loaded successfully from file system.");
         } catch (imageFileError) {
-            console.error("Failed to load background image from file system:", imageFileError.message);
-            backgroundImageData = null; // تأكد من أن backgroundImageData فارغ إذا فشل التحميل
+            // هذه الرسالة ستكون مهمة جدًا إذا حدث خطأ، وستظهر في سجلات Vercel
+            console.error("Failed to load background image from file system at path:", BACKGROUND_IMAGE_PATH, "Error:", imageFileError.error || imageFileError.message);
+            backgroundImageData = null;
         }
 
         // تحويل بيانات الصورة إلى Base64 Data URL (إذا تم تحميلها)
@@ -143,7 +149,7 @@ export default async function handler(req) {
                 fonts: fontData ? [ // نرسل بيانات الخط فقط إذا تم تحميلها بنجاح
                     {
                         name: 'andlso', // اسم الخط الذي تم تحميله
-                        data: fontData, // `fs.readFile` سيعيد Buffer، وهو مقبول لـ `@vercel/og` في Node.js
+                        data: fontData,
                         style: 'normal',
                         weight: 400,
                     },
