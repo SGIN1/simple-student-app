@@ -22,7 +22,7 @@
     },
     {
       "source": "/certificate/:id",
-      "destination": "/api/generateCertificateTwo2"
+      "destination": "/api/generateCertificateTwo2/:id" // <--- التعديل الهام هنا
     },
     {
       "source": "/api/addStudent",
