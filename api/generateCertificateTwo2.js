@@ -26,16 +26,12 @@ export default async function handler(req) {
             return new Response('Method Not Allowed', { status: 405 });
         }
 
-        // ***** التعديل هنا: الوصول إلى الرؤوس بشكل مباشر *****
-        // req.headers قد يكون كائنًا عاديًا في هذه البيئة
         const host = req.headers.host;
         const protocol = req.headers['x-forwarded-proto'] || 'http';
-        // ***** نهاية التعديل *****
 
         const fullUrlString = `${protocol}://${host}${req.url}`;
         const url = new URL(fullUrlString);
         console.log("Full URL received:", fullUrlString);
-
 
         let studentId = url.searchParams.get('id');
 
@@ -50,7 +46,6 @@ export default async function handler(req) {
             }
         }
         console.log("Extracted Student ID:", studentId);
-
 
         if (!studentId) {
             return new Response('<h1>معرف الطالب مطلوب</h1><p>الرابط الذي استخدمته غير صحيح أو لا يحتوي على معرف الطالب.</p>', {
@@ -67,25 +62,31 @@ export default async function handler(req) {
             const studentDataUrl = `${protocol}://${host}/api/getStudent?id=${studentId}`;
             console.log("Fetching student data from:", studentDataUrl);
 
-            const response = await fetch(studentDataUrl); // استخدام fetch القياسية
-
+            // لا حاجة لإضافة رؤوس المصادقة هنا ما دامت getStudent.js لا تتطلبها داخلياً
+            const response = await fetch(studentDataUrl);
 
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`Failed to fetch student data from /api/getStudent: ${response.status} - ${errorText}`);
-                let errorMessage = `Failed to get student data (Status: ${response.status})`;
+                let errorMessage = `فشل في جلب بيانات الطالب (الحالة: ${response.status}).`;
                 try {
-                    // هنا قد تحتاج إلى استخدام get() إذا كان response.headers هو Headers object
                     if (response.headers.get('content-type')?.includes('application/json')) {
                         const errorJson = JSON.parse(errorText);
                         errorMessage = errorJson.error || errorMessage;
                     } else {
-                        errorMessage = errorText.substring(0, 150) || errorMessage;
+                        // قص الرسالة الطويلة لتكون أوضح
+                        // رسالة Vercel "Authentication Required" تكون طويلة جداً كـ HTML
+                        errorMessage = `تفاصيل الخطأ: ${errorText.substring(0, 300)}...`; 
                     }
                 } catch (e) {
-                    errorMessage = errorText.substring(0, 150) || errorMessage;
+                    errorMessage = `تفاصيل الخطأ: ${errorText.substring(0, 300)}...`;
                 }
-                return new Response(`<h1>خطأ في جلب بيانات الطالب</h1><p>${errorMessage}</p>`, {
+                // تعديل رسالة الخطأ لتكون أكثر وضوحًا للمستخدم
+                return new Response(`
+                    <h1>خطأ في جلب بيانات الطالب</h1>
+                    <p>المشكلة قد تكون بسبب: <b>${errorMessage}</b></p>
+                    <p>الرجاء التأكد من أن رابط بيانات الطالب صحيح وأن دالة جلب البيانات لا تتطلب مصادقة غير مبررة في إعدادات Vercel.</p>
+                `, {
                     status: response.status,
                     headers: { 'Content-Type': 'text/html' },
                 });
@@ -99,7 +100,7 @@ export default async function handler(req) {
                 console.log("Font loaded successfully from file system.");
             } catch (fontFileError) {
                 console.error("Failed to load font from file system at path:", LOCAL_FONT_PATH, "Error:", fontFileError.message);
-                fontData = null;
+                fontData = null; // استمر حتى لو فشل تحميل الخط، لكن الشهادة قد لا تظهر بشكل صحيح
             }
 
             try {
@@ -108,7 +109,7 @@ export default async function handler(req) {
                 console.log("Background image loaded successfully from file system and converted to Base64.");
             } catch (imageFileError) {
                 console.error("Failed to load background image from file system at path:", BACKGROUND_IMAGE_PATH, "Error:", imageFileError.message);
-                backgroundImageBase64 = '';
+                backgroundImageBase64 = ''; // استمر بدون خلفية إذا فشل التحميل
             }
 
             const htmlContent = `
@@ -184,20 +185,20 @@ export default async function handler(req) {
                 status: 200,
                 headers: {
                     'Content-Type': 'image/jpeg',
-                    'Cache-Control': 's-maxage=31536000, stale-while-revalidate',
+                    'Cache-Control': 's-maxage=315336000, stale-while-revalidate', // 1 سنة كاش
                 },
             });
 
         } catch (error) {
             console.error("Critical error inside handler (node-html-to-image):", error);
-            return new Response(`<h1>Critical Error Occurred</h1><p>${error.message || 'An unexpected server error occurred.'}</p><pre>${error.stack || 'No stack trace'}</pre>`, {
+            return new Response(`<h1>حدث خطأ فادح</h1><p>${error.message || 'حدث خطأ غير متوقع في الخادم.'}</p><pre>${error.stack || 'لا يوجد تتبع خطأ'}</pre>`, {
                 status: 500,
                 headers: { 'Content-Type': 'text/html' },
             });
         }
     } catch (globalError) {
         console.error("Global error outside handler (node-html-to-image):", globalError);
-        return new Response(`<h1>Global Error Occurred Before Handler</h1><p>${globalError.message || 'An unexpected server error occurred.'}</p><pre>${globalError.stack || 'No stack trace'}</pre>`, {
+        return new Response(`<h1>حدث خطأ عام قبل المعالج</h1><p>${globalError.message || 'حدث خطأ غير متوقع في الخادم.'}</p><pre>${globalError.stack || 'لا يوجد تتبع خطأ'}</pre>`, {
             status: 500,
             headers: { 'Content-Type': 'text/html' },
         });
