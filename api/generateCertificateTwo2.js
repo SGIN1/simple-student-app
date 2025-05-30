@@ -1,11 +1,12 @@
 import { ImageResponse } from '@vercel/og';
 import React from 'react';
+// لا نحتاج إلى إزالة export const config = { runtime: 'edge' };
+// لأننا تأكدنا من أنها Node.js Function بالفعل.
 
-// تم إزالة السطر: export const config = { runtime: 'edge' };
-
-// مسار الخط المحلي الآن من مجلد public
+// مسار الخط المحلي من مجلد public
 // تأكد من وجود ملف andlso.ttf داخل public/fonts/ في جذر مشروعك
-const localFontPath = '/fonts/andlso.ttf'; // هذا هو المسار الذي يمكن لـ Vercel الوصول إليه
+const LOCAL_FONT_PATH = 'public/fonts/andlso.ttf'; // مسار الملف داخل مشروعك
+const BACKGROUND_IMAGE_PATH = 'public/images/full/wwee.jpg'; // مسار الصورة داخل مشروعك
 
 export default async function handler(req) {
     if (req.method !== 'GET') {
@@ -29,7 +30,7 @@ export default async function handler(req) {
 
     let student;
     let fontData;
-    let absoluteBackgroundImagePath; // تعريف المتغير هنا
+    let backgroundImageData; // لبيانات الصورة إذا احتجنا لتحميلها كـ Buffer
 
     try {
         const host = req.headers.get('host');
@@ -66,20 +67,34 @@ export default async function handler(req) {
         student = await response.json();
         console.log("Student data fetched successfully:", student.arabic_name);
 
-        // تحميل الخط من المسار العام public
-        const fullFontUrl = `${protocol}://${host}${localFontPath}`;
+        // --- محاولة تحميل الخط والصورة بشكل مباشر من مجلد المشروع ---
+        // هذا يتطلب استخدام Node.js 'fs' module
+        // Vercel Serverless Functions تدعم 'fs' لقراءة الملفات المضمنة في النشر.
+        const path = await import('path'); // استيراد path ديناميكيًا
+        const fs = await import('fs/promises'); // استيراد fs/promises ديناميكيًا
+
         try {
-            fontData = await fetch(fullFontUrl).then((res) => res.arrayBuffer());
-            console.log("Font loaded successfully.");
-        } catch (fontError) {
-            console.error("Failed to load font:", fontError);
-            // يمكنك هنا اختيار إرجاع خطأ أو الاستمرار بدون خط مخصص
-            // للتبسيط، سنستمر مع تحذير في السجلات
+            // استخدام process.cwd() للحصول على المسار الأساسي للمشروع
+            const fontFilePath = path.join(process.cwd(), LOCAL_FONT_PATH);
+            fontData = await fs.readFile(fontFilePath);
+            console.log("Font loaded successfully from file system.");
+        } catch (fontFileError) {
+            console.error("Failed to load font from file system:", fontFileError.message);
+            // سنستمر بدون خط مخصص إذا فشل التحميل
+            fontData = null; // تأكد من أن fontData فارغ إذا فشل التحميل
         }
 
-        // تحميل الصورة الخلفية من المسار العام public
-        absoluteBackgroundImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
-        // لا نحتاج لتحميلها كـ arrayBuffer هنا، لأنها تستخدم في CSS
+        try {
+            const imageFilePath = path.join(process.cwd(), BACKGROUND_IMAGE_PATH);
+            backgroundImageData = await fs.readFile(imageFilePath); // قراءة الصورة كـ Buffer
+            console.log("Background image loaded successfully from file system.");
+        } catch (imageFileError) {
+            console.error("Failed to load background image from file system:", imageFileError.message);
+            backgroundImageData = null; // تأكد من أن backgroundImageData فارغ إذا فشل التحميل
+        }
+
+        const imageUrl = backgroundImageData ? `data:image/jpeg;base64,${backgroundImageData.toString('base64')}` : undefined;
+
 
         return new ImageResponse(
             (
@@ -95,15 +110,16 @@ export default async function handler(req) {
                         backgroundColor: '#fff',
                         fontSize: 36,
                         fontFamily: 'andlso', // اسم الخط الذي سيتم استخدامه في CSS
-                        backgroundImage: `url(${absoluteBackgroundImagePath})`, // استخدام مسار الصورة
+                        backgroundImage: imageUrl ? `url(${imageUrl})` : undefined, // استخدام بيانات الصورة كـ Data URL
                         backgroundSize: '100% 100%',
                         backgroundRepeat: 'no-repeat',
-                        color: 'black',
+                        color: 'black', // يجب أن يكون اللون واضحًا على الخلفية
                     }}
                 >
                     <div style={{ position: 'absolute', top: '40%', width: '100%', textAlign: 'center', fontSize: '36px' }}>
                         {student.arabic_name || 'اسم غير معروف'}
                     </div>
+                    {/* أعدت الألوان إلى الأبيض بناءً على تصميمك مع صورة الخلفية */}
                     <div style={{ position: 'absolute', top: '15%', left: '10%', width: '30%', textAlign: 'left', fontSize: '16px', color: 'white' }}>
                         {student.serial_number || 'غير متوفر'}
                     </div>
@@ -129,15 +145,14 @@ export default async function handler(req) {
                         name: 'andlso', // اسم الخط الذي تم تحميله
                         data: fontData,
                         style: 'normal',
-                        weight: 400, // يمكنك تعديل الوزن حسب نوع الخط
+                        weight: 400,
                     },
                 ] : [], // إذا لم يتم تحميل الخط، نرسل مصفوفة فارغة
             }
         );
 
     } catch (error) {
-        console.error("Unexpected error in generateCertificateTwo2:", error);
-        // اجعل رسالة الخطأ أكثر تفصيلاً للمساعدة في تصحيح الأخطاء إذا استمرت
-        return new Response(`An error occurred: ${error.message || 'An unexpected server error occurred.'}\nStack: ${error.stack || 'No stack trace'}`, { status: 500 });
+        console.error("Critical error in generateCertificateTwo2:", error);
+        return new Response(`A critical error occurred: ${error.message || 'An unexpected server error occurred.'}\nStack: ${error.stack || 'No stack trace'}`, { status: 500 });
     }
 }
