@@ -1,9 +1,9 @@
 // api/generateCertificateTwo2.js
-// تأكد من أن هذا الملف موجود في مجلد 'api' داخل جذر مشروعك.
+// هذا الملف يستخدم الآن ES Module syntax
 
-const { MongoClient, ObjectId } = require('mongodb');
-const sharp = require('sharp');
-const path = require('path');
+import { MongoClient, ObjectId } from 'mongodb';
+import sharp from 'sharp';
+import path from 'path';
 
 // **ملاحظة هامة:** تأكد من إضافة MONGODB_URI في متغيرات البيئة الخاصة بمشروعك على Vercel
 // (Settings -> Environment Variables)
@@ -73,8 +73,15 @@ async function createTextSVG(text, fontSize, color, imageWidth) {
  * @param {Object} event - كائن الحدث الذي يحتوي على معلومات الطلب الوارد (HTTP request).
  * @returns {Object} - كائن الاستجابة (HTTP response).
  */
-exports.handler = async (event) => {
+export default async function handler(event) { // تم تغيير exports.handler إلى export default function handler
     // استخراج معرف الطالب من مسار الطلب (مثال: /api/generateCertificateTwo2/65e9c0b1f1a5b6c7d8e9f0a1)
+    // لاحظ أن المسار الذي أرسلته كان /شهادة/68393763032069b932690469
+    // يجب أن تتأكد من أن وظيفة Vercel مضبوطة لتوقع هذا المسار (مثل استخدام vercel.json rewrites)
+    // أو قم بتعديل طلبك ليطابق /api/generateCertificateTwo2/[id]
+    // الكود الحالي يتوقع /api/generateCertificateTwo2/[id]
+
+    // إذا كنت تستخدم مسارًا مثل /شهادة/68393763032069b932690469
+    // فقد تحتاج إلى إعادة كتابة المسار في vercel.json أو تعديل هذا السطر
     const studentId = event.path.split('/').pop();
     console.log('ID المستلم في وظيفة generateCertificateTwo2:', studentId);
 
@@ -208,4 +215,4 @@ exports.handler = async (event) => {
         // إغلاق اتصال MongoDB دائمًا لضمان عدم تراكم الاتصالات
         if (client) await client.close();
     }
-};
+}
