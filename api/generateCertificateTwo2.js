@@ -3,8 +3,9 @@ import React from 'react';
 
 // تم إزالة السطر: export const config = { runtime: 'edge' };
 
-// تم إزالة تعريف fontUrl لأننا سنستخدم الخط الافتراضي
-// const fontUrl = 'https://fonts.gstatic.com/s/cairo/v29/SLXGc1gY6HPz_mkYx_U62B2JpB4.woff2';
+// مسار الخط المحلي الآن من مجلد public
+// تأكد من وجود ملف andlso.ttf داخل public/fonts/ في جذر مشروعك
+const localFontPath = '/fonts/andlso.ttf'; // هذا هو المسار الذي يمكن لـ Vercel الوصول إليه
 
 export default async function handler(req) {
     if (req.method !== 'GET') {
@@ -27,6 +28,9 @@ export default async function handler(req) {
     }
 
     let student;
+    let fontData;
+    let absoluteBackgroundImagePath; // تعريف المتغير هنا
+
     try {
         const host = req.headers.get('host');
         const protocol = req.headers.get('x-forwarded-proto') || 'http';
@@ -62,10 +66,20 @@ export default async function handler(req) {
         student = await response.json();
         console.log("Student data fetched successfully:", student.arabic_name);
 
-        // تم إزالة تحميل الصورة الخلفية واستبدالها بخلفية بيضاء
-        // const absoluteBackgroundImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
-        // تم إزالة تحميل بيانات الخط
-        // const fontData = await fetch(fontUrl).then((res) => res.arrayBuffer());
+        // تحميل الخط من المسار العام public
+        const fullFontUrl = `${protocol}://${host}${localFontPath}`;
+        try {
+            fontData = await fetch(fullFontUrl).then((res) => res.arrayBuffer());
+            console.log("Font loaded successfully.");
+        } catch (fontError) {
+            console.error("Failed to load font:", fontError);
+            // يمكنك هنا اختيار إرجاع خطأ أو الاستمرار بدون خط مخصص
+            // للتبسيط، سنستمر مع تحذير في السجلات
+        }
+
+        // تحميل الصورة الخلفية من المسار العام public
+        absoluteBackgroundImagePath = `${protocol}://${host}/images/full/wwee.jpg`;
+        // لا نحتاج لتحميلها كـ arrayBuffer هنا، لأنها تستخدم في CSS
 
         return new ImageResponse(
             (
@@ -78,22 +92,19 @@ export default async function handler(req) {
                         width: '100%',
                         height: '100%',
                         position: 'relative',
-                        backgroundColor: '#fff', // خلفية بيضاء بسيطة
+                        backgroundColor: '#fff',
                         fontSize: 36,
-                        // تم إزالة تحديد fontFamily ليستخدم الخط الافتراضي
-                        // fontFamily: 'Cairo',
-                        // تم إزالة الصورة الخلفية
-                        // backgroundImage: `url(${absoluteBackgroundImagePath})`,
-                        // backgroundSize: '100% 100%',
-                        // backgroundRepeat: 'no-repeat',
+                        fontFamily: 'andlso', // اسم الخط الذي سيتم استخدامه في CSS
+                        backgroundImage: `url(${absoluteBackgroundImagePath})`, // استخدام مسار الصورة
+                        backgroundSize: '100% 100%',
+                        backgroundRepeat: 'no-repeat',
                         color: 'black',
                     }}
                 >
                     <div style={{ position: 'absolute', top: '40%', width: '100%', textAlign: 'center', fontSize: '36px' }}>
                         {student.arabic_name || 'اسم غير معروف'}
                     </div>
-                    {/* يمكنك تعديل الألوان هنا إذا أردت أن تكون مقروءة على الخلفية البيضاء */}
-                    <div style={{ position: 'absolute', top: '15%', left: '10%', width: '30%', textAlign: 'left', fontSize: '16px', color: 'black' }}>
+                    <div style={{ position: 'absolute', top: '15%', left: '10%', width: '30%', textAlign: 'left', fontSize: '16px', color: 'white' }}>
                         {student.serial_number || 'غير متوفر'}
                     </div>
                     <div style={{ position: 'absolute', top: '55%', width: '100%', textAlign: 'center', fontSize: '16px' }}>
@@ -113,14 +124,20 @@ export default async function handler(req) {
             {
                 width: 1200,
                 height: 630,
-                // تم إزالة قسم الخطوط بالكامل
-                // fonts: [...]
+                fonts: fontData ? [ // نرسل بيانات الخط فقط إذا تم تحميلها بنجاح
+                    {
+                        name: 'andlso', // اسم الخط الذي تم تحميله
+                        data: fontData,
+                        style: 'normal',
+                        weight: 400, // يمكنك تعديل الوزن حسب نوع الخط
+                    },
+                ] : [], // إذا لم يتم تحميل الخط، نرسل مصفوفة فارغة
             }
         );
 
     } catch (error) {
         console.error("Unexpected error in generateCertificateTwo2:", error);
-        // جعل رسالة الخطأ أكثر تفصيلاً للمساعدة في تصحيح الأخطاء إذا استمرت
+        // اجعل رسالة الخطأ أكثر تفصيلاً للمساعدة في تصحيح الأخطاء إذا استمرت
         return new Response(`An error occurred: ${error.message || 'An unexpected server error occurred.'}\nStack: ${error.stack || 'No stack trace'}`, { status: 500 });
     }
 }
