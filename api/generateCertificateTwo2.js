@@ -26,14 +26,16 @@ export default async function handler(req) {
             return new Response('Method Not Allowed', { status: 405 });
         }
 
-        // ***** التعديل هنا: الوصول إلى الرؤوس بشكل صحيح *****
-        const host = req.headers.get('host');
-        const protocol = req.headers.get('x-forwarded-proto') || 'http';
+        // ***** التعديل هنا: الوصول إلى الرؤوس بشكل مباشر *****
+        // req.headers قد يكون كائنًا عاديًا في هذه البيئة
+        const host = req.headers.host;
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
         // ***** نهاية التعديل *****
 
         const fullUrlString = `${protocol}://${host}${req.url}`;
         const url = new URL(fullUrlString);
         console.log("Full URL received:", fullUrlString);
+
 
         let studentId = url.searchParams.get('id');
 
@@ -48,6 +50,7 @@ export default async function handler(req) {
             }
         }
         console.log("Extracted Student ID:", studentId);
+
 
         if (!studentId) {
             return new Response('<h1>معرف الطالب مطلوب</h1><p>الرابط الذي استخدمته غير صحيح أو لا يحتوي على معرف الطالب.</p>', {
@@ -64,13 +67,15 @@ export default async function handler(req) {
             const studentDataUrl = `${protocol}://${host}/api/getStudent?id=${studentId}`;
             console.log("Fetching student data from:", studentDataUrl);
 
-            const response = await fetch(studentDataUrl);
+            const response = await fetch(studentDataUrl); // استخدام fetch القياسية
+
 
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`Failed to fetch student data from /api/getStudent: ${response.status} - ${errorText}`);
                 let errorMessage = `Failed to get student data (Status: ${response.status})`;
                 try {
+                    // هنا قد تحتاج إلى استخدام get() إذا كان response.headers هو Headers object
                     if (response.headers.get('content-type')?.includes('application/json')) {
                         const errorJson = JSON.parse(errorText);
                         errorMessage = errorJson.error || errorMessage;
