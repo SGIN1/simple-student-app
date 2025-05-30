@@ -4,9 +4,9 @@ import { fileURLToPath } from 'url';
 
 import nodeHtmlToImage from 'node-html-to-image';
 
-// **مهم جدًا:** إضافة خاصية maxDuration هنا لزيادة المهلة
+// ***** التعديل هنا: تم تعيين المهلة القصوى إلى 60 ثانية *****
 export const config = {
-    maxDuration: 300 // 5 دقائق (300 ثانية) - Puppeteer يحتاج وقتاً كافياً للتشغيل
+    maxDuration: 60 // 60 ثانية هو الحد الأقصى لخطة Vercel المجانية
 };
 
 // تعريف __filename و __dirname يدويًا لوحدات ES
@@ -29,7 +29,7 @@ export default async function handler(req) {
             return new Response('Method Not Allowed', { status: 405 });
         }
 
-        // **التعديل هنا:** بناء عنوان URL كاملاً بشكل صحيح
+        // بناء عنوان URL كاملاً بشكل صحيح
         const host = req.headers.get('host');
         const protocol = req.headers.get('x-forwarded-proto') || 'http';
         const fullUrlString = `${protocol}://${host}${req.url}`;
@@ -37,10 +37,9 @@ export default async function handler(req) {
         console.log("Full URL received:", fullUrlString);
 
 
-        let studentId = url.searchParams.get('id'); // يفترض أن ID يأتي كـ /api/generateCertificateTwo2?id=xxxx
+        let studentId = url.searchParams.get('id');
 
         // إذا لم يكن الـ ID في query params، حاول استخلاصه من المسار
-        // (مثل: /certificate/683908a7a89ab3d68c38b671)
         if (!studentId) {
             const pathSegments = url.pathname.split('/');
             const certIndex = pathSegments.indexOf('certificate');
@@ -63,10 +62,9 @@ export default async function handler(req) {
 
         let student;
         let fontData;
-        let backgroundImageBase64 = ''; // لتخزين الصورة كـ Base64
+        let backgroundImageBase64 = '';
 
         try {
-            // استخدام نفس البروتوكول والمضيف لجلب بيانات الطالب
             const studentDataUrl = `${protocol}://${host}/api/getStudent?id=${studentId}`;
             console.log("Fetching student data from:", studentDataUrl);
 
@@ -101,7 +99,7 @@ export default async function handler(req) {
                 console.log("Font loaded successfully from file system.");
             } catch (fontFileError) {
                 console.error("Failed to load font from file system at path:", LOCAL_FONT_PATH, "Error:", fontFileError.message);
-                fontData = null; // اجعله null إذا فشل التحميل
+                fontData = null;
             }
 
             try {
@@ -110,7 +108,7 @@ export default async function handler(req) {
                 console.log("Background image loaded successfully from file system and converted to Base64.");
             } catch (imageFileError) {
                 console.error("Failed to load background image from file system at path:", BACKGROUND_IMAGE_PATH, "Error:", imageFileError.message);
-                backgroundImageBase64 = ''; // فارغ إذا فشل التحميل
+                backgroundImageBase64 = '';
             }
 
             // --- بناء قالب HTML للصورة ---
@@ -118,7 +116,6 @@ export default async function handler(req) {
             <html>
             <head>
                 <style>
-                    /* استيراد الخط مباشرة في CSS للقالب */
                     @font-face {
                         font-family: 'andlso';
                         src: url('data:font/ttf;base64,${fontData ? fontData.toString('base64') : ''}') format('truetype');
@@ -136,7 +133,7 @@ export default async function handler(req) {
                         background-color: #fff;
                         font-family: 'andlso', sans-serif;
                         color: black;
-                        background-image: url('${backgroundImageBase64}');
+                        background-image: url('${backgroundImageBase66}');
                         background-size: 100% 100%;
                         background-repeat: no-repeat;
                     }
@@ -178,18 +175,17 @@ export default async function handler(req) {
             const imageBuffer = await nodeHtmlToImage({
                 html: htmlContent,
                 puppeteerArgs: {
-                    args: ['--no-sandbox', '--disable-setuid-sandbox'], // ضروري لبيئات Serverless
-                    // executablePath: process.env.CHROMIUM_PATH || undefined, // عادة لا تحتاج إلى هذا في Vercel
-                    headless: 'new' // استخدم الوضع الجديد
+                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                    headless: 'new'
                 },
-                encoding: 'binary', // لإرجاع Buffer
+                encoding: 'binary',
             });
             console.log("Image generated successfully with node-html-to-image.");
 
             return new Response(imageBuffer, {
                 status: 200,
                 headers: {
-                    'Content-Type': 'image/jpeg', // أو 'image/png' حسب نوع الصورة
+                    'Content-Type': 'image/jpeg',
                     'Cache-Control': 's-maxage=31536000, stale-while-revalidate',
                 },
             });
