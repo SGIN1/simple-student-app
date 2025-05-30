@@ -1,12 +1,18 @@
 import { ImageResponse } from '@vercel/og';
 import React from 'react';
+import path from 'path'; // يجب استيراد path
+import { promises as fs } from 'fs'; // يجب استيراد fs/promises
 
-// 1. تحديد Edge Runtime: هذا السطر حيوي لتشغيل الدالة كـ Edge Function
-export const config = {
-  runtime: 'edge',
-};
+// *******************************************************************
+// تأكد من أن هذا السطر غير موجود إطلاقًا في هذا الملف
+// أو في أي ملف تهيئة آخر يخص هذه الدالة:
+// export const config = { runtime: 'edge' };
+// *******************************************************************
 
-// لا نحتاج إلى مسارات الملفات المحلية بعد الآن، سنقوم بجلبها عبر HTTP
+// مسار الخط والصورة المحليين من مجلد public
+// تأكد أن these paths are correct relative to your project root.
+const LOCAL_FONT_PATH = 'public/fonts/andlso.ttf';
+const BACKGROUND_IMAGE_PATH = 'public/images/full/wwee.jpg';
 
 export default async function handler(req) {
     if (req.method !== 'GET') {
@@ -36,28 +42,24 @@ export default async function handler(req) {
         const host = req.headers.get('host');
         const protocol = req.headers.get('x-forwarded-proto') || 'http';
 
-        // 2. بناء مسارات URL للخط والصورة
-        // هذه المسارات ستشير إلى أصولك الثابتة (static assets) على Vercel
-        const fontUrl = `${protocol}://${host}/fonts/andlso.ttf`;
-        const backgroundImageUrl = `${protocol}://${host}/images/full/wwee.jpg`;
+        const studentDataUrl = `${protocol}://${host}/api/getStudent?id=${studentId}`;
+        console.log("Fetching student data from:", studentDataUrl);
 
-        // 3. جلب بيانات الطالب
-        console.log("Fetching student data from:", `${protocol}://${host}/api/getStudent?id=${studentId}`);
-        const studentResponse = await fetch(`${protocol}://${host}/api/getStudent?id=${studentId}`);
+        const response = await fetch(studentDataUrl);
 
-        if (!studentResponse.ok) {
-            const errorText = await studentResponse.text();
-            console.error(`Failed to fetch student data from /api/getStudent: ${studentResponse.status} - ${errorText}`);
-            let errorMessage = `Failed to get student data (Status: ${studentResponse.status})`;
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Failed to fetch student data from /api/getStudent: ${response.status} - ${errorText}`);
+            let errorMessage = `Failed to get student data (Status: ${response.status})`;
             try {
-                if (studentResponse.headers.get('content-type')?.includes('application/json')) {
+                if (response.headers.get('content-type')?.includes('application/json')) {
                     const errorJson = JSON.parse(errorText);
                     errorMessage = errorJson.error || errorMessage;
                 } else {
                     errorMessage = errorText.substring(0, 150) || errorMessage;
                 }
             } catch (e) {
-                errorMessage = errorText.substring(0, 150) || errorMessage;
+                    errorMessage = errorText.substring(0, 150) || errorMessage;
             }
             return new ImageResponse(
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', backgroundColor: '#fff', fontSize: 36, color: 'red' }}>
@@ -67,52 +69,32 @@ export default async function handler(req) {
                 { width: 1200, height: 630 }
             );
         }
-
-        student = await studentResponse.json();
+        
+        student = await response.json();
         console.log("Student data fetched successfully:", student.arabic_name);
 
-        // 4. جلب الخط كـ ArrayBuffer باستخدام 'fetch'
+        // --- محاولة تحميل الخط والصورة بشكل مباشر من مجلد المشروع باستخدام fs/promises ---
+        // هذا سيعمل في بيئة Node.js Serverless Function
         try {
-            console.log("Fetching font from:", fontUrl);
-            const fontResponse = await fetch(fontUrl);
-            if (!fontResponse.ok) {
-                // إذا فشل جلب الخط، أبلغ عن الخطأ واستمر بدون الخط المخصص
-                console.error(`Failed to fetch font: ${fontResponse.status} - ${fontResponse.statusText}`);
-                fontData = null;
-            } else {
-                fontData = await fontResponse.arrayBuffer(); // Edge Runtime يتوقع ArrayBuffer
-                console.log("Font loaded successfully via HTTP.");
-            }
-        } catch (fontFetchError) {
-            console.error("Critical error fetching font via HTTP:", fontFetchError.message);
-            fontData = null;
+            const fontFilePath = path.join(process.cwd(), LOCAL_FONT_PATH);
+            fontData = await fs.readFile(fontFilePath); // قراءة الخط كـ Buffer
+            console.log("Font loaded successfully from file system.");
+        } catch (fontFileError) {
+            console.error("Failed to load font from file system:", fontFileError.message);
+            fontData = null; // تأكد من أن fontData فارغ إذا فشل التحميل
         }
 
-        // 5. جلب الصورة كـ ArrayBuffer ثم تحويلها إلى Base64
         try {
-            console.log("Fetching background image from:", backgroundImageUrl);
-            const imageResponse = await fetch(backgroundImageUrl);
-            if (!imageResponse.ok) {
-                // إذا فشل جلب الصورة، أبلغ عن الخطأ واستمر بدون الصورة
-                console.error(`Failed to fetch background image: ${imageResponse.status} - ${imageResponse.statusText}`);
-                backgroundImageData = null;
-            } else {
-                const imageBuffer = await imageResponse.arrayBuffer();
-                // في Edge Runtime، لا يوجد 'Buffer' بنفس طريقة Node.js.
-                // يمكنك استخدام 'btoa' أو تحويل ArrayBuffer إلى Base64 بطريقة أخرى إذا كان 'ImageResponse' لا يقبله مباشرة.
-                // ومع ذلك، `ImageResponse` عادة ما تتعامل مع `data:image` URLs بشكل جيد.
-                // لنستخدم طريقة لتحويل ArrayBuffer إلى Base64:
-                const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
-                backgroundImageData = base64Image;
-                console.log("Background image loaded successfully via HTTP.");
-            }
-        } catch (imageFetchError) {
-            console.error("Critical error fetching background image via HTTP:", imageFetchError.message);
-            backgroundImageData = null;
+            const imageFilePath = path.join(process.cwd(), BACKGROUND_IMAGE_PATH);
+            backgroundImageData = await fs.readFile(imageFilePath); // قراءة الصورة كـ Buffer
+            console.log("Background image loaded successfully from file system.");
+        } catch (imageFileError) {
+            console.error("Failed to load background image from file system:", imageFileError.message);
+            backgroundImageData = null; // تأكد من أن backgroundImageData فارغ إذا فشل التحميل
         }
 
-        // 6. استخدام بيانات الصورة كـ Data URL
-        const imageUrl = backgroundImageData ? `data:image/jpeg;base64,${backgroundImageData}` : undefined;
+        // تحويل بيانات الصورة إلى Base64 Data URL (إذا تم تحميلها)
+        const imageUrl = backgroundImageData ? `data:image/jpeg;base64,${backgroundImageData.toString('base64')}` : undefined;
 
         return new ImageResponse(
             (
@@ -127,11 +109,11 @@ export default async function handler(req) {
                         position: 'relative',
                         backgroundColor: '#fff',
                         fontSize: 36,
-                        fontFamily: 'andlso',
-                        backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
+                        fontFamily: 'andlso', // اسم الخط الذي سيتم استخدامه في CSS
+                        backgroundImage: imageUrl ? `url(${imageUrl})` : undefined, // استخدام بيانات الصورة كـ Data URL
                         backgroundSize: '100% 100%',
                         backgroundRepeat: 'no-repeat',
-                        color: 'black', // تأكد أن اللون واضح على الخلفية
+                        color: 'black', // يجب أن يكون اللون واضحًا على الخلفية
                     }}
                 >
                     <div style={{ position: 'absolute', top: '40%', width: '100%', textAlign: 'center', fontSize: '36px' }}>
@@ -158,30 +140,19 @@ export default async function handler(req) {
             {
                 width: 1200,
                 height: 630,
-                // 7. تمرير بيانات الخط فقط إذا تم تحميلها بنجاح
-                fonts: fontData ? [
+                fonts: fontData ? [ // نرسل بيانات الخط فقط إذا تم تحميلها بنجاح
                     {
-                        name: 'andlso',
-                        data: fontData,
+                        name: 'andlso', // اسم الخط الذي تم تحميله
+                        data: fontData, // `fs.readFile` سيعيد Buffer، وهو مقبول لـ `@vercel/og` في Node.js
                         style: 'normal',
                         weight: 400,
                     },
-                ] : [],
+                ] : [], // إذا لم يتم تحميل الخط، نرسل مصفوفة فارغة
             }
         );
 
     } catch (error) {
         console.error("Critical error in generateCertificateTwo2:", error);
-        // يمكنك تخصيص صفحة الخطأ أكثر هنا
-        return new ImageResponse(
-            (
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', backgroundColor: '#fdd', fontSize: 36, color: 'darkred' }}>
-                    <h1>خطأ غير متوقع</h1>
-                    <p>{error.message || 'حدث خطأ غير متوقع.'}</p>
-                    <p>يرجى التحقق من السجلات لمزيد من التفاصيل.</p>
-                </div>
-            ),
-            { width: 1200, height: 630, status: 500 }
-        );
+        return new Response(`A critical error occurred: ${error.message || 'An unexpected server error occurred.'}\nStack: ${error.stack || 'No stack trace'}`, { status: 500 });
     }
 }
