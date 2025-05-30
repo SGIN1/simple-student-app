@@ -1,13 +1,13 @@
 import path from 'path';
 import { promises as fs } from 'fs';
-import { fileURLToPath } from 'url'; // هذا الاستيراد الجديد والمهم
+import { fileURLToPath } from 'url';
 
 import nodeHtmlToImage from 'node-html-to-image';
 
-// *******************************************************************
-// تأكد أن هذا السطر غير موجود إطلاقًا في هذا الملف:
-// export const config = { runtime: 'edge' };
-// *******************************************************************
+// **مهم جدًا:** إضافة خاصية maxDuration هنا لزيادة المهلة
+export const config = {
+    maxDuration: 300 // 5 دقائق (300 ثانية) - Puppeteer يحتاج وقتاً كافياً للتشغيل
+};
 
 // تعريف __filename و __dirname يدويًا لوحدات ES
 const __filename = fileURLToPath(import.meta.url);
@@ -29,25 +29,33 @@ export default async function handler(req) {
             return new Response('Method Not Allowed', { status: 405 });
         }
 
-        const url = new URL(req.url);
-        const studentId = url.searchParams.get('id'); // يفترض أن ID يأتي كـ /api/generateCertificateTwo2?id=xxxx
-        // أو، إذا كان المسار هو /شهادة/:id
+        // **التعديل هنا:** بناء عنوان URL كاملاً بشكل صحيح
+        const host = req.headers.get('host');
+        const protocol = req.headers.get('x-forwarded-proto') || 'http';
+        const fullUrlString = `${protocol}://${host}${req.url}`;
+        const url = new URL(fullUrlString);
+        console.log("Full URL received:", fullUrlString);
+
+
+        let studentId = url.searchParams.get('id'); // يفترض أن ID يأتي كـ /api/generateCertificateTwo2?id=xxxx
+
+        // إذا لم يكن الـ ID في query params، حاول استخلاصه من المسار
+        // (مثل: /certificate/683908a7a89ab3d68c38b671)
         if (!studentId) {
             const pathSegments = url.pathname.split('/');
-            // البحث عن الـ ID بعد 'certificate' في المسار
             const certIndex = pathSegments.indexOf('certificate');
             if (certIndex !== -1 && pathSegments.length > certIndex + 1) {
                 const possibleId = pathSegments[certIndex + 1];
-                // تأكد أن الـ ID ليس فارغًا أو مجرد مسافة
                 if (possibleId && possibleId.trim() !== '') {
                     studentId = possibleId.trim();
                 }
             }
         }
+        console.log("Extracted Student ID:", studentId);
 
 
         if (!studentId) {
-            return new Response('<h1>معرف الطالب مطلوب</h1><p>الرابط الذي استخدمته غير صحيح.</p>', {
+            return new Response('<h1>معرف الطالب مطلوب</h1><p>الرابط الذي استخدمته غير صحيح أو لا يحتوي على معرف الطالب.</p>', {
                 status: 400,
                 headers: { 'Content-Type': 'text/html' },
             });
@@ -58,9 +66,7 @@ export default async function handler(req) {
         let backgroundImageBase64 = ''; // لتخزين الصورة كـ Base64
 
         try {
-            const host = req.headers.get('host');
-            const protocol = req.headers.get('x-forwarded-proto') || 'http';
-
+            // استخدام نفس البروتوكول والمضيف لجلب بيانات الطالب
             const studentDataUrl = `${protocol}://${host}/api/getStudent?id=${studentId}`;
             console.log("Fetching student data from:", studentDataUrl);
 
@@ -116,7 +122,6 @@ export default async function handler(req) {
                     @font-face {
                         font-family: 'andlso';
                         src: url('data:font/ttf;base64,${fontData ? fontData.toString('base64') : ''}') format('truetype');
-                        /* تأكد من أن الخط تم تحميله بشكل صحيح */
                     }
                     body {
                         width: 1200px;
@@ -141,19 +146,17 @@ export default async function handler(req) {
                         width: 100%;
                         text-align: center;
                         font-size: 36px;
-                        /* أضف خصائص CSS لدعم اللغة العربية */
                         direction: rtl;
                         unicode-bidi: embed;
                     }
                     .detail {
                         position: absolute;
                         font-size: 16px;
-                        color: white; /* تأكد من وضوح النص على الخلفية */
+                        color: white;
                         direction: rtl;
                         unicode-bidi: embed;
                     }
-                    .serial-number { top: 15%; left: 10%; width: 30%; text-align: left; } /* ملاحظة: left: 10% قد يحتاج تعديل لـ RTL */
-                    .document-serial-number { top: 55%; width: 100%; text-align: center; }
+                    .serial-number { top: 15%; left: 10%; width: 30%; text-align: left; }
                     .document-serial-number { top: 55%; width: 100%; text-align: center; }
                     .plate-number { top: 60%; width: 100%; text-align: center; }
                     .car-type { top: 65%; width: 100%; text-align: center; }
@@ -176,17 +179,12 @@ export default async function handler(req) {
                 html: htmlContent,
                 puppeteerArgs: {
                     args: ['--no-sandbox', '--disable-setuid-sandbox'], // ضروري لبيئات Serverless
-                    executablePath: process.env.CHROMIUM_PATH || undefined, // قد تحتاج إلى هذا في بعض البيئات
+                    // executablePath: process.env.CHROMIUM_PATH || undefined, // عادة لا تحتاج إلى هذا في Vercel
+                    headless: 'new' // استخدم الوضع الجديد
                 },
                 encoding: 'binary', // لإرجاع Buffer
-                // If you want to use sharp for further processing:
-                // type: 'jpeg', // or 'png'
-                // quality: 80, // for jpeg
             });
             console.log("Image generated successfully with node-html-to-image.");
-
-            // إذا كنت تحتاج sharp لمعالجة إضافية (مثلاً دمج صور معقدة)
-            // const finalImageBuffer = await sharp(imageBuffer).toBuffer();
 
             return new Response(imageBuffer, {
                 status: 200,
@@ -198,7 +196,6 @@ export default async function handler(req) {
 
         } catch (error) {
             console.error("Critical error inside handler (node-html-to-image):", error);
-            // إرجاع رسالة خطأ HTML بدلاً من ImageResponse في حالة الفشل لتسهيل التصحيح
             return new Response(`<h1>Critical Error Occurred</h1><p>${error.message || 'An unexpected server error occurred.'}</p><pre>${error.stack || 'No stack trace'}</pre>`, {
                 status: 500,
                 headers: { 'Content-Type': 'text/html' },
