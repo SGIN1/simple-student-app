@@ -1,12 +1,25 @@
 // api/generateCertificateTwo2.js
-// ... (الكود العلوي بدون تغيير) ...
+// هذا الملف يستخدم الآن ES Module syntax
+
+import { MongoClient, ObjectId } from 'mongodb'; // هذه المكتبة لم تعد ضرورية للنص الثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
+import sharp from 'sharp';
+import path from 'path'; // <--- **هذا السطر المفقود والمهم جدًا!**
+import fs from 'fs/promises';
+
+// **ملاحظة هامة:** MONGODB_URI لم تعد ضرورية لعرض نص ثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
+const uri = process.env.MONGODB_URI;
+const dbName = 'Cluster0';
+const collectionName = 'enrolled_students_tbl';
+
+// **مسار صورة الشهادة:**
+const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.png');
 
 // **مسار الخط الجديد (Arial):**
-const FONT_FILENAME = 'arial.ttf'; 
+const FONT_FILENAME = 'arial.ttf'; // <--- تأكد من وجود ملف arial.ttf في public/fonts/
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
 // **اسم الخط للاستخدام في CSS:**
-const FONT_CSS_FAMILY_NAME = 'Arial'; 
+const FONT_CSS_FAMILY_NAME = 'Arial'; // الاسم الشائع لخط Arial
 
 // تعريف ألوان النصوص
 const RED_COLOR_HEX = '#FF0000';    // أحمر
@@ -14,32 +27,31 @@ const BLUE_COLOR_HEX = '#0000FF';   // أزرق
 const GREEN_COLOR_HEX = '#00FF00';  // أخضر
 
 // تعريف إحداثيات ومواصفات نصوص الترحيب
-// **تم تعديل هذه الإحداثيات (x, y) وحجم الخط (fontSize) بشكل مقترح.**
-// **جرب هذه القيم، ثم قم بالتعديل الدقيق يدوياً بناءً على رؤيتك على الشهادة.**
+// **هذه الإحداثيات (x, y) هي قيم تقديرية. يجب عليك تعديلها بعناية لتناسب تصميم شهادتك (wwee.png).**
 const GREETING_POSITIONS = {
     GREETING1: { 
         text: "أهلاً وسهلاً بكم!", 
-        x: 0, // 0 يعني يبدأ من أقصى اليسار للمربع
-        y: 400, // مثلاً في منتصف الشهادة عمودياً (1220 / 2 = 610, هذه أعلى قليلاً)
+        x: 0, 
+        y: 400, 
         fontSize: 70, 
         color: RED_COLOR_HEX, 
-        gravity: 'center' // النص يتمركز داخل مربع النص، والمربع نفسه يتمركز أفقياً إذا كان X=0 والعرض=عرض الصورة
+        gravity: 'center' 
     },
     GREETING2: { 
         text: "نتمنى لكم يوماً سعيداً.", 
-        x: 50, // مسافة 50 بكسل من الحافة اليسرى
-        y: 550, // أسفل الترحيب الأول
+        x: 50, 
+        y: 550, 
         fontSize: 50, 
         color: BLUE_COLOR_HEX, 
-        gravity: 'west' // النص يبدأ من اليسار داخل المربع
+        gravity: 'west' 
     },
     GREETING3: { 
         text: "شكراً لزيارتكم.", 
-        x: 0, // 0 يعني يبدأ من أقصى اليسار للمربع، لكن gravity ستدفعه لليمين
-        y: 700, // أسفل الترحيب الثاني
+        x: 0, 
+        y: 700, 
         fontSize: 40, 
         color: GREEN_COLOR_HEX, 
-        gravity: 'east' // النص ينتهي عند الحافة اليمنى داخل المربع (التي تبدأ عند X=0 وعرضها = عرض الصورة)
+        gravity: 'east' 
     }
 };
 
@@ -70,22 +82,53 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
 }
 
 
-// ... (بقية الكود بدون تغيير كبير حتى دالة handler) ...
-
+/**
+ * وظيفة Vercel Serverless Function لإنشاء الشهادة.
+ *
+ * @param {Object} req - كائن الطلب (HTTP request).
+ * @param {Object} res - كائن الاستجابة (HTTP request).
+ */
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
     try {
-        // ... (التحقق من وجود صورة الشهادة وقراءة الخط) ...
+        // 1. التحقق من وجود صورة الشهادة
+        try {
+            await fs.access(CERTIFICATE_IMAGE_PATH);
+            console.log('صورة الشهادة موجودة في المسار المحدد:', CERTIFICATE_IMAGE_PATH);
+        } catch (fileError) {
+            console.error('خطأ: صورة الشهادة غير موجودة أو لا يمكن الوصول إليها:', fileError.message);
+            return res.status(500).json({
+                error: 'صورة الشهادة غير موجودة أو لا يمكن الوصول إليها. يرجى التحقق من مسار ملف الصورة في النشر.',
+                details: fileError.message,
+                path: CERTIFICATE_IMAGE_PATH
+            });
+        }
 
+        // 2. قراءة صورة الشهادة الأساسية
         const baseImage = sharp(CERTIFICATE_IMAGE_PATH);
         const metadata = await baseImage.metadata();
         const imageWidth = metadata.width;
         const imageHeight = metadata.height; // احصل على ارتفاع الصورة أيضاً
 
         let processedImage = baseImage;
+
+        // 3. التحقق من وجود ملف الخط وقراءته في الذاكرة
+        let fontBuffer;
+        try {
+            fontBuffer = await fs.readFile(FONT_PATH);
+            console.log('ملف الخط موجود وتم قراءته:', FONT_PATH);
+        } catch (fontError) {
+            console.error('خطأ: ملف الخط غير موجود أو لا يمكن الوصول إليه:', fontError.message);
+            return res.status(500).json({
+                error: 'ملف الخط غير موجود أو لا يمكن الوصول إليه. يرجى التأكد من وضعه في المسار الصحيح وتضمينه في النشر.',
+                details: fontError.message,
+                path: FONT_PATH
+            });
+        }
+
 
         // --- إضافة نصوص الترحيب إلى الصورة باستخدام sharp.text() ---
         for (const key in GREETING_POSITIONS) {
@@ -124,6 +167,7 @@ export default async function handler(req, res) {
         console.error('خطأ عام في وظيفة generateCertificateTwo2:', error);
         console.error('تتبع الخطأ:', error.stack);
 
+        // إذا كان الخطأ يتعلق بـ Fontconfig أو Freetype، قم بتوضيح ذلك
         if (error.message.includes('fontconfig') || error.message.includes('freetype')) {
             return res.status(500).json({
                 error: 'حدث خطأ في معالجة الخطوط. قد تكون بيئة النشر لا تدعم Fontconfig أو FreeType بالشكل المطلوب لخطوط مخصصة.',
