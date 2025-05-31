@@ -12,18 +12,21 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// **مسار صورة الشهادة المصحح:**
+// **مسار صورة الشهادة:**
 // تأكد أن 'wwee.png' موجودة في هذا المسار المحدد في نشر Vercel.
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.png');
 
+// **مسار الخط العربي الجديد:**
+// **تم تحديث اسم الملف إلى 'andlso.ttf' ليتطابق مع سجلات النشر.**
+const ARABIC_FONT_PATH = path.join(process.cwd(), 'public', 'fonts', 'andlso.ttf');
+
 // تعريف ألوان النصوص
 const RED_COLOR_HEX = '#FF0000'; // أحمر
-const TEXT_COLOR_HEX = '#000000'; // أسود (للاستخدام العام إذا احتجت)
 
 // تعريف إحداثيات ومواصفات نص الترحيب
 const GREETING_TEXT_POSITION = {
-    x: 500, // إحداثي X (أفقي) لمنتصف النص
-    y: 300, // إحداثي Y (رأسي) لمنتصف النص
+    x: 500, // إحداثي X (أفقي) لمنتصف النص - **قد تحتاج للتعديل**
+    y: 300, // إحداثي Y (رأسي) لمنتصف النص - **قد تحتاج للتعديل**
     fontSize: 70, // حجم الخط كبير وواضح
     color: RED_COLOR_HEX, // اللون الأحمر
     alignment: 'middle' // محاذاة النص في المنتصف
@@ -37,9 +40,10 @@ const GREETING_TEXT_POSITION = {
  * @param {string} color - لون النص (مثال: '#FF0000').
  * @param {number} svgWidth - العرض الكلي لمساحة SVG.
  * @param {string} alignment - محاذاة النص ('start', 'middle', 'end').
+ * @param {string} fontPath - المسار الكامل لملف الخط.
  * @returns {Buffer} - كائن Buffer يحتوي على بيانات SVG.
  */
-async function createTextSVG(text, fontSize, color, svgWidth, alignment = 'middle') {
+async function createTextSVG(text, fontSize, color, svgWidth, alignment = 'middle', fontPath) {
     const svgHeight = fontSize * 1.5;
     const cleanText = text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 
@@ -59,8 +63,12 @@ async function createTextSVG(text, fontSize, color, svgWidth, alignment = 'middl
     const svg = `
         <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" xmlns="http://www.w3.org/2000/svg">
             <style>
+                @font-face {
+                    font-family: 'Andlso'; /* **تغيير اسم الخط في CSS ليتطابق مع اسم ملف الخط or best practice** */
+                    src: url('data:font/ttf;base64,${(await fs.readFile(fontPath)).toString('base64')}') format('truetype');
+                }
                 text {
-                    font-family: 'Arial', sans-serif; /* خط شائع يدعم العربية */
+                    font-family: 'Andlso', sans-serif; /* **استخدام اسم الخط الجديد**، ثم خط عام */
                     font-size: ${fontSize}px;
                     fill: ${color};
                     text-anchor: ${anchor};
@@ -85,10 +93,6 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // لا حاجة لـ studentId أو الاتصال بقاعدة البيانات في هذا الإصدار المبسّط
-    // const studentId = req.query.id || req.url.split('/').pop();
-    // console.log('ID المستلم (للتتبع فقط - غير مستخدم الآن):', studentId);
-
     let client; // متغير عميل MongoDB (لم يعد مستخدمًا)
 
     try {
@@ -105,22 +109,35 @@ export default async function handler(req, res) {
             });
         }
 
+        // 2. التحقق من وجود ملف الخط العربي
+        try {
+            await fs.access(ARABIC_FONT_PATH);
+            console.log('ملف الخط العربي موجود في المسار المحدد:', ARABIC_FONT_PATH);
+        } catch (fontError) {
+            console.error('خطأ: ملف الخط العربي غير موجود أو لا يمكن الوصول إليه:', fontError.message);
+            return res.status(500).json({
+                error: 'ملف الخط العربي غير موجود أو لا يمكن الوصول إليه. يرجى التأكد من وضعه في المسار الصحيح وتضمينه في النشر.',
+                details: fontError.message,
+                path: ARABIC_FONT_PATH
+            });
+        }
+
         // قراءة صورة الشهادة الأساسية باستخدام sharp
         const baseImage = sharp(CERTIFICATE_IMAGE_PATH);
         const metadata = await baseImage.metadata();
         const imageWidth = metadata.width;
-        // const imageHeight = metadata.height; // غير مستخدمة حالياً
 
         const overlays = [];
 
         // --- إضافة نص الترحيب إلى الصورة ---
-        const greetingText = "مرحباً بكم في شهادتك!"; // النص الذي تريد عرضه
+        const greetingText = "أهلاً وسهلاً بكم!"; // النص العربي الذي تريده
         const greetingSVG = await createTextSVG(
             greetingText,
             GREETING_TEXT_POSITION.fontSize,
             GREETING_TEXT_POSITION.color,
-            imageWidth, // استخدم عرض الصورة لتوسيط النص
-            GREETING_TEXT_POSITION.alignment
+            imageWidth,
+            GREETING_TEXT_POSITION.alignment,
+            ARABIC_FONT_PATH // تمرير مسار الخط لدالة createTextSVG
         );
         overlays.push({ 
             input: greetingSVG, 
