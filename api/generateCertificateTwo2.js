@@ -1,10 +1,11 @@
-// api/generateCertificateTwo2.js
+// ملف: pages/api/generateCertificateTwo2.js
 // هذا الملف يستخدم الآن ES Module syntax
 
 import { MongoClient, ObjectId } from 'mongodb';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises'; // لاستخدام fs.access للتحقق من وجود الملف
+import QRCode from 'qrcode'; // لإضافة QR Code إذا رغبت في ذلك (سيتم تعطيله مؤقتاً لتجنب تعقيد sharp)
 
 // **ملاحظة هامة:** تأكد من إضافة MONGODB_URI في متغيرات البيئة الخاصة بمشروعك على Vercel
 // (Settings -> Environment Variables)
@@ -13,27 +14,33 @@ const dbName = 'Cluster0'; // تأكد من اسم قاعدة البيانات �
 const collectionName = 'enrolled_students_tbl'; // تأكد من اسم المجموعة الخاصة بك
 
 // **مسار صورة الشهادة المصحح:**
-// تم تغيير الامتداد من .jpg إلى .png ليتناسب مع الصورة المرفوعة
 // هذا المسار يفترض أن صورة 'wwee.png' موجودة في مجلد 'public/images/full'
 // داخل جذر مشروعك على Vercel.
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.png');
 
-// تعريف أنماط النصوص وألوانها
-const TEXT_COLOR_HEX = '#000000'; // أسود
-const WHITE_COLOR_HEX = '#FFFFFF'; // أبيض
+// تعريف ألوان النصوص
+const TEXT_COLOR_HEX = '#000000'; // أسود (يمكنك تغييره)
+const WHITE_COLOR_HEX = '#FFFFFF'; // أبيض (يمكنك تغييره)
 
-// تعريف إحداثيات النصوص (قد تحتاج لتعديلها بدقة بعد التجربة على Vercel)
-// هذه القيم تقريبية وقد تحتاج إلى تعديل بناءً على الخط وحجم الصورة
+// تعريف إحداثيات النصوص (قد تحتاج لتعديلها بدقة بعد التجربة)
+// هذه القيم تقديرية وستحتاج إلى تعديل بناءً على تصميم قالب "wwee.png" وحجم الخط
 const TEXT_POSITIONS = {
-    STUDENT_NAME: { x: 300, y: 150, fontSize: 48, color: WHITE_COLOR_HEX, alignment: 'middle' },
-    SERIAL_NUMBER: { x: 90, y: 220, fontSize: 28, color: WHITE_COLOR_HEX, alignment: 'middle' },
-    DOCUMENT_SERIAL_NUMBER: { x: 300, y: 280, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'middle' },
-    PLATE_NUMBER: { x: 300, y: 320, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'middle' },
-    CAR_TYPE: { x: 300, y: 360, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'middle' },
-    COLOR: { x: 300, y: 400, fontSize: 20, color: TEXT_COLOR_HEX, alignment: 'middle' },
-};
+    // استخدم الحقول التي تظهر في الشهادة الثانية من بيانات الطالب
+    // القيم (x, y) هي إحداثيات (أفقي, رأسي) بالبكسل من الزاوية العلوية اليسرى للصورة.
+    // يجب تعديلها لتتناسب مع تصميم wwee.png
+    SERIAL_NUMBER_VEHICLE: { x: 300, y: 150, fontSize: 40, color: TEXT_COLOR_HEX, alignment: 'right' },
+    RESIDENCY_NUMBER_OWNER: { x: 300, y: 200, fontSize: 30, color: TEXT_COLOR_HEX, alignment: 'right' },
+    PLATE_NUMBER: { x: 300, y: 250, fontSize: 25, color: TEXT_COLOR_HEX, alignment: 'right' },
+    CAR_TYPE: { x: 300, y: 300, fontSize: 25, color: TEXT_COLOR_HEX, alignment: 'right' },
+    INSPECTION_DATE: { x: 300, y: 350, fontSize: 25, color: TEXT_COLOR_HEX, alignment: 'right' },
+    INSPECTION_EXPIRY_DATE: { x: 300, y: 400, fontSize: 25, color: TEXT_COLOR_HEX, alignment: 'right' },
+    // أضف المزيد من الحقول إذا كانت الشهادة الثانية تتطلبها
+    // مثال:
+    // CHASSIS_NUMBER: { x: 300, y: 450, fontSize: 25, color: TEXT_COLOR_HEX, alignment: 'right' },
+    // MANUFACTURER: { x: 300, y: 500, fontSize: 25, color: TEXT_COLOR_HEX, alignment: 'right' },
 
-// ---
+    QR_CODE: { x: 100, y: 500, size: 150 } // موقع وحجم QR Code (سنتعامل معه بشكل منفصل)
+};
 
 /**
  * دالة مساعدة لإنشاء نص SVG يمكن لـ sharp تركيبه على الصورة.
@@ -41,44 +48,63 @@ const TEXT_POSITIONS = {
  * @param {string} text - النص المراد عرضه.
  * @param {number} fontSize - حجم الخط بالبكسل.
  * @param {string} color - لون النص (مثال: '#000000').
- * @param {number} imageWidth - عرض الصورة الأساسية للمساعدة في تحديد عرض SVG.
+ * @param {number} svgWidth - العرض الكلي لمساحة SVG (يمكن أن يكون عرض الصورة).
+ * @param {string} alignment - محاذاة النص ('start', 'middle', 'end').
  * @returns {Buffer} - كائن Buffer يحتوي على بيانات SVG.
  */
-async function createTextSVG(text, fontSize, color, imageWidth) {
-    const svgWidth = imageWidth;
+async function createTextSVG(text, fontSize, color, svgWidth, alignment = 'middle') {
     const svgHeight = fontSize * 1.5; // لتوفير مساحة كافية للنص
-    const cleanText = text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; // تنظيف النص لـ XML/SVG
+    const cleanText = text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+
+    let xPosition;
+    let anchor;
+    if (alignment === 'right') {
+        xPosition = svgWidth - 10; // 10 بكسل من اليمين للحافة
+        anchor = 'end';
+    } else if (alignment === 'left') {
+        xPosition = 10; // 10 بكسل من اليسار للحافة
+        anchor = 'start';
+    } else { // middle
+        xPosition = svgWidth / 2;
+        anchor = 'middle';
+    }
 
     const svg = `
         <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" xmlns="http://www.w3.org/2000/svg">
             <style>
-                /* استخدام خط نظامي شائع (مثل Arial أو Helvetica أو أي خط sans-serif) */
                 text {
-                    font-family: 'Arial', sans-serif;
+                    font-family: 'Arial', sans-serif; /* خط شائع يدعم العربية */
                     font-size: ${fontSize}px;
                     fill: ${color};
-                    text-anchor: middle; /* للمحاذاة الأفقية في المنتصف */
-                    dominant-baseline: central; /* للمحاذاة الرأسية في المنتصف */
+                    text-anchor: ${anchor};
+                    dominant-baseline: central;
                 }
             </style>
-            <text x="${svgWidth / 2}" y="${svgHeight / 2}">${cleanText}</text>
+            <text x="${xPosition}" y="${svgHeight / 2}">${cleanText}</text>
         </svg>
     `;
     return Buffer.from(svg);
 }
 
-// ---
-
 /**
- * وظيفة Vercel Serverless Function لإنشاء الشهادة.
- * هذه الوظيفة ستستقبل طلب GET مع معرف الطالب في المسار.
+ * وظيفة Vercel Serverless Function لإنشاء الشهادة الثانية.
+ * تستقبل طلب GET مع معرف الطالب في الـ Query Parameter (`?id=`).
  *
- * @param {Object} request - كائن الطلب الذي يحتوي على معلومات الطلب الوارد (HTTP request).
- * @returns {Object} - كائن الاستجابة (HTTP response).
+ * @param {Object} req - كائن الطلب (HTTP request).
+ * @param {Object} res - كائن الاستجابة (HTTP response).
  */
-export default async function handler(request) {
-    // استخراج معرف الطالب من مسار الطلب
-    const studentId = request.url.split('/').pop();
+export default async function handler(req, res) {
+    if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
+    }
+
+    // استخراج معرف الطالب من Query Parameter (req.query.id)
+    const studentId = req.query.id;
+    console.log('ID المستلم في generateCertificateTwo2:', studentId);
+
+    if (!studentId) {
+        return res.status(400).json({ error: 'معرف الطالب مطلوب في رابط URL (مثال: ?id=xxxx).' });
+    }
 
     let client; // تعريف متغير العميل خارج try لضمان إغلاقه في finally
 
@@ -86,17 +112,21 @@ export default async function handler(request) {
         // 1. التحقق من وجود صورة الشهادة أولاً
         try {
             await fs.access(CERTIFICATE_IMAGE_PATH);
-            console.log('صورة الشهادة موجودة في المسار المحدد:', CERTIFICATE_IMAGE_PATH);
+            console.log('صورة الشهادة الثانية موجودة في المسار المحدد:', CERTIFICATE_IMAGE_PATH);
         } catch (fileError) {
-            console.error('خطأ: صورة الشهادة غير موجودة أو لا يمكن الوصول إليها:', fileError.message);
-            return {
-                statusCode: 500,
-                body: JSON.stringify({ error: 'صورة الشهادة غير موجودة أو لا يمكن الوصول إليها. يرجى التحقق من مسار ملف الصورة في النشر.', details: fileError.message }),
-                headers: { 'Content-Type': 'application/json' },
-            };
+            console.error('خطأ: صورة الشهادة الثانية غير موجودة أو لا يمكن الوصول إليها:', fileError.message);
+            return res.status(500).json({
+                error: 'صورة الشهادة الثانية غير موجودة أو لا يمكن الوصول إليها.',
+                details: fileError.message,
+                path: CERTIFICATE_IMAGE_PATH
+            });
         }
 
         // 2. الاتصال بقاعدة بيانات MongoDB
+        if (!uri) {
+            return res.status(500).json({ error: 'لم يتم العثور على رابط اتصال MongoDB في متغيرات البيئة.' });
+        }
+        
         client = new MongoClient(uri);
         await client.connect();
         const database = client.db(dbName);
@@ -104,125 +134,132 @@ export default async function handler(request) {
 
         let student;
         try {
-            // محاولة البحث باستخدام ObjectId أولاً
+            // البحث باستخدام ObjectId
             student = await studentsCollection.findOne({ _id: new ObjectId(studentId) });
         } catch (objectIdError) {
-            // إذا فشل التحويل إلى ObjectId، قد يكون الـ ID ليس ObjectId صالحًا.
-            // في هذه الحالة، يمكننا محاولة البحث باستخدام الـ serial_number إذا كان هذا هو ما تتوقعه.
-            console.warn('ID المستلم ليس ObjectId صالحًا، نحاول البحث كـ serial_number:', studentId);
-            student = await studentsCollection.findOne({ serial_number: studentId });
+            console.error('خطأ في تحويل المعرف إلى ObjectId:', objectIdError);
+            return res.status(400).json({ error: `معرف الطالب غير صالح: ${studentId}`, details: objectIdError.message });
         }
 
         // التحقق مما إذا كان الطالب موجودًا
         if (!student) {
-            console.error(`لم يتم العثور على طالب بالمعرف أو الرقم التسلسلي: ${studentId}`);
-            return {
-                statusCode: 404,
-                body: JSON.stringify({ error: `لم يتم العثور على طالب بالمعرف: ${studentId}` }),
-                headers: { 'Content-Type': 'application/json' },
-            };
+            console.error(`لم يتم العثور على طالب بالمعرف: ${studentId}`);
+            return res.status(404).json({ error: `لم يتم العثور على طالب بالمعرف: ${studentId}` });
         }
 
-        console.log('بيانات الطالب المسترجعة:', student); // لتتبع بيانات الطالب
-
-        // استخراج بيانات الطالب مع التأكد من وجودها أو إعطاء قيمة افتراضية
-        const serialNumber = student.serial_number || '';
-        const studentNameArabic = student.arabic_name || '';
-        const documentSerialNumber = student.document_serial_number || '';
-        const plateNumber = student.plate_number || '';
-        const carType = student.car_type || '';
-        const color = student.color || '';
+        console.log('بيانات الطالب المسترجعة لـ generateCertificateTwo2:', student);
 
         // قراءة صورة الشهادة الأساسية باستخدام sharp
         const baseImage = sharp(CERTIFICATE_IMAGE_PATH);
         const metadata = await baseImage.metadata();
         const imageWidth = metadata.width;
+        const imageHeight = metadata.height;
 
-        // تجهيز مصفوفة الطبقات (overlays) لإضافة النصوص
         const overlays = [];
 
-        // إنشاء نصوص SVG وإضافتها إلى مصفوفة الطبقات
-        // اسم الطالب
-        const studentNameSVG = await createTextSVG(
-            studentNameArabic,
-            TEXT_POSITIONS.STUDENT_NAME.fontSize,
-            TEXT_POSITIONS.STUDENT_NAME.color,
-            imageWidth
+        // --- إضافة النصوص إلى الصورة ---
+        // (تأكد من أن هذه الحقول موجودة في بيانات الطالب المسترجعة أو قم بتعديلها)
+        const serialNumberVehicleSVG = await createTextSVG(
+            `الرقم التسلسلي للمركبة: ${student.serial_number || 'غير محدد'}`,
+            TEXT_POSITIONS.SERIAL_NUMBER_VEHICLE.fontSize,
+            TEXT_POSITIONS.SERIAL_NUMBER_VEHICLE.color,
+            imageWidth, // استخدم عرض الصورة لتوسيط النص
+            TEXT_POSITIONS.SERIAL_NUMBER_VEHICLE.alignment
         );
-        overlays.push({ input: studentNameSVG, top: TEXT_POSITIONS.STUDENT_NAME.y, left: TEXT_POSITIONS.STUDENT_NAME.x, blend: 'overlay' });
+        overlays.push({ input: serialNumberVehicleSVG, top: TEXT_POSITIONS.SERIAL_NUMBER_VEHICLE.y, left: TEXT_POSITIONS.SERIAL_NUMBER_VEHICLE.x });
 
-        // الرقم التسلسلي
-        const serialNumberSVG = await createTextSVG(
-            serialNumber,
-            TEXT_POSITIONS.SERIAL_NUMBER.fontSize,
-            TEXT_POSITIONS.SERIAL_NUMBER.color,
-            imageWidth
+        const residencyNumberOwnerSVG = await createTextSVG(
+            `رقم إقامة المالك: ${student.residency_number || 'غير محدد'}`,
+            TEXT_POSITIONS.RESIDENCY_NUMBER_OWNER.fontSize,
+            TEXT_POSITIONS.RESIDENCY_NUMBER_OWNER.color,
+            imageWidth,
+            TEXT_POSITIONS.RESIDENCY_NUMBER_OWNER.alignment
         );
-        overlays.push({ input: serialNumberSVG, top: TEXT_POSITIONS.SERIAL_NUMBER.y, left: TEXT_POSITIONS.SERIAL_NUMBER.x, blend: 'overlay' });
-
-        // رقم الوثيقة التسلسلي
-        const documentSerialNumberSVG = await createTextSVG(
-            documentSerialNumber,
-            TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.fontSize,
-            TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.color,
-            imageWidth
-        );
-        overlays.push({ input: documentSerialNumberSVG, top: TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.y, left: TEXT_POSITIONS.DOCUMENT_SERIAL_NUMBER.x, blend: 'overlay' });
-
-        // رقم اللوحة
+        overlays.push({ input: residencyNumberOwnerSVG, top: TEXT_POSITIONS.RESIDENCY_NUMBER_OWNER.y, left: TEXT_POSITIONS.RESIDENCY_NUMBER_OWNER.x });
+        
         const plateNumberSVG = await createTextSVG(
-            `رقم اللوحة: ${plateNumber}`,
+            `رقم اللوحة: ${student.plate_number || 'غير محدد'}`,
             TEXT_POSITIONS.PLATE_NUMBER.fontSize,
             TEXT_POSITIONS.PLATE_NUMBER.color,
-            imageWidth
+            imageWidth,
+            TEXT_POSITIONS.PLATE_NUMBER.alignment
         );
-        overlays.push({ input: plateNumberSVG, top: TEXT_POSITIONS.PLATE_NUMBER.y, left: TEXT_POSITIONS.PLATE_NUMBER.x, blend: 'overlay' });
+        overlays.push({ input: plateNumberSVG, top: TEXT_POSITIONS.PLATE_NUMBER.y, left: TEXT_POSITIONS.PLATE_NUMBER.x });
 
-        // نوع السيارة
         const carTypeSVG = await createTextSVG(
-            `نوع السيارة: ${carType}`,
+            `نوع المركبة: ${student.car_type || 'غير محدد'}`,
             TEXT_POSITIONS.CAR_TYPE.fontSize,
             TEXT_POSITIONS.CAR_TYPE.color,
-            imageWidth
+            imageWidth,
+            TEXT_POSITIONS.CAR_TYPE.alignment
         );
-        overlays.push({ input: carTypeSVG, top: TEXT_POSITIONS.CAR_TYPE.y, left: TEXT_POSITIONS.CAR_TYPE.x, blend: 'overlay' });
+        overlays.push({ input: carTypeSVG, top: TEXT_POSITIONS.CAR_TYPE.y, left: TEXT_POSITIONS.CAR_TYPE.x });
 
-        // اللون
-        const colorSVG = await createTextSVG(
-            `اللون: ${color}`,
-            TEXT_POSITIONS.COLOR.fontSize,
-            TEXT_POSITIONS.COLOR.color,
-            imageWidth
+        const inspectionDateSVG = await createTextSVG(
+            `تاريخ الفحص: ${student.inspection_date || 'غير محدد'}`,
+            TEXT_POSITIONS.INSPECTION_DATE.fontSize,
+            TEXT_POSITIONS.INSPECTION_DATE.color,
+            imageWidth,
+            TEXT_POSITIONS.INSPECTION_DATE.alignment
         );
-        overlays.push({ input: colorSVG, top: TEXT_POSITIONS.COLOR.y, left: TEXT_POSITIONS.COLOR.x, blend: 'overlay' });
+        overlays.push({ input: inspectionDateSVG, top: TEXT_POSITIONS.INSPECTION_DATE.y, left: TEXT_POSITIONS.INSPECTION_DATE.x });
 
-        // تركيب النصوص على الصورة وإنشاء الصورة النهائية
+        const inspectionExpiryDateSVG = await createTextSVG(
+            `تاريخ انتهاء الفحص: ${student.inspection_expiry_date || 'غير محدد'}`,
+            TEXT_POSITIONS.INSPECTION_EXPIRY_DATE.fontSize,
+            TEXT_POSITIONS.INSPECTION_EXPIRY_DATE.color,
+            imageWidth,
+            TEXT_POSITIONS.INSPECTION_EXPIRY_DATE.alignment
+        );
+        overlays.push({ input: inspectionExpiryDateSVG, top: TEXT_POSITIONS.INSPECTION_EXPIRY_DATE.y, left: TEXT_POSITIONS.INSPECTION_EXPIRY_DATE.x });
+
+        // --- إضافة QR Code (اختياري) ---
+        // بما أن Sharp قد يسبب مشاكل في المهلة، قد يكون من الأفضل عدم تضمين QR Code هنا
+        // أو تقليل حجمه وجودته قدر الإمكان لتقليل المعالجة.
+        // إذا كنت ترغب في تضمينه:
+        const VERCEL_BASE_URL = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+        const certificateTwoVerificationUrl = `${VERCEL_BASE_URL}/api/verifyCertificateTwo?id=${student._id}`; // رابط تحقق للشهادة الثانية
+        
+        let qrCodeDataUri;
+        try {
+            // استخدام حجم صغير لـ QR Code لتقليل الحمل على Sharp
+            qrCodeDataUri = await QRCode.toDataURL(certificateTwoVerificationUrl, { errorCorrectionLevel: 'L', width: 100, margin: 1 });
+            const qrBuffer = Buffer.from(qrCodeDataUri.split(',')[1], 'base64');
+            overlays.push({
+                input: qrBuffer,
+                top: TEXT_POSITIONS.QR_CODE.y,
+                left: TEXT_POSITIONS.QR_CODE.x,
+                // يمكنك استخدام 'composite' بدلاً من 'overlay' لدمج الصورة مباشرة
+                blend: 'overlay' // أو 'saturate' أو غيرها حسب التأثير المطلوب
+            });
+        } catch (qrError) {
+            console.error("خطأ في توليد QR Code:", qrError);
+            // لا نضيف QR Code إذا فشل
+        }
+
+        // تركيب النصوص والـ QR Code على الصورة وإنشاء الصورة النهائية
         const processedImageBuffer = await baseImage
-            .png() // تم تغيير هذا السطر ليخرج الصورة بصيغة PNG إذا كانت الصورة الأساسية PNG
-            // يمكنك استخدام .jpeg() إذا كنت تفضل إخراج JPEG وتحويل الصورة
+            .composite(overlays)
+            .png() // إخراج الصورة بصيغة PNG
             .toBuffer();
 
         // إرجاع الصورة كـ base64 في استجابة HTTP
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'image/png', // تحديد نوع المحتوى كصورة PNG
-                'Cache-Control': 's-maxage=1, stale-while-revalidate' // تحسينات للتخزين المؤقت
-            },
-            body: processedImageBuffer.toString('base64'),
-            isBase64Encoded: true, // إعلام العميل بأن الجسم مشفر بـ base64
-        };
+        // يجب أن نرسلها كـ Buffer مباشرة إذا كان هذا النوع من Response مدعومًا في Vercel
+        // وإلا، base64 هي الطريقة القياسية
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate'); // تحسينات للتخزين المؤقت
+        return res.status(200).send(processedImageBuffer);
 
     } catch (error) {
         // معالجة الأخطاء وطباعتها في سجلات Vercel بشكل مفصل
-        console.error('خطأ عام في وظيفة توليد الشهادة:', error);
-        console.error('تتبع الخطأ:', error.stack); // اطبع تتبع الخطأ لتحديد مصدره بدقة
+        console.error('خطأ عام في وظيفة generateCertificateTwo2:', error);
+        console.error('تتبع الخطأ:', error.stack);
 
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: 'حدث خطأ أثناء توليد الشهادة', details: error.message }),
-            headers: { 'Content-Type': 'application/json' },
-        };
+        return res.status(500).json({
+            error: 'حدث خطأ أثناء توليد الشهادة الثانية',
+            details: error.message,
+            stack: error.stack // لإظهار تفاصيل الخطأ في الاستجابة (للتطوير)
+        });
     } finally {
         // إغلاق اتصال MongoDB دائمًا لضمان عدم تراكم الاتصالات
         if (client) await client.close();
