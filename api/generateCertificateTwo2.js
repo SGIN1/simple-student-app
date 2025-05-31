@@ -6,7 +6,6 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 
-// **ملاحظة هامة:** MONGODB_URI لم تعد ضرورية لعرض نص ثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
@@ -14,15 +13,19 @@ const collectionName = 'enrolled_students_tbl';
 // **مسار صورة الشهادة:**
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.png');
 
-// **مسار الخط العربي:**
-// تأكد 100% أن هذا المسار صحيح وأن ملف 'andlso.ttf' موجود هنا في مشروعك المحلي وعلى Vercel.
-const ARABIC_FONT_PATH = path.join(process.cwd(), 'public', 'fonts', 'andlso.ttf');
+// **مسار الخط الجديد (Arial):**
+// تأكد أن ملف 'arial.ttf' موجود في هذا المسار ضمن مجلد public/fonts في مشروعك.
+const FONT_FILENAME = 'arial.ttf';
+const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
+
+// **اسم الخط للاستخدام في CSS:**
+// هذا هو الاسم الذي سيتعرف عليه SVG في بيئة sharp
+const FONT_CSS_FAMILY_NAME = 'Arial'; // الاسم الشائع لخط Arial
 
 // تعريف ألوان النصوص
 const RED_COLOR_HEX = '#FF0000';    // أحمر
 const BLUE_COLOR_HEX = '#0000FF';   // أزرق
 const GREEN_COLOR_HEX = '#00FF00';  // أخضر
-const BLACK_COLOR_HEX = '#000000';  // أسود
 
 // تعريف إحداثيات ومواصفات نصوص الترحيب
 // **هذه الإحداثيات (x, y) هي قيم تقديرية. يجب عليك تعديلها بعناية لتناسب تصميم شهادتك (wwee.png).**
@@ -62,40 +65,37 @@ const GREETING_POSITIONS = {
  * @param {number} svgWidth - العرض الكلي لمساحة SVG (يجب أن يكون عرض الصورة).
  * @param {string} alignment - محاذاة النص ('start', 'middle', 'end').
  * @param {Buffer} fontBuffer - بيانات ملف الخط (buffer) لضمان التضمين الصحيح.
+ * @param {string} fontCssFamilyName - الاسم الذي سيتم استخدامه للخط في CSS (الاسم الدقيق للخط).
  * @returns {Buffer} - كائن Buffer يحتوي على بيانات SVG.
  */
-async function createTextSVG(text, fontSize, color, svgWidth, alignment = 'middle', fontBuffer) {
+async function createTextSVG(text, fontSize, color, svgWidth, alignment = 'middle', fontBuffer, fontCssFamilyName) {
     const svgHeight = fontSize * 1.5;
     const cleanText = text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 
     let xPosition;
     let anchor;
     if (alignment === 'right') {
-        xPosition = svgWidth - 10; // 10 بكسل من اليمين للحافة
+        xPosition = svgWidth - 10; 
         anchor = 'end';
     } else if (alignment === 'left') {
-        xPosition = 10; // 10 بكسل من اليسار للحافة
+        xPosition = 10; 
         anchor = 'start';
     } else { // middle
         xPosition = svgWidth / 2;
         anchor = 'middle';
     }
 
-    // اسم الخط الافتراضي الذي يمكن أن يكون داخل ملف TTF
-    // عادة ما يكون نفس اسم ملف الخط بدون الامتداد، أو يمكن التحقق منه باستخدام أدوات الخطوط.
-    const fontNameInCSS = 'Andlso'; 
-
     const svg = `
         <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" xmlns="http://www.w3.org/2000/svg">
             <style>
                 @font-face {
-                    font-family: '${fontNameInCSS}'; 
+                    font-family: '${fontCssFamilyName}'; 
                     src: url('data:font/ttf;base64,${fontBuffer.toString('base64')}') format('truetype');
                     font-weight: normal;
                     font-style: normal;
                 }
                 text {
-                    font-family: '${fontNameInCSS}', sans-serif; /* استخدام الخط المخصص، ثم خط عام احتياطي */
+                    font-family: '${fontCssFamilyName}', sans-serif; /* استخدام الخط المخصص، ثم خط عام احتياطي */
                     font-size: ${fontSize}px;
                     fill: ${color};
                     text-anchor: ${anchor};
@@ -120,7 +120,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    let client; // متغير عميل MongoDB (لم يعد مستخدمًا)
+    let client; 
 
     try {
         // 1. التحقق من وجود صورة الشهادة أولاً
@@ -136,17 +136,18 @@ export default async function handler(req, res) {
             });
         }
 
-        // 2. التحقق من وجود ملف الخط العربي وقراءته في الذاكرة
+        // 2. التحقق من وجود ملف الخط وقراءته في الذاكرة
         let fontBuffer;
         try {
-            fontBuffer = await fs.readFile(ARABIC_FONT_PATH);
-            console.log('ملف الخط العربي موجود وتم قراءته:', ARABIC_FONT_PATH);
+            fontBuffer = await fs.readFile(FONT_PATH);
+            console.log('ملف الخط موجود وتم قراءته:', FONT_PATH);
+            console.log('الاسم الذي سيُستخدم للخط في CSS هو:', FONT_CSS_FAMILY_NAME);
         } catch (fontError) {
-            console.error('خطأ: ملف الخط العربي غير موجود أو لا يمكن الوصول إليه:', fontError.message);
+            console.error('خطأ: ملف الخط غير موجود أو لا يمكن الوصول إليه:', fontError.message);
             return res.status(500).json({
-                error: 'ملف الخط العربي غير موجود أو لا يمكن الوصول إليه. يرجى التأكد من وضعه في المسار الصحيح وتضمينه في النشر.',
+                error: 'ملف الخط غير موجود أو لا يمكن الوصول إليه. يرجى التأكد من وضعه في المسار الصحيح وتضمينه في النشر.',
                 details: fontError.message,
-                path: ARABIC_FONT_PATH
+                path: FONT_PATH
             });
         }
 
@@ -166,7 +167,8 @@ export default async function handler(req, res) {
                 pos.color,
                 imageWidth,
                 pos.alignment,
-                fontBuffer // تمرير Buffer الخط مباشرة لدالة createTextSVG
+                fontBuffer, 
+                FONT_CSS_FAMILY_NAME 
             );
             overlays.push({ 
                 input: greetingSVG, 
@@ -179,7 +181,7 @@ export default async function handler(req, res) {
         // تركيب النصوص على الصورة وإنشاء الصورة النهائية
         const processedImageBuffer = await baseImage
             .composite(overlays)
-            .png() // إخراج الصورة بصيغة PNG
+            .png() 
             .toBuffer();
 
         // إرجاع الصورة
@@ -197,7 +199,6 @@ export default async function handler(req, res) {
             stack: error.stack
         });
     } finally {
-        // إغلاق اتصال MongoDB دائمًا (حتى لو لم يكن مستخدمًا بشكل مباشر في هذا الإصدار)
         if (client) await client.close();
     }
 }
