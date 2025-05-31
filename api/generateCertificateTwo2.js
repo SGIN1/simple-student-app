@@ -1,9 +1,9 @@
 // api/generateCertificateTwo2.js
 // هذا الملف يستخدم الآن ES Module syntax
 
-import { MongoClient, ObjectId } from 'mongodb'; // هذه المكتبة لم تعد ضرورية للنص الثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
+import { MongoClient, ObjectId } from 'mongodb'; 
 import sharp from 'sharp';
-import path from 'path'; // <--- **هذا السطر المفقود والمهم جدًا!**
+import path from 'path'; // هذا السطر المهم جدًا لإصلاح خطأ "path is not defined"
 import fs from 'fs/promises';
 
 // **ملاحظة هامة:** MONGODB_URI لم تعد ضرورية لعرض نص ثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
@@ -86,7 +86,7 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
  * وظيفة Vercel Serverless Function لإنشاء الشهادة.
  *
  * @param {Object} req - كائن الطلب (HTTP request).
- * @param {Object} res - كائن الاستجابة (HTTP request).
+ * @param {Object} res - كائن الاستجابة (HTTP response).
  */
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
