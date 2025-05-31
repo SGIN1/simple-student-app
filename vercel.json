@@ -18,7 +18,7 @@
     },
     {
       "source": "/edit-student/:id",
-     ب  "destination": "/تعديل_الطالب.html"
+      "destination": "/تعديل_الطالب.html"
     },
     {
       "source": "/certificate/:id",
