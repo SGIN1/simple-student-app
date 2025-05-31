@@ -2,22 +2,34 @@
 <html lang="ar" style="height: 100%;">
 <head>
     <meta name="viewport" content="width=device-width, minimum-scale=0.1">
-    <meta charset="UTF-8"> <title>شهادة الطالب</title>
+    <meta charset="UTF-8">
+    <title>شهادة الطالب</title>
     <style>
         body {
             margin: 0;
             height: 100%;
             display: flex;
-            flex-direction: column; /* للسماح بوضع العناصر فوق بعضها عمودياً */
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             background-color: rgb(14, 14, 14);
-            overflow: hidden; /* لمنع ظهور scrollbars قبل تحميل الصورة */
-            font-family: Arial, sans-serif; /* خط عام للصفحة */
-            color: #fff; /* لون نص عام إذا احتجت */
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            color: #fff;
         }
 
-        /* ستايل لـ spinner */
+        .image-container {
+            position: relative;
+            width: 1000px; /* نفس عرض الشهادة التي تنتجها الدالة */
+            height: 1220px; /* نفس ارتفاع الشهادة التي تنتجها الدالة */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: hsl(0, 0%, 90%);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
         .spinner {
             border: 8px solid rgba(255, 255, 255, 0.3);
             border-top: 8px solid #fff;
@@ -25,6 +37,8 @@
             width: 60px;
             height: 60px;
             animation: spin 1s linear infinite;
+            position: absolute;
+            z-index: 10;
         }
 
         @keyframes spin {
@@ -32,27 +46,20 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* ستايل لحاوية الصورة والسبينر لتحديد الموضع */
-        .image-container {
-            position: relative; /* لجعل السبينر يتوضع بالنسبة لهذه الحاوية */
-            width: 1000px; /* نفس عرض الشهادة */
-            height: 1220px; /* نفس ارتفاع الشهادة */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            /* يمكن إضافة background-color: hsl(0, 0%, 90%); هنا لإعطاء placeholder أبيض */
-        }
-
-        /* ستايل للشهادة نفسها */
         .certificate-image {
-            display: block; /* لجعلها block level element */
+            display: block;
             max-width: 100%;
             height: auto;
-            position: absolute; /* لجعلها فوق السبينر */
+            position: absolute;
             top: 0;
             left: 0;
-            opacity: 0; /* لجعلها شفافة في البداية */
-            transition: opacity 0.5s ease-in-out; /* انتقال سلس عند الظهور */
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .error-message {
+            color: red;
+            margin-top: 20px;
+            font-size: 1.2em;
         }
     </style>
 </head>
@@ -62,26 +69,59 @@
         <div id="loading-spinner" class="spinner"></div>
         
         <img id="certificate-img" class="certificate-image" 
-             src="https://simple-student-d4lbm9lgq-sgins-projects-2c87a670.vercel.app/certificate/68393763032069b932690469" 
              width="1000" height="1220" alt="شهادة الطالب">
-             </div>
+        
+        <p id="error-display" class="error-message" style="display: none;"></p>
+    </div>
 
     <script>
         const spinner = document.getElementById('loading-spinner');
         const certificateImg = document.getElementById('certificate-img');
         const imageContainer = document.querySelector('.image-container');
+        const errorDisplay = document.getElementById('error-display');
 
-        // عند اكتمال تحميل الصورة
-        certificateImg.onload = function() {
-            spinner.style.display = 'none'; // إخفاء الـ spinner
-            certificateImg.style.opacity = 1; // جعل الصورة مرئية بالكامل
-            imageContainer.style.backgroundColor = 'transparent'; // إزالة لون الخلفية إذا كان موجودًا
-        };
+        // جلب معرف الطالب من URL (مثلاً: /certificate.html?id=YOUR_STUDENT_ID)
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentId = urlParams.get('id');
 
-        // إذا كانت الصورة مخبأة في ذاكرة التخزين المؤقت، فقد يتم تحميلها فورًا
-        // في هذه الحالة، يتم تشغيل onload قبل أن يتم ربط الحدث، لذا نقوم بالتحقق
-        if (certificateImg.complete) {
-            certificateImg.onload(); // تشغيل الدالة يدويًا
+        if (!studentId) {
+            spinner.style.display = 'none';
+            certificateImg.style.display = 'none';
+            errorDisplay.textContent = 'خطأ: لم يتم تحديد معرف الطالب في الرابط.';
+            errorDisplay.style.display = 'block';
+            console.error('Student ID not found in URL query parameters.');
+        } else {
+            // بناء رابط API للشهادة باستخدام معرف الطالب
+            // بناءً على Vercel.json الخاص بك، يمكنك استخدام:
+            // /certificate/:id
+            // أو
+            // /api/generateCertificateTwo2/:id
+            // بما أن لديك rewrite لـ /certificate/:id، استخدم هذا المسار الأبسط
+            const certificateApiUrl = `/certificate/${studentId}`; // <-- هذا هو الرابط الذي تحتاجه!
+
+            certificateImg.src = certificateApiUrl; // تعيين رابط الصورة ديناميكيًا
+
+            // عند اكتمال تحميل الصورة
+            certificateImg.onload = function() {
+                spinner.style.display = 'none';
+                certificateImg.style.opacity = 1;
+                imageContainer.style.backgroundColor = 'transparent';
+                errorDisplay.style.display = 'none'; // إخفاء رسالة الخطأ إذا ظهرت
+            };
+
+            // التعامل مع أخطاء تحميل الصورة (مثل عدم وجود طالب أو خطأ في API)
+            certificateImg.onerror = function() {
+                spinner.style.display = 'none';
+                certificateImg.style.display = 'none';
+                errorDisplay.textContent = 'فشل تحميل الشهادة. تأكد من صحة معرف الطالب أو حاول لاحقًا.';
+                errorDisplay.style.display = 'block';
+                console.error('Error loading certificate image from:', certificateApiUrl);
+            };
+
+            // إذا كانت الصورة مخبأة في ذاكرة التخزين المؤقت
+            if (certificateImg.complete) {
+                certificateImg.onload();
+            }
         }
     </script>
 </body>
