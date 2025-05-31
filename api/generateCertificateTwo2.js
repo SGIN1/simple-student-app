@@ -13,9 +13,10 @@ const dbName = 'Cluster0'; // تأكد من اسم قاعدة البيانات �
 const collectionName = 'enrolled_students_tbl'; // تأكد من اسم المجموعة الخاصة بك
 
 // **مسار صورة الشهادة المصحح:**
-// هذا المسار يفترض أن صورة 'wwee.jpg' موجودة في مجلد 'public/images/full'
+// تم تغيير الامتداد من .jpg إلى .png ليتناسب مع الصورة المرفوعة
+// هذا المسار يفترض أن صورة 'wwee.png' موجودة في مجلد 'public/images/full'
 // داخل جذر مشروعك على Vercel.
-const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
+const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.png');
 
 // تعريف أنماط النصوص وألوانها
 const TEXT_COLOR_HEX = '#000000'; // أسود
@@ -90,7 +91,7 @@ export default async function handler(request) {
             console.error('خطأ: صورة الشهادة غير موجودة أو لا يمكن الوصول إليها:', fileError.message);
             return {
                 statusCode: 500,
-                body: JSON.stringify({ error: 'صورة الشهادة غير موجودة أو لا يمكن الوصول إليها.', details: fileError.message }),
+                body: JSON.stringify({ error: 'صورة الشهادة غير موجودة أو لا يمكن الوصول إليها. يرجى التحقق من مسار ملف الصورة في النشر.', details: fileError.message }),
                 headers: { 'Content-Type': 'application/json' },
             };
         }
@@ -197,15 +198,15 @@ export default async function handler(request) {
 
         // تركيب النصوص على الصورة وإنشاء الصورة النهائية
         const processedImageBuffer = await baseImage
-            .composite(overlays)
-            .jpeg() // يمكنك استخدام .png() أو .webp() حسب الحاجة
+            .png() // تم تغيير هذا السطر ليخرج الصورة بصيغة PNG إذا كانت الصورة الأساسية PNG
+            // يمكنك استخدام .jpeg() إذا كنت تفضل إخراج JPEG وتحويل الصورة
             .toBuffer();
 
         // إرجاع الصورة كـ base64 في استجابة HTTP
         return {
             statusCode: 200,
             headers: {
-                'Content-Type': 'image/jpeg', // تحديد نوع المحتوى كصورة JPEG
+                'Content-Type': 'image/png', // تحديد نوع المحتوى كصورة PNG
                 'Cache-Control': 's-maxage=1, stale-while-revalidate' // تحسينات للتخزين المؤقت
             },
             body: processedImageBuffer.toString('base64'),
