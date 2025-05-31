@@ -1,13 +1,13 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>إعادة توجيه</title>
-    <script>
-        // {{!-- تم تحديث الرابط هنا ليستخدم المسار النظيف لصفحة بيانات الطلاب --}}
-        window.location.href = "/students";
-    </script>
-</head>
-<body>
-    <p>يتم توجيهك إلى صفحة بيانات الطلاب...</p>
-</body>
-</html>
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/بيانات_الطلاب.html" // <-- التعديل هنا
+    },
+    {
+      "source": "/students",
+      "destination": "/بيانات_الطلاب.html"
+    },
+    // ... بقية قواعدك
+  ]
+}
