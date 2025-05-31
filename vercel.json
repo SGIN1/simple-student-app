@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/index.html"
+      "destination": "/بيانات_الطلاب.html"  // <-- التعديل هنا
     },
     {
       "source": "/students",
