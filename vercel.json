@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/بيانات_الطلاب.html"  // <-- التعديل هنا
+      "destination": "/بيانات_الطلاب.html"
     },
     {
       "source": "/students",
@@ -18,7 +18,7 @@
     },
     {
       "source": "/edit-student/:id",
-      "destination": "/تعديل_الطالب.html"
+     ب  "destination": "/تعديل_الطالب.html"
     },
     {
       "source": "/certificate/:id",
