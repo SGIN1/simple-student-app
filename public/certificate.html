@@ -13,23 +13,27 @@
             justify-content: center;
             align-items: center;
             background-color: rgb(14, 14, 14);
-            overflow: hidden;
+            overflow: auto; /* مهم: السماح بالتمرير إذا كانت الصورة أكبر من الشاشة */
             font-family: Arial, sans-serif;
             color: #fff;
         }
 
+        /* حاوية الصورة والسبينر: الآن ستتكيف مع حجم الصورة */
         .image-container {
             position: relative;
-            width: 1000px; /* نفس عرض الشهادة التي تنتجها الدالة */
-            height: 1220px; /* نفس ارتفاع الشهادة التي تنتجها الدالة */
-            display: flex;
+            display: flex; /* لتمكين توسيط السبينر */
             justify-content: center;
             align-items: center;
-            background-color: hsl(0, 0%, 90%);
+            background-color: hsl(0, 0%, 90%); /* Placeholder رمادي أثناء التحميل */
             border-radius: 8px;
-            overflow: hidden;
+            /* **المهم:** إزالة الأبعاد الثابتة هنا. ستحددها الصورة نفسها. */
+            min-width: 300px; /* حد أدنى للعرض لمنع الانهيار الكامل */
+            min-height: 200px; /* حد أدنى للارتفاع */
+            margin: 20px; /* لإضافة بعض الهامش حول الشهادة */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* ظل بسيط لتحسين المظهر */
         }
 
+        /* ستايل لـ spinner */
         .spinner {
             border: 8px solid rgba(255, 255, 255, 0.3);
             border-top: 8px solid #fff;
@@ -37,7 +41,7 @@
             width: 60px;
             height: 60px;
             animation: spin 1s linear infinite;
-            position: absolute;
+            position: absolute; /* ليظهر فوق الخلفية الرمادية */
             z-index: 10;
         }
 
@@ -46,15 +50,15 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* ستايل للشهادة نفسها: دعها تعرض بأبعادها الطبيعية */
         .certificate-image {
             display: block;
-            max-width: 100%;
-            height: auto;
-            position: absolute;
-            top: 0;
-            left: 0;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
+            max-width: 100%; /* تأكد أنها لا تتجاوز عرض الحاوية الأبوية (body أو viewport) */
+            height: auto;     /* تحافظ على نسبة العرض إلى الارتفاع */
+            opacity: 0;       /* شفافة في البداية */
+            transition: opacity 0.5s ease-in-out; /* انتقال سلس للشفافية */
+            /* إزالة position: absolute لأننا لا نريدها أن تتداخل مع Spinner أو تفرض تخطيطًا معينًا هنا */
+            /* إزالة width و height الثابتين من الـ CSS لـ IMG */
         }
         .error-message {
             color: red;
@@ -69,7 +73,7 @@
         <div id="loading-spinner" class="spinner"></div>
         
         <img id="certificate-img" class="certificate-image" 
-             width="1000" height="1220" alt="شهادة الطالب">
+             alt="شهادة الطالب">
         
         <p id="error-display" class="error-message" style="display: none;"></p>
     </div>
@@ -80,7 +84,6 @@
         const imageContainer = document.querySelector('.image-container');
         const errorDisplay = document.getElementById('error-display');
 
-        // جلب معرف الطالب من URL (مثلاً: /certificate.html?id=YOUR_STUDENT_ID)
         const urlParams = new URLSearchParams(window.location.search);
         const studentId = urlParams.get('id');
 
@@ -91,25 +94,22 @@
             errorDisplay.style.display = 'block';
             console.error('Student ID not found in URL query parameters.');
         } else {
-            // بناء رابط API للشهادة باستخدام معرف الطالب
-            // بناءً على Vercel.json الخاص بك، يمكنك استخدام:
-            // /certificate/:id
-            // أو
-            // /api/generateCertificateTwo2/:id
-            // بما أن لديك rewrite لـ /certificate/:id، استخدم هذا المسار الأبسط
-            const certificateApiUrl = `/certificate/${studentId}`; // <-- هذا هو الرابط الذي تحتاجه!
-
+            // رابط API الذي يعيد الصورة مباشرة
+            const certificateApiUrl = `/certificate/${studentId}`; 
             certificateImg.src = certificateApiUrl; // تعيين رابط الصورة ديناميكيًا
 
-            // عند اكتمال تحميل الصورة
             certificateImg.onload = function() {
                 spinner.style.display = 'none';
                 certificateImg.style.opacity = 1;
                 imageContainer.style.backgroundColor = 'transparent';
-                errorDisplay.style.display = 'none'; // إخفاء رسالة الخطأ إذا ظهرت
+                errorDisplay.style.display = 'none'; // إخفاء رسالة الخطأ
+                
+                // **مهم:** ضبط أبعاد الحاوية بعد تحميل الصورة
+                // بحيث تتطابق أبعادها مع أبعاد الصورة الفعلية
+                imageContainer.style.width = certificateImg.naturalWidth + 'px';
+                imageContainer.style.height = certificateImg.naturalHeight + 'px';
             };
 
-            // التعامل مع أخطاء تحميل الصورة (مثل عدم وجود طالب أو خطأ في API)
             certificateImg.onerror = function() {
                 spinner.style.display = 'none';
                 certificateImg.style.display = 'none';
@@ -118,7 +118,6 @@
                 console.error('Error loading certificate image from:', certificateApiUrl);
             };
 
-            // إذا كانت الصورة مخبأة في ذاكرة التخزين المؤقت
             if (certificateImg.complete) {
                 certificateImg.onload();
             }
