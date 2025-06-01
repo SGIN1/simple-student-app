@@ -1,4 +1,4 @@
-// public/js/main.js (أو المسار الذي تختاره)
+// public/js/main.js
 
 const searchInput = document.getElementById('search_residency');
 const studentsTable = document.getElementById('students_table');
@@ -85,6 +85,8 @@ searchInput.addEventListener('keyup', function() {
 
 // دالة لفتح الشهادة في نافذة جديدة (مشتركة لكلا الزرين الآن)
 function showCertificateInNewWindow(url) {
+    // يمكن إضافة متغير عشوائي هنا لمنع الكاش تماماً، ولكن مع headers الكاش في الخادم، قد لا تحتاجها.
+    // مثال: const urlWithCacheBuster = `${url}&_t=${new Date().getTime()}`;
     window.open(url, '_blank');
 }
 
