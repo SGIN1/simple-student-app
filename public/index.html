@@ -78,10 +78,13 @@
         const errorMessage = document.getElementById('errorMessage');
 
         document.addEventListener('DOMContentLoaded', () => {
+            // هذا السطر هو الذي يحاول استخراج الـ ID من المسار الحالي لـ index.html
+            // يتوقع أن يكون الرابط الذي فتح هذه الصفحة هكذا: /certificate/ID_الطالب
             const pathSegments = window.location.pathname.split('/');
-            const studentId = pathSegments[pathSegments.length - 1];
+            const studentId = pathSegments[pathSegments.length - 1]; 
 
             if (studentId) {
+                // إذا تم العثور على ID، نطلب الشهادة من مسار الـ API الفعلي
                 const certificateApiUrl = `/api/generateCertificateTwo2?id=${studentId}`;
                 
                 certificateImage.src = certificateApiUrl;
@@ -99,6 +102,7 @@
                     certificateImage.style.display = 'none';
                 };
             } else {
+                // إذا لم يتم العثور على ID في الرابط، تظهر رسالة الخطأ هذه
                 loadingSpinner.style.display = 'none';
                 errorMessage.textContent = 'خطأ: لم يتم تحديد معرف الطالب في الرابط.';
                 errorMessage.style.display = 'block';

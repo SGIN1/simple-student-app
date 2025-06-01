@@ -115,8 +115,10 @@
                     const certificateButtonTwo = document.createElement('button');
                     certificateButtonTwo.textContent = 'عرض الثانية';
                     certificateButtonTwo.addEventListener('click', () => {
-                        const certificateUrlTwo = `/certificate/${student.id}`;
-                        window.open(certificateUrlTwo, '_blank');
+                        // هذا المسار `/certificate/${student.id}` هو الذي سيتم توجيهه بواسطة vercel.json
+                        // إلى public/index.html مع تمرير ID الطالب
+                        const certificateUrlTwo = `/certificate/${student.id}`; 
+                        window.open(certificateUrlTwo, '_blank'); 
                     });
                     printCellTwo.appendChild(certificateButtonTwo);
                 });
