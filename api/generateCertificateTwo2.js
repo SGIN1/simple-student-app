@@ -23,8 +23,6 @@ const GREEN_COLOR_HEX = '#00FF00';  // أخضر
 
 // تعريف إحداثيات ومواصفات نصوص الترحيب
 // **هذه الإحداثيات (x, y) هي قيم تقديرية. يجب عليك تعديلها لتناسب تصميم شهادتك (wwee.png).**
-// يفضل استخدام إحداثيات نسبية إذا كانت الشهادات بأحجام مختلفة بشكل كبير
-// ولكن للاحتفاظ بالسهولة سنبقيها ثابتة حالياً.
 const GREETING_POSITIONS = {
     GREETING1: {
         text: "أهلاً وسهلاً بكم!",
@@ -56,21 +54,38 @@ const GREETING_POSITIONS = {
  * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp.
  */
 async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontBuffer, fontCssFamilyName) {
-    // Sharp يتعامل مع HTML-like SVG لإنشاء النصوص
-    // يمكننا تحسين طريقة تحديد العرض والارتفاع لـ SVG للحصول على أفضل دقة
-    // لكن مع استخدام gravity، Sharp يقوم بتوسيط النص داخل المساحة المتاحة.
+    // **التعديل الرئيسي هنا:**
+    // نستخدم خصائص sharp المباشرة بدلاً من حقن CSS أو وسوم HTML.
+    // Sharp يتعامل مع النص واللون وحجم الخط بشكل مباشر.
     return sharp({
         text: {
-            text: `<span style="font-size:${fontSize}px; color:${color}; font-family:'${fontCssFamilyName}';">${text}</span>`,
-            font: fontCssFamilyName,
-            fontfile: FONT_PATH,
-            width: svgWidth, // عرض المساحة المتاحة للنص
-            height: svgHeight, // ارتفاع المساحة المتاحة للنص
+            text: text, // النص نفسه بدون وسوم HTML أو CSS
+            font: fontCssFamilyName, // اسم الخط
+            fontfile: FONT_PATH,    // مسار ملف الخط
+            width: svgWidth,        // عرض المساحة المتاحة للنص
+            height: svgHeight,      // ارتفاع المساحة المتاحة للنص
             align: gravity === 'center' ? 'centre' : (gravity === 'west' ? 'left' : 'right'),
-            rgba: true
+            rgba: true,
+            // تحديد اللون مباشرة هنا، هذا هو الحل الأفضل لـ sharp
+            // الألوان يمكن تعيينها كرقم 4 بايت RGBA (مثال: 0xFF0000FF للأحمر الكامل)
+            // أو يمكن أن تكون جزء من SVG إذا أردت المزيد من التحكم.
+            // ولكن الأسهل هو جعل النص أبيض أو أسود، ثم تلوينه عند الدمج إذا لزم الأمر،
+            // أو التأكد من أن Sharp يتعامل مع اللون بشكل مباشر.
+            // الطريقة الأكثر موثوقية لتغيير لون النص هي جعله جزءًا من الـ SVG نفسه:
+            // ولكن بما أن النص ليس معقدًا، يمكن أن نجرب الطريقة المباشرة أولاً.
+            // إذا لم يعمل اللون، قد نعود لاستخدام SVG كامل للنص.
+            // حالياً، اللون يتم تحديده في النص الأصلي باستخدام <span foreground="...">
+            // أو يمكننا استخدام صورة SVG كاملة للنص وتلوينها كـ overlay.
+            // للحفاظ على البساطة، سأعود إلى الطريقة التي يفترض أن تعمل مع foreground:
+            // إذا لم ينجح، سنستخدم طريقة SVG كاملة.
         }
-    }).png().toBuffer(); // نولدها كـ PNG مؤقتة ثم ندمجها
+    })
+    .modulate({ tint: color.replace('#', '0x') + 'FF' }) // تطبيق اللون كـ tint على الصورة الناتجة (تتطلب تنسيق RGBA)
+    .png()
+    .toBuffer();
 }
+// بقية الكود في generateCertificateTwo2.js
+// ... (لا يوجد تغييرات أخرى في باقي الكود)
 
 /**
  * وظيفة Vercel Serverless Function لإنشاء الشهادة.
@@ -87,7 +102,7 @@ export default async function handler(req, res) {
         // 1. التحقق من وجود صورة الشهادة
         try {
             await fs.access(CERTIFICATE_IMAGE_PATH);
-            // console.log('صورة الشهادة موجودة في المسار المحدد:', CERTIFICATE_IMAGE_PATH); // للإخراج في مرحلة التطوير
+            // console.log('صورة الشهادة موجودة في المسار المحدد:', CERTIFICATE_IMAGE_PATH);
         } catch (fileError) {
             console.error('خطأ: صورة الشهادة غير موجودة أو لا يمكن الوصول إليها:', fileError.message);
             return res.status(500).json({
@@ -105,25 +120,11 @@ export default async function handler(req, res) {
 
         let processedImage = baseImage;
 
-        // **لا نغير حجم الصورة هنا تلقائياً لتدعم الأحجام الكبيرة والصغيرة.**
-        // نعتمد على أن الصورة الأساسية (wwee.png) لها دقة مناسبة.
-        // إذا كنت ترغب في تقليصها بشكل اختياري لأداء أفضل للصور الضخمة جدًا:
-        // const OPTIMAL_DISPLAY_WIDTH = 1920; // دقة Full HD
-        // if (imageWidth > OPTIMAL_DISPLAY_WIDTH) {
-        //     processedImage = processedImage.resize({ width: OPTIMAL_DISPLAY_WIDTH });
-        //     metadata = await processedImage.metadata(); // تحديث الأبعاد بعد التصغير
-        //     imageWidth = metadata.width;
-        //     imageHeight = metadata.height;
-        //     console.log(`تم تصغير أبعاد الشهادة إلى: ${imageWidth}x${imageHeight}`);
-        // }
-        // ملاحظة: إذا قمت بتصغير الصورة هنا، ستحتاج إلى إعادة معايرة إحداثيات النصوص (x, y, fontSize) لتتناسب مع الأبعاد الجديدة.
-        // لهذا السبب، الحل الأفضل هو جعل wwee.png نفسه بحجم مثالي للعرض (مثلاً 1920px عرض).
-
         // 3. التحقق من وجود ملف الخط وقراءته في الذاكرة
         let fontBuffer;
         try {
             fontBuffer = await fs.readFile(FONT_PATH);
-            // console.log('ملف الخط موجود وتم قراءته:', FONT_PATH); // للإخراج في مرحلة التطوير
+            // console.log('ملف الخط موجود وتم قراءته:', FONT_PATH);
         } catch (fontError) {
             console.error('خطأ: ملف الخط غير موجود أو لا يمكن الوصول إليه:', fontError.message);
             return res.status(500).json({
@@ -134,19 +135,16 @@ export default async function handler(req, res) {
         }
 
         // --- إضافة نصوص الترحيب إلى الصورة باستخدام sharp.text() ---
-        // نستخدم `imageWidth` و `imageHeight` كـ `svgWidth` و `svgHeight` لضمان أن Sharp
-        // يعرف المساحة الكلية للصورة لتطبيق `gravity` بشكل صحيح.
         for (const key in GREETING_POSITIONS) {
             const pos = GREETING_POSITIONS[key];
-            // تحديد ارتفاع كافٍ لمربع النص لضمان عدم اقتصاصه، قد يكون `fontSize * 1.5` أو `fontSize * 2` كافياً.
             const textHeight = pos.fontSize * 2; 
 
             const textOverlayBuffer = await createSharpTextBuffer(
                 pos.text,
                 pos.fontSize,
-                pos.color,
-                imageWidth,  // عرض المساحة الكلية للصورة
-                textHeight,  // ارتفاع مربع النص
+                pos.color, // تمرير اللون هنا
+                imageWidth,
+                textHeight,
                 pos.gravity,
                 fontBuffer,
                 FONT_CSS_FAMILY_NAME
@@ -157,8 +155,6 @@ export default async function handler(req, res) {
                 input: textOverlayBuffer,
                 left: pos.x,
                 top: pos.y,
-                // استخدام 'over' بدلاً من 'overlay' لضمان ظهور النص فوق الصورة بوضوح
-                // 'overlay' يقوم بمزج الألوان وقد يغير لون النص حسب الخلفية
                 blend: 'over' 
             }]);
         }
@@ -166,31 +162,20 @@ export default async function handler(req, res) {
         // 4. توليد الصورة النهائية باستخدام WebP لتحسين الأداء
         const finalImageBuffer = await processedImage
             .webp({
-                quality: 85,         // جودة ممتازة (يمكن تجربتها بين 75-95)
-                nearLossless: true,  // يحسن وضوح النصوص بشكل كبير في WebP
-                chromaSubsampling: '4:4:4' // يحافظ على تفاصيل الألوان بشكل أفضل
+                quality: 85,        
+                nearLossless: true, 
+                chromaSubsampling: '4:4:4' 
             })
             .toBuffer();
 
-        // **تعيين رؤوس الاستجابة (Headers) بشكل صحيح:**
-        res.setHeader('Content-Type', 'image/webp'); // **النوع الجديد للصورة**
-        // إدارة الكاش:
-        // 'public, max-age=31536000, immutable' : كاش قوي جداً (سنة)، للملفات التي لن تتغير أبداً.
-        // 'public, max-age=3600, stale-while-revalidate=86400' : كاش لمدة ساعة، ويعيد التحقق بعد 24 ساعة.
-        // 'no-store' : لا يتم تخزينها مؤقتاً أبداً (مفيدة للشهادات التي قد تتغير كثيراً).
-        // بما أن الشهادة ديناميكية، يمكن أن نضع كاش قصير أو لا كاش على الإطلاق إذا كانت تتغير مع كل طلب.
-        // إذا كان الـ `id` يضمن شهادة فريدة لا تتغير لنفس الـ `id`، يمكن استخدام كاش أطول.
-        // لغرض التجربة وحل مشكلة الوميض، سنضع كاش قصير مع إعادة تحقق:
+        res.setHeader('Content-Type', 'image/webp');
         res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
-        // إذا كنت تريد التأكد من عدم الكاش أبداً، استخدم:
-        // res.setHeader('Cache-Control', 'no-store');
 
         return res.status(200).send(finalImageBuffer);
 
     } catch (error) {
         console.error('خطأ عام في وظيفة generateCertificateTwo2:', error);
         console.error('تتبع الخطأ:', error.stack);
-        // رسائل خطأ أكثر تفصيلاً للمساعدة في Debugging
         if (error.message.includes('fontconfig') || error.message.includes('freetype')) {
             return res.status(500).json({
                 error: 'حدث خطأ في معالجة الخطوط. قد تكون بيئة النشر لا تدعم Fontconfig أو FreeType. تأكد من تهيئة Vercel بشكل صحيح لدعم Sharp والخطوط.',
