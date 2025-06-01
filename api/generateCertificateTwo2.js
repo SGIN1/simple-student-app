@@ -1,9 +1,9 @@
 // api/generateCertificateTwo2.js
 // هذا الملف يستخدم الآن ES Module syntax
 
-import { MongoClient, ObjectId } from 'mongodb'; 
+import { MongoClient, ObjectId } from 'mongodb'; // هذه المكتبة لم تعد ضرورية للنص الثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
 import sharp from 'sharp';
-import path from 'path'; // هذا السطر المهم جدًا لإصلاح خطأ "path is not defined"
+import path from 'path';
 import fs from 'fs/promises';
 
 // **ملاحظة هامة:** MONGODB_URI لم تعد ضرورية لعرض نص ثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
@@ -29,29 +29,29 @@ const GREEN_COLOR_HEX = '#00FF00';  // أخضر
 // تعريف إحداثيات ومواصفات نصوص الترحيب
 // **هذه الإحداثيات (x, y) هي قيم تقديرية. يجب عليك تعديلها بعناية لتناسب تصميم شهادتك (wwee.png).**
 const GREETING_POSITIONS = {
-    GREETING1: { 
-        text: "أهلاً وسهلاً بكم!", 
-        x: 0, 
-        y: 400, 
-        fontSize: 70, 
-        color: RED_COLOR_HEX, 
-        gravity: 'center' 
+    GREETING1: {
+        text: "أهلاً وسهلاً بكم!",
+        x: 0,
+        y: 400,
+        fontSize: 70,
+        color: RED_COLOR_HEX,
+        gravity: 'center'
     },
-    GREETING2: { 
-        text: "نتمنى لكم يوماً سعيداً.", 
-        x: 50, 
-        y: 550, 
-        fontSize: 50, 
-        color: BLUE_COLOR_HEX, 
-        gravity: 'west' 
+    GREETING2: {
+        text: "نتمنى لكم يوماً سعيداً.",
+        x: 50,
+        y: 550,
+        fontSize: 50,
+        color: BLUE_COLOR_HEX,
+        gravity: 'west'
     },
-    GREETING3: { 
-        text: "شكراً لزيارتكم.", 
-        x: 0, 
-        y: 700, 
-        fontSize: 40, 
-        color: GREEN_COLOR_HEX, 
-        gravity: 'east' 
+    GREETING3: {
+        text: "شكراً لزيارتكم.",
+        x: 0,
+        y: 700,
+        fontSize: 40,
+        color: GREEN_COLOR_HEX,
+        gravity: 'east'
     }
 };
 
@@ -86,7 +86,7 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
  * وظيفة Vercel Serverless Function لإنشاء الشهادة.
  *
  * @param {Object} req - كائن الطلب (HTTP request).
- * @param {Object} res - كائن الاستجابة (HTTP response).
+ * @param {Object} res - كائن الاستجابة (HTTP request).
  */
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -133,9 +133,10 @@ export default async function handler(req, res) {
         // --- إضافة نصوص الترحيب إلى الصورة باستخدام sharp.text() ---
         for (const key in GREETING_POSITIONS) {
             const pos = GREETING_POSITIONS[key];
-            
+
             // تحديد ارتفاع مناسب لمربع النص لضمان ظهور النص كاملاً
-            const textHeight = pos.fontSize * 2; // ضعف حجم الخط كارتفاع تقريبي للمربع
+            // تم زيادة هذا الرقم قليلاً لضمان ظهور النص كاملاً، يمكنك تعديله حسب الحاجة
+            const textHeight = pos.fontSize * 2.5;
 
             const textOverlayBuffer = await createSharpTextBuffer(
                 pos.text,
@@ -144,20 +145,26 @@ export default async function handler(req, res) {
                 imageWidth, // عرض النص بالكامل هو عرض الصورة
                 textHeight, // الارتفاع الذي حسبناه
                 pos.gravity,
-                fontBuffer, 
-                FONT_CSS_FAMILY_NAME 
+                fontBuffer,
+                FONT_CSS_FAMILY_NAME
             );
 
             // تركيب النص كـ overlay
-            processedImage = await processedImage.composite([{ 
-                input: textOverlayBuffer, 
-                left: pos.x, 
-                top: pos.y, 
-                blend: 'overlay' 
+            processedImage = await processedImage.composite([{
+                input: textOverlayBuffer,
+                left: pos.x,
+                top: pos.y,
+                blend: 'overlay'
             }]);
         }
 
-        const finalImageBuffer = await processedImage.png().toBuffer();
+        // 4. توليد الصورة النهائية مع خيارات منع التدرج وتحسين الجودة
+        const finalImageBuffer = await processedImage
+            .png({
+                quality: 90,        // جودة الصورة (من 1 إلى 100). يمكن تعديلها لتحقيق التوازن بين الجودة والحجم.
+                progressive: false  // **هذا هو الحل الرئيسي لمنع التحميل التدريجي.**
+            })
+            .toBuffer();
 
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate');
