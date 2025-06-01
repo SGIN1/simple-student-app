@@ -22,29 +22,29 @@ const RED_COLOR_HEX = '#FF0000';    // أحمر
 const BLUE_COLOR_HEX = '#0000FF';   // أزرق
 const GREEN_COLOR_HEX = '#00FF00';  // أخضر
 
-// تعريف إحداثيات ومواصفات نصوص الترحيب
-// **هذه الإحداثيات (x, y) هي قيم تقديرية. يجب عليك تعديلها لتناسب تصميم شهادتك (wwee.png).**
+// **ملاحظة: إذا كنت ستستخدم بيانات طالب حقيقية، فستحتاج إلى جلبها هنا.**
+// هذه قيم افتراضية للاختبار.
 const GREETING_POSITIONS = {
     GREETING1: {
         text: "أهلاً وسهلاً بكم!",
-        x: 0,
-        y: 400,
+        x: 0, // يجب تعديلها
+        y: 400, // يجب تعديلها
         fontSize: 70,
         color: RED_COLOR_HEX,
         gravity: 'center'
     },
     GREETING2: {
         text: "نتمنى لكم يوماً سعيداً.",
-        x: 50,
-        y: 550,
+        x: 50, // يجب تعديلها
+        y: 550, // يجب تعديلها
         fontSize: 50,
         color: BLUE_COLOR_HEX,
         gravity: 'west'
     },
     GREETING3: {
         text: "شكراً لزيارتكم.",
-        x: 0,
-        y: 700,
+        x: 0, // يجب تعديلها
+        y: 700, // يجب تعديلها
         fontSize: 40,
         color: GREEN_COLOR_HEX,
         gravity: 'east'
@@ -55,17 +55,26 @@ const GREETING_POSITIONS = {
  * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp.
  */
 async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontBuffer, fontCssFamilyName) {
-    return sharp({
-        text: {
-            text: `<span foreground="${color}">${text}</span>`,
-            font: fontCssFamilyName,
-            fontfile: FONT_PATH,
-            width: svgWidth,
-            height: svgHeight,
-            align: gravity === 'center' ? 'centre' : (gravity === 'west' ? 'left' : 'right'),
-            rgba: true
-        }
-    }).png().toBuffer();
+    // Sharp يعتمد على Pango للتعامل مع النصوص، و Pango يستخدم CSS لتحديد الخط.
+    // لذا، يجب تضمين الخط في SVG ليتعرف عليه Pango بشكل صحيح.
+    const svgText = `
+        <svg width="${svgWidth}" height="${svgHeight}">
+            <style>
+                @font-face {
+                    font-family: '${fontCssFamilyName}';
+                    src: url(data:font/ttf;charset=utf-8;base64,${fontBuffer.toString('base64')}) format('truetype');
+                }
+                text {
+                    font-family: '${fontCssFamilyName}';
+                    font-size: ${fontSize}px;
+                    fill: ${color};
+                    text-anchor: ${gravity === 'center' ? 'middle' : (gravity === 'west' ? 'start' : 'end')};
+                }
+            </style>
+            <text x="${gravity === 'center' ? svgWidth / 2 : (gravity === 'west' ? 0 : svgWidth)}" y="${fontSize}">${text}</text>
+        </svg>
+    `;
+    return Buffer.from(svgText);
 }
 
 /**
@@ -78,6 +87,28 @@ export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
+
+    const { id } = req.query; // استلام الـ ID من الـ query parameter
+
+    // هنا يجب أن تقوم بجلب بيانات الطالب باستخدام الـ `id`
+    // مثال (افتراضي):
+    let studentName = "طالب مجهول";
+    if (id) {
+        // **هنا يجب أن تضع كود جلب بيانات الطالب من قاعدة البيانات**
+        // على سبيل المثال، إذا كان لديك دالة لجلب البيانات من MongoDB:
+        // const studentData = await getStudentDataFromDB(id);
+        // if (studentData) {
+        //     studentName = studentData.name;
+        //     // يمكنك تحديث نصوص GREETING_POSITIONS هنا بناءً على بيانات الطالب
+        //     GREETING_POSITIONS.GREETING1.text = `تهانينا يا ${studentName}!`;
+        //     // ... تحديث باقي النصوص حسب الحاجة
+        // } else {
+        //    console.warn(`لم يتم العثور على بيانات للطالب بالمعرف: ${id}`);
+        // }
+         studentName = `الطالب رقم ${id}`; // للاختبار فقط
+         GREETING_POSITIONS.GREET1.text = `تهانينا يا ${studentName}!`;
+    }
+
 
     try {
         // 1. التحقق من وجود صورة الشهادة
@@ -101,13 +132,11 @@ export default async function handler(req, res) {
 
         let processedImage = baseImage;
 
-        // **تصغير أبعاد الصورة إذا كانت أكبر من اللازم:**
-        // هذا يساعد في تقليل حجم بيانات البكسل التي يجب على المتصفح معالجتها.
-        const MAX_IMAGE_WIDTH = 2000; // جرب 1500 أو 2500 حسب الدقة المطلوبة
+        // **تصغير أبعاد الصورة إذا كانت أكبر من اللازم (مهم للدقة والأداء):**
+        const MAX_IMAGE_WIDTH = 2000;
         if (imageWidth > MAX_IMAGE_WIDTH) {
             processedImage = processedImage.resize({ width: MAX_IMAGE_WIDTH });
-            // تحديث الأبعاد بعد التصغير لضمان دقة تحديد مواقع النصوص
-            metadata = await processedImage.metadata();
+            metadata = await processedImage.metadata(); // تحديث الأبعاد بعد التصغير
             imageWidth = metadata.width;
             imageHeight = metadata.height;
             console.log(`تم تصغير أبعاد الشهادة إلى: ${imageWidth}x${imageHeight}`);
@@ -127,30 +156,35 @@ export default async function handler(req, res) {
             });
         }
 
-        // --- إضافة نصوص الترحيب إلى الصورة باستخدام sharp.text() ---
+        // --- إضافة نصوص الترحيب إلى الصورة باستخدام sharp.composite مع SVG Text ---
+        // ملاحظة: لقد قمت بتعديل createSharpTextBuffer لإنشاء SVG مباشرةً.
+        // يجب أن تكون x, y هنا هي المواقع الدقيقة للنصوص على شهادتك.
+        // يجب أن تكون قيم x, y داخل حدود الصورة.
+
+        const overlays = [];
         for (const key in GREETING_POSITIONS) {
             const pos = GREETING_POSITIONS[key];
-            const textHeight = pos.fontSize * 2.5; // ارتفاع مناسب لمربع النص
-
-            const textOverlayBuffer = await createSharpTextBuffer(
+            const textBuffer = await createSharpTextBuffer(
                 pos.text,
                 pos.fontSize,
                 pos.color,
-                imageWidth, // عرض النص بالكامل هو عرض الصورة
-                textHeight,
+                imageWidth, // عرض SVG مساوي لعرض الصورة
+                pos.fontSize * 1.5, // ارتفاع تقديري لـ SVG
                 pos.gravity,
                 fontBuffer,
                 FONT_CSS_FAMILY_NAME
             );
 
             // تركيب النص كـ overlay
-            processedImage = await processedImage.composite([{
-                input: textOverlayBuffer,
+            overlays.push({
+                input: textBuffer,
                 left: pos.x,
                 top: pos.y,
-                blend: 'overlay'
-            }]);
+                blend: 'overlay' // أو 'over' أو 'saturate' حسب التأثير المطلوب
+            });
         }
+
+        processedImage = await processedImage.composite(overlays);
 
         // 4. توليد الصورة النهائية مع خيارات منع التدرج وتحسين الجودة
         const finalImageBuffer = await processedImage
@@ -169,7 +203,7 @@ export default async function handler(req, res) {
         console.error('تتبع الخطأ:', error.stack);
         if (error.message.includes('fontconfig') || error.message.includes('freetype')) {
             return res.status(500).json({
-                error: 'حدث خطأ في معالجة الخطوط. قد تكون بيئة النشر لا تدعم Fontconfig أو FreeType.',
+                error: 'حدث خطأ في معالجة الخطوط. قد تكون بيئة النشر لا تدعم Fontconfig أو FreeType. تأكد من أن Vercel يدعم sharp بشكل كامل.',
                 details: error.message,
                 stack: error.stack
             });

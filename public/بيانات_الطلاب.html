@@ -1,184 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>بيانات الطلاب</title>
     <link rel="stylesheet" href="القالب_المشترك2.css">
-    <style>
-        /* ستايلات أساسية للعرض */
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f0f0f0;
-            margin: 0;
-            padding: 20px; /* إضافة بعض الهوامش */
-            box-sizing: border-box; /* لضمان أن البادينج لا يضيف عرضًا إضافيًا */
-        }
-        .container {
-            width: 100%;
-            max-width: 1200px;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 20px;
-        }
-        .add-new, .search-form {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .add-new a {
-            display: inline-block;
-            background-color: #007bff;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            text-decoration: none;
-        }
-        .search-form input {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            width: 80%;
-            max-width: 300px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: right;
-        }
-        th {
-            background-color: #f2f2f2;
-            color: #333;
-            font-weight: bold;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .actions {
-            text-align: center;
-            white-space: nowrap; /* لمنع الأزرار من التكسر لأسطر */
-        }
-        .edit-btn, .delete-btn, .print-btn {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-            margin: 0 5px;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .edit-btn {
-            background-color: #28a745;
-            color: white;
-        }
-        .delete-btn {
-            background-color: #dc3545;
-            color: white;
-        }
-        .print-btn {
-            background-color: #6c757d;
-            color: white;
-        }
-        .no-results {
-            text-align: center;
-            color: #888;
-            margin-top: 20px;
-        }
-
-        /* ستايلات النافذة المنبثقة (Modal) ومحتواها */
-        .modal {
-            display: none; /* إخفائها افتراضيا */
-            position: fixed;
-            z-index: 1000; /* لضمان ظهورها فوق كل شيء */
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.7); /* خلفية شبه شفافة */
-            justify-content: center; /* لتوسيط المحتوى */
-            align-items: center; /* لتوسيط المحتوى */
-        }
-        .modal-content {
-            position: relative;
-            background-color: #fefefe;
-            margin: auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 90%; /* عرض النافذة المنبثقة */
-            max-width: 900px; /* أقصى عرض للشهادة */
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            animation-name: animatetop;
-            animation-duration: 0.4s;
-            text-align: center;
-            border-radius: 8px;
-        }
-        @keyframes animatetop {
-            from {top: -300px; opacity: 0}
-            to {top: 0; opacity: 1}
-        }
-        .close-button {
-            color: #aaa;
-            float: left; /* زر الإغلاق على اليسار */
-            font-size: 28px;
-            font-weight: bold;
-            line-height: 20px; /* لتجنب أي مشاكل في المحاذاة */
-            cursor: pointer;
-        }
-        .close-button:hover,
-        .close-button:focus {
-            color: black;
-            text-decoration: none;
-        }
-        h2 {
-            margin-top: 0;
-            margin-bottom: 20px;
-            color: #333;
-        }
-        .certificate-display-area {
-            position: relative;
-            min-height: 200px; /* لتجنب القفز عند التحميل */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #eee; /* خلفية خفيفة لمنطقة عرض الصورة */
-            border-radius: 5px;
-            padding: 10px;
-        }
-        .certificate-display-area .loading-spinner {
-            position: static; /* نستخدمها كـ block داخل الـ flex */
-            transform: none;
-            display: block; /* نضمن أنها تظهر مبدئيا */
-            font-size: 1.2em;
-            color: #555;
-            z-index: 10;
-        }
-        .certificate-display-area .certificate-image {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            opacity: 0; /* مخفية مبدئيا */
-            transition: opacity 0.3s ease-in-out; /* حركة سلسة عند الظهور */
-        }
-        .certificate-display-area .certificate-image.loaded {
-            opacity: 1; /* تظهر عند التحميل */
-        }
-    </style>
 </head>
 <body>
     <div class="container">
@@ -220,23 +45,7 @@
         </table>
 
         <p id="no_results" class="no-results" style="display:none;">لا يوجد طلاب بهذا الرقم للإقامة.</p>
-        <div id="certificateContainer" style="display:none;"></div>
-    </div>
-
-    <div id="certificateModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" title="إغلاق">&times;</span>
-            <h2>الشهادة</h2>
-            <div class="certificate-display-area">
-                <div class="loading-spinner" id="modalLoadingSpinner">جاري تحميل الشهادة...</div>
-                <img
-                    id="modalCertificateImage"
-                    src="" alt="الشهادة الخاصة بك"
-                    class="certificate-image"
-                    loading="eager"
-                />
-            </div>
-        </div>
+        <div id="certificateContainer"></div>
     </div>
 
     <script>
@@ -244,19 +53,13 @@
         const studentsTable = document.getElementById('students_table');
         const studentsTbody = document.getElementById('students_tbody');
         const noResultsMessage = document.getElementById('no_results');
-
-        // عناصر الـ Modal الجديدة
-        const certificateModal = document.getElementById('certificateModal');
-        const closeButton = certificateModal.querySelector('.close-button');
-        const modalLoadingSpinner = document.getElementById('modalLoadingSpinner');
-        const modalCertificateImage = document.getElementById('modalCertificateImage');
+        const certificateContainer = document.getElementById('certificateContainer');
 
         let allStudents = [];
 
         // دالة لجلب بيانات الطلاب من Vercel API Function
         async function fetchStudents() {
             try {
-                // تأكد أن هذا المسار صحيح لدالة الـ API التي تجلب بيانات الطلاب
                 const response = await fetch('/api/getStudent');
                 const data = await response.json();
 
@@ -279,7 +82,7 @@
 
             if (students.length > 0) {
                 noResultsMessage.style.display = 'none';
-                const reversedStudents = [...students].reverse(); // لعرض الأحدث أولا
+                const reversedStudents = [...students].reverse();
 
                 reversedStudents.forEach(student => {
                     const row = studentsTbody.insertRow();
@@ -307,25 +110,27 @@
                     deleteCell.classList.add('actions');
                     deleteCell.innerHTML = `<button class="delete-btn" onclick="deleteStudent('${student.id}')">حذف</button>`;
 
-                    // **تعديل مهم: استخدام دالة showCertificateInModal الجديدة لكلا الزرين**
+                    // إضافة زر عرض الشهادة الأولى (يفتح في نافذة جديدة مباشرة)
                     const printCellOne = row.insertCell();
-                    // تأكد أن /api/generateCertificateOne1 موجود لديك ويستقبل ID الطالب
-                    printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificateInModal('/api/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
+                    printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/api/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
 
+                    // **التعديل هنا: زر عرض الشهادة الثانية سيوجه لملف index.html الجديد**
                     const printCellTwo = row.insertCell();
-                    // **هنا يتم استدعاء API الشهادة الثانية**
-                    // إذا كان generateCertificateTwo2 لا يأخذ ID، أزل ?id=${student.id}
-                    // إذا كان النص ثابتًا كما في الكود الذي أرسلته لي، فقط اكتب:
-                    // printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificateInModal('/api/generateCertificateTwo2')">عرض الثانية</button>`;
-                    printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificateInModal('/api/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>`;
-
+                    const certificateButtonTwo = document.createElement('button');
+                    certificateButtonTwo.textContent = 'عرض الثانية';
+                    certificateButtonTwo.addEventListener('click', () => {
+                        // هذا المسار `/certificate/${student.id}` سيتم توجيهه بواسطة vercel.json
+                        // إلى public/index.html مع تمرير ID الطالب
+                        const certificateUrlTwo = `/certificate/${student.id}`; 
+                        window.open(certificateUrlTwo, '_blank'); // يفتح نافذة جديدة تحمل index.html
+                    });
+                    printCellTwo.appendChild(certificateButtonTwo);
                 });
             } else {
                 studentsTbody.innerHTML = '<tr><td colspan="19">لا يوجد أي طلاب مسجلين.</td></tr>';
             }
         }
 
-        // دالة البحث (بدون تغيير)
         searchInput.addEventListener('keyup', function() {
             const searchTerm = this.value.trim();
             const filteredStudents = allStudents.filter(student =>
@@ -335,65 +140,19 @@
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
-        // دالة جديدة لعرض الشهادة داخل الـ Modal
-        function showCertificateInModal(certificateUrl) {
-            // إظهار الـ Modal
-            certificateModal.style.display = 'flex'; // استخدام flex لتوسيط المحتوى
-
-            // إعادة تعيين حالة الصورة والمؤشر
-            modalCertificateImage.src = ''; // مسح src السابق
-            modalCertificateImage.classList.remove('loaded'); // إزالة فئة التحميل
-            modalLoadingSpinner.style.display = 'block'; // إظهار مؤشر التحميل
-            modalLoadingSpinner.innerText = 'جاري تحميل الشهادة...'; // إعادة تعيين النص
-
-            // تعيين src للصورة وبدء التحميل
-            modalCertificateImage.src = certificateUrl;
-
-            // إضافة معالجات أحداث التحميل للتحكم في الوميض
-            modalCertificateImage.onload = () => {
-                modalCertificateImage.classList.add('loaded'); // الصورة حملت، إظهارها
-                modalLoadingSpinner.style.display = 'none'; // إخفاء مؤشر التحميل
-            };
-
-            modalCertificateImage.onerror = () => {
-                modalLoadingSpinner.innerText = 'فشل تحميل الشهادة.'; // عرض رسالة خطأ
-                modalLoadingSpinner.style.color = 'red'; // تغيير لون الخطأ
-                modalCertificateImage.style.display = 'none'; // إخفاء الصورة في حالة الخطأ
-            };
+        // دالة لفتح رابط الشهادة في نافذة جديدة (للزر الأول فقط)
+        function showCertificate(url) {
+            window.open(url, '_blank');
         }
 
-        // دالة لإغلاق الـ Modal
-        closeButton.onclick = () => {
-            certificateModal.style.display = 'none'; // إخفاء الـ Modal
-            // إعادة تهيئة حالة الصورة والمؤشر عند الإغلاق
-            modalCertificateImage.src = ''; // مسح src لتجنب بقاء الصورة في الذاكرة
-            modalCertificateImage.classList.remove('loaded');
-            modalCertificateImage.style.display = 'block'; // إعادة إظهار الصورة تحسبًا للعرض التالي
-            modalLoadingSpinner.innerText = 'جاري تحميل الشهادة...'; // إعادة تعيين نص المؤشر
-            modalLoadingSpinner.style.color = '#555'; // إعادة تعيين لون المؤشر
-        };
-
-        // إغلاق الـ Modal عند النقر خارج المحتوى
-        window.onclick = (event) => {
-            if (event.target === certificateModal) {
-                certificateModal.style.display = 'none';
-                modalCertificateImage.src = '';
-                modalCertificateImage.classList.remove('loaded');
-                modalCertificateImage.style.display = 'block';
-                modalLoadingSpinner.innerText = 'جاري تحميل الشهادة...';
-                modalLoadingSpinner.style.color = '#555';
-            }
-        };
-
-        // دالة لحذف الطالب (بدون تغيير)
+        // دالة لحذف الطالب
         async function deleteStudent(studentId) {
             if (!confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟')) {
                 return;
             }
             try {
-                // استخدام مسار Vercel API لدالة الحذف (تأكد أن هذا المسار موجود لديك)
                 const response = await fetch('/api/deleteStudent', {
-                    method: 'POST', // أو 'DELETE' حسب تصميم API الحذف لديك
+                    method: 'POST', 
                     headers: {
                         'Content-Type': 'application/json',
                     },
@@ -403,7 +162,7 @@
 
                 if (response.ok) {
                     alert(data.message || 'تم حذف الطالب بنجاح!');
-                    fetchStudents(); // إعادة تحميل قائمة الطلاب بعد الحذف
+                    fetchStudents(); 
                 } else {
                     alert(data.error || 'حدث خطأ أثناء محاولة حذف الطالب.');
                     console.error('فشل الحذف:', data.error);
@@ -414,8 +173,7 @@
             }
         }
 
-        // استدعاء الدالة لجلب وعرض الطلاب عند تحميل الصفحة
-        fetchStudents();
+        fetchStudents(); 
     </script>
 </body>
 </html>
