@@ -1,62 +1,46 @@
-// api/generateCertificateTwo2.js
-// هذا الملف يستخدم الآن ES Module syntax
-
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 
-// **مسار صورة الشهادة:**
-// تأكد أن ملف wwee.png موجود هنا: [جذر_مشروعك]/public/images/full/wwee.png
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.png');
 
-// **مسار الخط الجديد (Arial):**
-// تأكد أن ملف arial.ttf موجود هنا: [جذر_مشروعك]/public/fonts/arial.ttf
 const FONT_FILENAME = 'arial.ttf';
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
-// **اسم الخط للاستخدام في CSS (مهم لـ sharp):**
-const FONT_CSS_FAMILY_NAME = 'Arial'; // الاسم الشائع لخط Arial
+const FONT_CSS_FAMILY_NAME = 'Arial';
 
-// تعريف ألوان النصوص
-const RED_COLOR_HEX = '#FF0000';    // أحمر
-const BLUE_COLOR_HEX = '#0000FF';   // أزرق
-const GREEN_COLOR_HEX = '#00FF00';  // أخضر
+const RED_COLOR_HEX = '#FF0000';
+const BLUE_COLOR_HEX = '#0000FF';
+const GREEN_COLOR_HEX = '#00FF00';
 
-// **ملاحظة: إذا كنت ستستخدم بيانات طالب حقيقية، فستحتاج إلى جلبها هنا.**
-// هذه قيم افتراضية للاختبار.
 const GREETING_POSITIONS = {
     GREETING1: {
         text: "أهلاً وسهلاً بكم!",
-        x: 0, // يجب تعديلها
-        y: 400, // يجب تعديلها
+        x: 0,
+        y: 400,
         fontSize: 70,
         color: RED_COLOR_HEX,
         gravity: 'center'
     },
     GREETING2: {
         text: "نتمنى لكم يوماً سعيداً.",
-        x: 50, // يجب تعديلها
-        y: 550, // يجب تعديلها
+        x: 50,
+        y: 550,
         fontSize: 50,
         color: BLUE_COLOR_HEX,
         gravity: 'west'
     },
     GREETING3: {
         text: "شكراً لزيارتكم.",
-        x: 0, // يجب تعديلها
-        y: 700, // يجب تعديلها
+        x: 0,
+        y: 700,
         fontSize: 40,
         color: GREEN_COLOR_HEX,
         gravity: 'east'
     }
 };
 
-/**
- * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp.
- */
 async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontBuffer, fontCssFamilyName) {
-    // Sharp يعتمد على Pango للتعامل مع النصوص، و Pango يستخدم CSS لتحديد الخط.
-    // لذا، يجب تضمين الخط في SVG ليتعرف عليه Pango بشكل صحيح.
     const svgText = `
         <svg width="${svgWidth}" height="${svgHeight}">
             <style>
@@ -77,54 +61,30 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
     return Buffer.from(svgText);
 }
 
-/**
- * وظيفة Vercel Serverless Function لإنشاء الشهادة.
- *
- * @param {Object} req - كائن الطلب (HTTP request).
- * @param {Object} res - كائن الاستجابة (HTTP response).
- */
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const { id } = req.query; // استلام الـ ID من الـ query parameter
+    const { id } = req.query;
 
-    // هنا يجب أن تقوم بجلب بيانات الطالب باستخدام الـ `id`
-    // مثال (افتراضي):
     let studentName = "طالب مجهول";
     if (id) {
-        // **هنا يجب أن تضع كود جلب بيانات الطالب من قاعدة البيانات**
-        // على سبيل المثال، إذا كان لديك دالة لجلب البيانات من MongoDB:
-        // const studentData = await getStudentDataFromDB(id);
-        // if (studentData) {
-        //     studentName = studentData.name;
-        //     // يمكنك تحديث نصوص GREETING_POSITIONS هنا بناءً على بيانات الطالب
-        //     GREETING_POSITIONS.GREETING1.text = `تهانينا يا ${studentName}!`;
-        //     // ... تحديث باقي النصوص حسب الحاجة
-        // } else {
-        //    console.warn(`لم يتم العثور على بيانات للطالب بالمعرف: ${id}`);
-        // }
-         studentName = `الطالب رقم ${id}`; // للاختبار فقط
-         GREETING_POSITIONS.GREET1.text = `تهانينا يا ${studentName}!`;
+         studentName = `الطالب رقم ${id}`;
+         GREETING_POSITIONS.GREETING1.text = `تهانينا يا ${studentName}!`;
     }
 
-
     try {
-        // 1. التحقق من وجود صورة الشهادة
         try {
             await fs.access(CERTIFICATE_IMAGE_PATH);
-            console.log('صورة الشهادة موجودة في المسار المحدد:', CERTIFICATE_IMAGE_PATH);
         } catch (fileError) {
-            console.error('خطأ: صورة الشهادة غير موجودة أو لا يمكن الوصول إليها:', fileError.message);
             return res.status(500).json({
-                error: 'صورة الشهادة غير موجودة أو لا يمكن الوصول إليها. يرجى التحقق من مسار ملف الصورة في النشر.',
+                error: 'صورة الشهادة غير موجودة أو لا يمكن الوصول إليها.',
                 details: fileError.message,
                 path: CERTIFICATE_IMAGE_PATH
             });
         }
 
-        // 2. قراءة صورة الشهادة الأساسية
         const baseImage = sharp(CERTIFICATE_IMAGE_PATH);
         let metadata = await baseImage.metadata();
         let imageWidth = metadata.width;
@@ -132,34 +92,24 @@ export default async function handler(req, res) {
 
         let processedImage = baseImage;
 
-        // **تصغير أبعاد الصورة إذا كانت أكبر من اللازم (مهم للدقة والأداء):**
         const MAX_IMAGE_WIDTH = 2000;
         if (imageWidth > MAX_IMAGE_WIDTH) {
             processedImage = processedImage.resize({ width: MAX_IMAGE_WIDTH });
-            metadata = await processedImage.metadata(); // تحديث الأبعاد بعد التصغير
+            metadata = await processedImage.metadata();
             imageWidth = metadata.width;
             imageHeight = metadata.height;
-            console.log(`تم تصغير أبعاد الشهادة إلى: ${imageWidth}x${imageHeight}`);
         }
 
-        // 3. التحقق من وجود ملف الخط وقراءته في الذاكرة
         let fontBuffer;
         try {
             fontBuffer = await fs.readFile(FONT_PATH);
-            console.log('ملف الخط موجود وتم قراءته:', FONT_PATH);
         } catch (fontError) {
-            console.error('خطأ: ملف الخط غير موجود أو لا يمكن الوصول إليه:', fontError.message);
             return res.status(500).json({
-                error: 'ملف الخط غير موجود أو لا يمكن الوصول إليه. يرجى التأكد من وضعه في المسار الصحيح وتضمينه في النشر.',
+                error: 'ملف الخط غير موجود أو لا يمكن الوصول إليه.',
                 details: fontError.message,
                 path: FONT_PATH
             });
         }
-
-        // --- إضافة نصوص الترحيب إلى الصورة باستخدام sharp.composite مع SVG Text ---
-        // ملاحظة: لقد قمت بتعديل createSharpTextBuffer لإنشاء SVG مباشرةً.
-        // يجب أن تكون x, y هنا هي المواقع الدقيقة للنصوص على شهادتك.
-        // يجب أن تكون قيم x, y داخل حدود الصورة.
 
         const overlays = [];
         for (const key in GREETING_POSITIONS) {
@@ -168,42 +118,38 @@ export default async function handler(req, res) {
                 pos.text,
                 pos.fontSize,
                 pos.color,
-                imageWidth, // عرض SVG مساوي لعرض الصورة
-                pos.fontSize * 1.5, // ارتفاع تقديري لـ SVG
+                imageWidth,
+                pos.fontSize * 1.5,
                 pos.gravity,
                 fontBuffer,
                 FONT_CSS_FAMILY_NAME
             );
 
-            // تركيب النص كـ overlay
             overlays.push({
                 input: textBuffer,
                 left: pos.x,
                 top: pos.y,
-                blend: 'overlay' // أو 'over' أو 'saturate' حسب التأثير المطلوب
+                blend: 'overlay'
             });
         }
 
         processedImage = await processedImage.composite(overlays);
 
-        // 4. توليد الصورة النهائية مع خيارات منع التدرج وتحسين الجودة
         const finalImageBuffer = await processedImage
             .png({
-                quality: 90,        // جودة الصورة (من 1 إلى 100). يمكنك تعديلها.
-                progressive: false  // **هذا هو الحل الرئيسي لمنع التحميل التدريجي.**
+                quality: 90,
+                progressive: false
             })
             .toBuffer();
 
         res.setHeader('Content-Type', 'image/png');
-        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate'); // لتقليل إعادة التحميل غير الضرورية
+        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate');
         return res.status(200).send(finalImageBuffer);
 
     } catch (error) {
-        console.error('خطأ عام في وظيفة generateCertificateTwo2:', error);
-        console.error('تتبع الخطأ:', error.stack);
         if (error.message.includes('fontconfig') || error.message.includes('freetype')) {
             return res.status(500).json({
-                error: 'حدث خطأ في معالجة الخطوط. قد تكون بيئة النشر لا تدعم Fontconfig أو FreeType. تأكد من أن Vercel يدعم sharp بشكل كامل.',
+                error: 'حدث خطأ في معالجة الخطوط. قد تكون بيئة النشر لا تدعم Fontconfig أو FreeType.',
                 details: error.message,
                 stack: error.stack
             });

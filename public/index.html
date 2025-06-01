@@ -18,7 +18,7 @@
         }
         .certificate-container {
             position: relative;
-            max-width: 90%; /* يسمح للشهادة بأن تأخذ 90% من عرض الشاشة كحد أقصى */
+            max-width: 90%;
             height: auto;
             background-color: white;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
@@ -34,7 +34,7 @@
             font-size: 1.5em;
             color: #555;
             z-index: 10;
-            display: block; /* يظهر مبدئياً */
+            display: block;
             background-color: rgba(255, 255, 255, 0.8);
             padding: 20px;
             border-radius: 10px;
@@ -43,12 +43,12 @@
             max-width: 100%;
             height: auto;
             display: block;
-            opacity: 0; /* مخفي مبدئياً */
-            transition: opacity 0.3s ease-in-out; /* انتقال سلس للظهور */
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
             border-radius: 8px;
         }
         .certificate-image.loaded {
-            opacity: 1; /* يظهر عند التحميل */
+            opacity: 1;
         }
         .error-message {
             color: red;
@@ -63,7 +63,8 @@
     <div class="certificate-container">
         <div class="loading-spinner" id="loadingSpinner">جاري تحميل الشهادة...</div>
         <img
-            src="" alt="الشهادة الخاصة بك"
+            src=""
+            alt="الشهادة الخاصة بك"
             class="certificate-image"
             id="certificateImage"
             loading="eager"
@@ -77,33 +78,25 @@
         const errorMessage = document.getElementById('errorMessage');
 
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. استخراج ID الطالب من URL
             const pathSegments = window.location.pathname.split('/');
-            // المسار سيكون تقريباً /certificate/ID_الطالب
-            // ID_الطالب سيكون العنصر الأخير في المصفوفة pathSegments
             const studentId = pathSegments[pathSegments.length - 1];
 
             if (studentId) {
-                // 2. بناء رابط الـ API للشهادة
-                // تأكد أن API generateCertificateTwo2.js يستقبل ID عبر query parameter
                 const certificateApiUrl = `/api/generateCertificateTwo2?id=${studentId}`;
                 
-                // 3. تعيين src للصورة وبدء التحميل
                 certificateImage.src = certificateApiUrl;
 
-                // 4. معالجة أحداث التحميل (حل الوميض والتدرج)
                 certificateImage.onload = () => {
-                    loadingSpinner.style.display = 'none'; // إخفاء مؤشر التحميل
-                    certificateImage.classList.add('loaded'); // إظهار الصورة بسلاسة
-                    errorMessage.style.display = 'none'; // إخفاء رسالة الخطأ إذا كانت موجودة
+                    loadingSpinner.style.display = 'none';
+                    certificateImage.classList.add('loaded');
+                    errorMessage.style.display = 'none';
                 };
 
                 certificateImage.onerror = () => {
-                    loadingSpinner.style.display = 'none'; // إخفاء مؤشر التحميل
+                    loadingSpinner.style.display = 'none';
                     errorMessage.textContent = 'عذراً، فشل تحميل الشهادة. يرجى التأكد من توفر البيانات.';
-                    errorMessage.style.display = 'block'; // إظهار رسالة الخطأ
-                    certificateImage.style.display = 'none'; // إخفاء الصورة في حالة الخطأ
-                    console.error('خطأ في تحميل الشهادة من:', certificateApiUrl);
+                    errorMessage.style.display = 'block';
+                    certificateImage.style.display = 'none';
                 };
             } else {
                 loadingSpinner.style.display = 'none';

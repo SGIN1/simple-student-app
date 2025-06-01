@@ -57,7 +57,6 @@
 
         let allStudents = [];
 
-        // دالة لجلب بيانات الطلاب من Vercel API Function
         async function fetchStudents() {
             try {
                 const response = await fetch('/api/getStudent');
@@ -76,9 +75,8 @@
             }
         }
 
-        // دالة لتحديث جدول الطلاب في المتصفح
         function renderStudentsTable(students) {
-            studentsTbody.innerHTML = ''; // مسح الجدول الحالي
+            studentsTbody.innerHTML = '';
 
             if (students.length > 0) {
                 noResultsMessage.style.display = 'none';
@@ -110,19 +108,15 @@
                     deleteCell.classList.add('actions');
                     deleteCell.innerHTML = `<button class="delete-btn" onclick="deleteStudent('${student.id}')">حذف</button>`;
 
-                    // إضافة زر عرض الشهادة الأولى (يفتح في نافذة جديدة مباشرة)
                     const printCellOne = row.insertCell();
                     printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificate('/api/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
 
-                    // **التعديل هنا: زر عرض الشهادة الثانية سيوجه لملف index.html الجديد**
                     const printCellTwo = row.insertCell();
                     const certificateButtonTwo = document.createElement('button');
                     certificateButtonTwo.textContent = 'عرض الثانية';
                     certificateButtonTwo.addEventListener('click', () => {
-                        // هذا المسار `/certificate/${student.id}` سيتم توجيهه بواسطة vercel.json
-                        // إلى public/index.html مع تمرير ID الطالب
-                        const certificateUrlTwo = `/certificate/${student.id}`; 
-                        window.open(certificateUrlTwo, '_blank'); // يفتح نافذة جديدة تحمل index.html
+                        const certificateUrlTwo = `/certificate/${student.id}`;
+                        window.open(certificateUrlTwo, '_blank');
                     });
                     printCellTwo.appendChild(certificateButtonTwo);
                 });
@@ -140,19 +134,17 @@
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
-        // دالة لفتح رابط الشهادة في نافذة جديدة (للزر الأول فقط)
         function showCertificate(url) {
             window.open(url, '_blank');
         }
 
-        // دالة لحذف الطالب
         async function deleteStudent(studentId) {
             if (!confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟')) {
                 return;
             }
             try {
                 const response = await fetch('/api/deleteStudent', {
-                    method: 'POST', 
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
@@ -162,7 +154,7 @@
 
                 if (response.ok) {
                     alert(data.message || 'تم حذف الطالب بنجاح!');
-                    fetchStudents(); 
+                    fetchStudents();
                 } else {
                     alert(data.error || 'حدث خطأ أثناء محاولة حذف الطالب.');
                     console.error('فشل الحذف:', data.error);
@@ -173,7 +165,7 @@
             }
         }
 
-        fetchStudents(); 
+        fetchStudents();
     </script>
 </body>
 </html>
