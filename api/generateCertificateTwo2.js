@@ -52,25 +52,35 @@ const GREETING_POSITIONS = {
 };
 
 /**
- * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp.
+ * دالة مساعدة لإنشاء طبقة نص كـ Buffer لـ sharp.
+ * **مهم: سنقوم بإنشاء نص SVG بدلاً من PNG هنا، وsharp سيتعامل مع SVG مباشرة.**
  */
-async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontBuffer, fontCssFamilyName) {
-    // Sharp Text rendering uses Pango/Cairo. It requires fonts to be installed
-    // or provided via fontfile option.
-    // The text input is Pango markup, which can include span tags for styling.
-    return sharp({
-        text: {
-            text: `<span foreground="${color}">${text}</span>`,
-            font: fontCssFamilyName,
-            // Pass fontfile path directly to sharp
-            fontfile: FONT_PATH,
-            width: svgWidth,
-            height: svgHeight,
-            align: gravity === 'center' ? 'centre' : (gravity === 'west' ? 'left' : 'right'),
-            rgba: true
-        }
-    }).png().toBuffer(); // Convert SVG to PNG buffer for compositing
+async function createSharpSvgText(text, fontSize, color, svgWidth, svgHeight, gravity, fontCssFamilyName) {
+    // Sharp can directly composite SVG text.
+    // The font needs to be available to sharp/Pango.
+    // Ensure fontfile is specified.
+    const pangoAlign = gravity === 'center' ? 'centre' : (gravity === 'west' ? 'left' : 'right');
+
+    const svgText = `
+        <svg width="${svgWidth}" height="${svgHeight}">
+            <style>
+                @font-face {
+                    font-family: '${fontCssFamilyName}';
+                    src: url('file://${FONT_PATH}');
+                }
+                text {
+                    font-family: '${fontCssFamilyName}';
+                    font-size: ${fontSize}px;
+                    fill: ${color};
+                    text-anchor: ${gravity === 'center' ? 'middle' : (gravity === 'west' ? 'start' : 'end')};
+                }
+            </style>
+            <text x="${gravity === 'center' ? svgWidth / 2 : (gravity === 'west' ? 0 : svgWidth)}" y="${fontSize}">${text}</text>
+        </svg>
+    `;
+    return Buffer.from(svgText);
 }
+
 
 /**
  * وظيفة Vercel Serverless Function لإنشاء الشهادة.
@@ -119,10 +129,8 @@ export default async function handler(req, res) {
             console.log(`تم تصغير أبعاد الشهادة إلى: ${imageWidth}x${imageHeight} لتحسين الأداء.`);
         }
 
-        // 3. التحقق من وجود ملف الخط وقراءته في الذاكرة
+        // 3. التحقق من وجود ملف الخط (Sharp يتعامل مع الخطوط بشكل أفضل عند استخدام SVG)
         try {
-            // fs.readFile is done inside createSharpTextBuffer now as fontfile option requires path,
-            // but we need to ensure the file exists beforehand for error handling.
             await fs.access(FONT_PATH);
             console.log('ملف الخط موجود:', FONT_PATH);
         } catch (fontError) {
@@ -135,32 +143,38 @@ export default async function handler(req, res) {
             });
         }
 
-        // --- إضافة نصوص الترحيب إلى الصورة باستخدام sharp.text() ---
-        // يتم تراكب النصوص بعد تحديد الأبعاد النهائية للصورة
+        // --- إضافة نصوص الترحيب إلى الصورة باستخدام sharp.composite() ---
+        // سنقوم بإنشاء مصفوفة لطبقات التركيب (composites)
+        const composites = [];
+
         for (const key in GREETING_POSITIONS) {
             const pos = GREETING_POSITIONS[key];
-            const textHeight = pos.fontSize * 2.5; // ارتفاع مناسب لمربع النص (قيمة تقديرية)
+            // SVG height needs to accommodate the text. A simple fontSize * 1.5 is a start.
+            const svgHeight = pos.fontSize * 1.5; 
 
-            // إنشاء طبقة نص SVG وتحويلها إلى Buffer
-            const textOverlayBuffer = await createSharpTextBuffer(
+            // إنشاء طبقة نص SVG كـ Buffer
+            const textSvgBuffer = await createSharpSvgText(
                 pos.text,
                 pos.fontSize,
                 pos.color,
                 imageWidth, // عرض النص بالكامل هو عرض الصورة لتسهيل المحاذاة الأفقية
-                textHeight,
+                svgHeight,
                 pos.gravity,
-                null, // No need to pass fontBuffer here, FONT_PATH is used directly in createSharpTextBuffer
                 FONT_CSS_FAMILY_NAME
             );
 
-            // تركيب النص كـ overlay على الصورة الأساسية
-            processedImage = await processedImage.composite([{
-                input: textOverlayBuffer,
+            // إضافة طبقة النص إلى مصفوفة composites
+            composites.push({
+                input: textSvgBuffer,
                 left: pos.x,
                 top: pos.y,
-                // يمكنك تجربة 'over' أو 'saturate' أو 'multiply' إذا لم يعجبك 'overlay'
                 blend: 'over' // 'over' هو الأكثر شيوعاً لوضع طبقة فوق أخرى
-            }]);
+            });
+        }
+
+        // تركيب جميع الطبقات مرة واحدة
+        if (composites.length > 0) {
+            processedImage = processedImage.composite(composites);
         }
 
         // 4. توليد الصورة النهائية PNG مع خيارات منع التدرج وتحسين الجودة
@@ -174,17 +188,16 @@ export default async function handler(req, res) {
 
         // إرسال الصورة كاستجابة
         res.setHeader('Content-Type', 'image/png');
-        // التحكم في الكاش (Cache-Control) لضمان أن المتصفح يعيد تحميلها عند التغيير
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // يمكن تخزينها لمدة عام، وهي لا تتغير
-        // إذا كانت الشهادات قد تتغير حسب ID الطالب، استخدم:
-        // res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate');
+        // التحكم في الكاش (Cache-Control) لضمان أن المتصفح لا يحتفظ بنسخة قديمة إذا تغيرت
+        // إذا كان معرف الشهادة (ID) فريدًا، يمكن استخدام "immutable"
+        // إذا كانت الشهادة قد تتغير لنفس ID، استخدم 'no-cache, no-store, must-revalidate'
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         return res.status(200).send(finalImageBuffer);
 
     } catch (error) {
         console.error('خطأ عام في وظيفة generateCertificateTwo2:', error);
         console.error('تتبع الخطأ:', error.stack);
 
-        // رسائل خطأ أكثر تفصيلاً للمساعدة في Debugging على Vercel
         let errorMessage = 'An unexpected error occurred while generating the certificate.';
         if (error.message.includes('fontconfig') || error.message.includes('freetype')) {
             errorMessage = 'Font processing error. Your deployment environment might not support Fontconfig/FreeType. Ensure necessary libraries are installed.';
@@ -197,7 +210,7 @@ export default async function handler(req, res) {
         return res.status(500).json({
             error: errorMessage,
             details: error.message,
-            stack: error.stack // مفيد جداً للمطورين
+            stack: error.stack
         });
     }
 }

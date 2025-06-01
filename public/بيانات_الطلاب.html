@@ -316,7 +316,7 @@
                     printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificateInModal('/api/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
 
                     const printCellTwo = row.insertCell();
-                    // **التغيير هنا: استخدام `openCertificateInNewWindow` للشهادة الثانية**
+                    // **التعديل هنا:** استخدم openCertificateInNewWindow بدلاً من showCertificateInModal
                     printCellTwo.innerHTML = `<button class="print-new-window-btn" onclick="openCertificateInNewWindow('/api/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>`;
                 });
             } else {
@@ -356,8 +356,10 @@
             };
         }
 
-        // **دالة جديدة لفتح الشهادة في نافذة متصفح جديدة (خاصة بالشهادة الثانية)**
+        // **الدالة لفتح الشهادة في نافذة متصفح جديدة (خاصة بالشهادة الثانية)**
         function openCertificateInNewWindow(certificateUrl) {
+            // هنا المتصفح سيقوم بفتح URL الصورة مباشرة، ولا يمكننا التحكم في "الوميض" من جانب العميل هنا.
+            // هذا يعتمد بالكامل على استجابة السيرفر (والذي يجب أن يرسل صورة غير تقدمية).
             window.open(certificateUrl, '_blank');
         }
 
