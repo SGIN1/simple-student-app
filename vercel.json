@@ -45,6 +45,10 @@
       "destination": "/api/generateCertificateTwo2.js"
     },
     {
+      "source": "/api/generateCertificateTwo2/:id",
+      "destination": "/api/generateCertificateTwo2.js"
+    },
+    {
       "source": "/certificate/:id",
       "destination": "/index.html"
     },
