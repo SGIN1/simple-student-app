@@ -1,17 +1,122 @@
 // public/js/main.js
 
-// ... (بقية الكود كما هي) ...
+const searchInput = document.getElementById('search_residency');
+const studentsTable = document.getElementById('students_table');
+const studentsTbody = document.getElementById('students_tbody');
+const noResultsMessage = document.getElementById('no_results');
 
-// دالة لفتح الشهادة في نافذة جديدة
+let allStudents = []; // لتخزين جميع بيانات الطلاب التي تم جلبها
+
+/**
+ * دالة لجلب بيانات الطلاب من Vercel API Function.
+ * تتضمن معالجة مرنة لشكل البيانات القادمة من الخادم.
+ */
+async function fetchStudents() {
+    try {
+        const response = await fetch('/api/getStudent'); // تأكد أن هذا المسار صحيح
+        const data = await response.json();
+
+        // **هام لـ Debugging:** اطبع البيانات في Console المتصفح لتتأكد من شكلها
+        console.log('Fetched data from /api/getStudent:', data);
+
+        if (response.ok) {
+            // تحقق من أن البيانات هي مصفوفة مباشرة
+            if (Array.isArray(data)) {
+                allStudents = data;
+                renderStudentsTable(allStudents);
+            } 
+            // أو إذا كانت البيانات ملفوفة داخل كائن (مثال: { students: [...] } أو { data: [...] })
+            else if (data && (Array.isArray(data.students) || Array.isArray(data.data))) {
+                allStudents = data.students || data.data; // استخدم الاسم الصحيح للعنصر الذي يحتوي على المصفوفة
+                renderStudentsTable(allStudents);
+            } 
+            // إذا لم تكن البيانات مصفوفة بأي شكل متوقع
+            else {
+                console.error('صيغة بيانات الطلاب المستلمة غير صحيحة:', data);
+                studentsTbody.innerHTML = '<tr><td colspan="19">صيغة بيانات الطلاب غير صحيحة. يرجى مراجعة سجلات الخادم أو المتصفح.</td></tr>';
+            }
+        } else {
+            console.error('فشل في جلب بيانات الطلاب:', data.error || 'حدث خطأ غير معروف');
+            studentsTbody.innerHTML = `<tr><td colspan="19">فشل في تحميل بيانات الطلاب: ${data.error || 'خطأ غير معروف'}.</td></tr>`;
+        }
+    } catch (error) {
+        console.error('خطأ في جلب بيانات الطلاب:', error);
+        studentsTbody.innerHTML = '<tr><td colspan="19">حدث خطأ أثناء محاولة تحميل بيانات الطلاب. يرجى التحقق من اتصال الشبكة.</td></tr>';
+    }
+}
+
+/**
+ * دالة لتحديث جدول الطلاب في المتصفح.
+ */
+function renderStudentsTable(students) {
+    studentsTbody.innerHTML = ''; // مسح الجدول الحالي
+
+    if (students.length > 0) {
+        noResultsMessage.style.display = 'none';
+        const reversedStudents = [...students].reverse(); // لعرض الأحدث أولا
+
+        reversedStudents.forEach(student => {
+            const row = studentsTbody.insertRow();
+            // تأكد أن أسماء الحقول هنا (student.id, student.serial_number, إلخ) تطابق تمامًا أسماء الحقول في قاعدة بياناتك والبيانات التي يعيدها getStudent.js
+            row.insertCell().textContent = student.id;
+            row.insertCell().textContent = student.serial_number || ''; // إضافة || '' لتجنب ظهور 'null' أو 'undefined'
+            row.insertCell().textContent = student.residency_number || '';
+            row.insertCell().textContent = student.document_serial_number || '';
+            row.insertCell().textContent = student.plate_number || '';
+            row.insertCell().textContent = student.inspection_date ? new Date(student.inspection_date).toLocaleDateString('ar-SA') : ''; // تنسيق التاريخ
+            row.insertCell().textContent = student.manufacturer || '';
+            row.insertCell().textContent = student.inspection_expiry_date ? new Date(student.inspection_expiry_date).toLocaleDateString('ar-SA') : ''; // تنسيق التاريخ
+            row.insertCell().textContent = student.car_type || '';
+            row.insertCell().textContent = student.counter_reading || '';
+            row.insertCell().textContent = student.chassis_number || '';
+            row.insertCell().textContent = student.vehicle_model || '';
+            row.insertCell().textContent = student.color || '';
+            row.insertCell().textContent = student.serial_number_duplicate || '';
+            row.insertCell().textContent = student.created_at ? new Date(student.created_at).toLocaleString('ar-SA') : ''; // تنسيق التاريخ والوقت
+
+            const editCell = row.insertCell();
+            editCell.classList.add('actions');
+            editCell.innerHTML = `<a href="/edit-student?id=${student.id}" class="edit-btn">تعديل</a>`;
+
+            const deleteCell = row.insertCell();
+            deleteCell.classList.add('actions');
+            deleteCell.innerHTML = `<button class="delete-btn" onclick="deleteStudent('${student.id}')">حذف</button>`;
+
+            const printCellOne = row.insertCell();
+            printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificateInNewWindow('/api/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
+
+            const printCellTwo = row.insertCell();
+            printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificateInNewWindow('/api/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>`;
+        });
+    } else {
+        studentsTbody.innerHTML = '<tr><td colspan="19">لا يوجد أي طلاب مسجلين.</td></tr>';
+    }
+}
+
+/**
+ * دالة البحث.
+ */
+searchInput.addEventListener('keyup', function() {
+    const searchTerm = this.value.trim().toLowerCase();
+    const filteredStudents = allStudents.filter(student =>
+        (student.residency_number && student.residency_number.toLowerCase().includes(searchTerm)) ||
+        (student.serial_number && student.serial_number.toLowerCase().includes(searchTerm))
+        // أضف المزيد من الحقول للبحث فيها إذا أردت
+    );
+    renderStudentsTable(filteredStudents);
+    noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
+});
+
+/**
+ * دالة لفتح الشهادة في نافذة جديدة مع مؤشر تحميل.
+ */
 function showCertificateInNewWindow(url) {
-    // 1. نفتح نافذة جديدة لصفحة HTML بسيطة كـ "placeholder"
-    const newWindow = window.open('about:blank', '_blank'); // فتح نافذة فارغة
+    const newWindow = window.open('about:blank', '_blank'); 
     if (!newWindow) {
         alert('المتصفح منع فتح النافذة المنبثقة. يرجى السماح بها.');
         return;
     }
 
-    // 2. بناء محتوى HTML للنافذة الجديدة (يتضمن مؤشر تحميل ووسم الصورة)
     const pageContent = `
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
@@ -26,9 +131,9 @@ function showCertificateInNewWindow(url) {
                     justify-content: center;
                     align-items: center;
                     min-height: 100vh;
-                    background-color: #f0f0f0; /* لون خلفية خفيف */
+                    background-color: #f0f0f0;
                     flex-direction: column;
-                    overflow: auto; /* للسماح بالتمرير إذا كانت الصورة كبيرة */
+                    overflow: auto;
                 }
                 .loading-spinner {
                     border: 4px solid rgba(0, 0, 0, 0.1);
@@ -44,10 +149,10 @@ function showCertificateInNewWindow(url) {
                     100% { transform: rotate(360deg); }
                 }
                 #certificateImage {
-                    max-width: 100%; /* اجعل الصورة تتكيف مع عرض النافذة */
+                    max-width: 100%;
                     height: auto;
-                    display: none; /* إخفاء الصورة مبدئيًا */
-                    box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* ظل خفيف لتحسين المظهر */
+                    display: none;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
                 }
             </style>
         </head>
@@ -58,26 +163,56 @@ function showCertificateInNewWindow(url) {
                 document.getElementById('certificateImage').onload = function() {
                     document.querySelector('.loading-spinner').style.display = 'none';
                     this.style.display = 'block'; // إظهار الصورة عند اكتمال التحميل
-                    // يمكنك هنا تغيير حجم النافذة لتناسب الصورة إذا أردت
-                    // window.resizeTo(this.naturalWidth, this.naturalHeight); // قد لا يعمل في كل المتصفحات
                 };
                 document.getElementById('certificateImage').onerror = function() {
                     document.querySelector('.loading-spinner').style.display = 'none';
                     this.style.display = 'none';
-                    document.body.innerHTML = '<h1>عذراً، حدث خطأ في تحميل الشهادة.</h1>';
+                    document.body.innerHTML = '<h1>عذراً، حدث خطأ في تحميل الشهادة. يرجى المحاولة مرة أخرى لاحقاً.</h1>';
+                    console.error('Failed to load certificate image from:', this.src);
                 };
             </script>
         </body>
         </html>
     `;
 
-    // 3. كتابة المحتوى في النافذة الجديدة
     newWindow.document.write(pageContent);
-    newWindow.document.close(); // مهم جداً لإعلام المتصفح بانتهاء كتابة المحتوى
+    newWindow.document.close();
 }
 
-// ... (بقية الكود كما هي) ...
+/**
+ * دالة لحذف الطالب.
+ */
+async function deleteStudent(studentId) {
+    if (!confirm('هل أنت متأكد أنك تريد حذف هذا الطالب؟')) {
+        return;
+    }
+    try {
+        const response = await fetch('/api/deleteStudent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ id: studentId }),
+        });
+        const data = await response.json();
 
-// لا تنسى استدعاء الدوال لجعلها متاحة عالمياً
+        if (response.ok) {
+            alert(data.message || 'تم حذف الطالب بنجاح!');
+            fetchStudents(); // إعادة جلب وعرض البيانات بعد الحذف
+        } else {
+            alert(data.error || 'حدث خطأ أثناء محاولة حذف الطالب.');
+            console.error('فشل الحذف:', data.error);
+        }
+    } catch (error) {
+        console.error('خطأ في عملية الحذف:', error);
+        alert('حدث خطأ غير متوقع أثناء الحذف.');
+    }
+}
+
+// استدعاء الدالة لجلب وعرض الطلاب عند تحميل الصفحة
+fetchStudents();
+
+// لجعل الدوال متاحة عالمياً (مثل deleteStudent و showCertificateInNewWindow) 
+// بحيث يمكن استدعاؤها من خلال onclick في HTML
 window.deleteStudent = deleteStudent;
 window.showCertificateInNewWindow = showCertificateInNewWindow;
