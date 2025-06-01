@@ -72,7 +72,7 @@
             text-align: center;
             white-space: nowrap; /* لمنع الأزرار من التكسر لأسطر */
         }
-        .edit-btn, .delete-btn, .print-btn {
+        .edit-btn, .delete-btn, .print-btn, .print-new-window-btn { /* أضفنا .print-new-window-btn هنا */
             padding: 8px 12px;
             border: none;
             border-radius: 4px;
@@ -92,6 +92,10 @@
         }
         .print-btn {
             background-color: #6c757d;
+            color: white;
+        }
+        .print-new-window-btn { /* ستايل الزر الجديد للشهادة الثانية */
+            background-color: #007bff; /* لون أزرق مميز */
             color: white;
         }
         .no-results {
@@ -226,7 +230,7 @@
     <div id="certificateModal" class="modal">
         <div class="modal-content">
             <span class="close-button" title="إغلاق">&times;</span>
-            <h2>الشهادة</h2>
+            <h2>الشهادة الأولى</h2>
             <div class="certificate-display-area">
                 <div class="loading-spinner" id="modalLoadingSpinner">جاري تحميل الشهادة...</div>
                 <img
@@ -245,7 +249,7 @@
         const studentsTbody = document.getElementById('students_tbody');
         const noResultsMessage = document.getElementById('no_results');
 
-        // عناصر الـ Modal الجديدة
+        // عناصر الـ Modal للشهادة الأولى
         const certificateModal = document.getElementById('certificateModal');
         const closeButton = certificateModal.querySelector('.close-button');
         const modalLoadingSpinner = document.getElementById('modalLoadingSpinner');
@@ -307,18 +311,13 @@
                     deleteCell.classList.add('actions');
                     deleteCell.innerHTML = `<button class="delete-btn" onclick="deleteStudent('${student.id}')">حذف</button>`;
 
-                    // **تعديل مهم: استخدام دالة showCertificateInModal الجديدة لكلا الزرين**
                     const printCellOne = row.insertCell();
-                    // تأكد أن /api/generateCertificateOne1 موجود لديك ويستقبل ID الطالب
+                    // استخدام دالة showCertificateInModal للشهادة الأولى (تفتح في modal)
                     printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificateInModal('/api/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
 
                     const printCellTwo = row.insertCell();
-                    // **هنا يتم استدعاء API الشهادة الثانية**
-                    // إذا كان generateCertificateTwo2 لا يأخذ ID، أزل ?id=${student.id}
-                    // إذا كان النص ثابتًا كما في الكود الذي أرسلته لي، فقط اكتب:
-                    // printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificateInModal('/api/generateCertificateTwo2')">عرض الثانية</button>`;
-                    printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificateInModal('/api/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>`;
-
+                    // **التغيير هنا: استخدام `openCertificateInNewWindow` للشهادة الثانية**
+                    printCellTwo.innerHTML = `<button class="print-new-window-btn" onclick="openCertificateInNewWindow('/api/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>`;
                 });
             } else {
                 studentsTbody.innerHTML = '<tr><td colspan="19">لا يوجد أي طلاب مسجلين.</td></tr>';
@@ -335,42 +334,41 @@
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
-        // دالة جديدة لعرض الشهادة داخل الـ Modal
+        // دالة لعرض الشهادة داخل الـ Modal (خاصة بالشهادة الأولى)
         function showCertificateInModal(certificateUrl) {
-            // إظهار الـ Modal
-            certificateModal.style.display = 'flex'; // استخدام flex لتوسيط المحتوى
+            certificateModal.style.display = 'flex';
+            modalCertificateImage.src = '';
+            modalCertificateImage.classList.remove('loaded');
+            modalLoadingSpinner.style.display = 'block';
+            modalLoadingSpinner.innerText = 'جاري تحميل الشهادة...';
 
-            // إعادة تعيين حالة الصورة والمؤشر
-            modalCertificateImage.src = ''; // مسح src السابق
-            modalCertificateImage.classList.remove('loaded'); // إزالة فئة التحميل
-            modalLoadingSpinner.style.display = 'block'; // إظهار مؤشر التحميل
-            modalLoadingSpinner.innerText = 'جاري تحميل الشهادة...'; // إعادة تعيين النص
-
-            // تعيين src للصورة وبدء التحميل
             modalCertificateImage.src = certificateUrl;
 
-            // إضافة معالجات أحداث التحميل للتحكم في الوميض
             modalCertificateImage.onload = () => {
-                modalCertificateImage.classList.add('loaded'); // الصورة حملت، إظهارها
-                modalLoadingSpinner.style.display = 'none'; // إخفاء مؤشر التحميل
+                modalCertificateImage.classList.add('loaded');
+                modalLoadingSpinner.style.display = 'none';
             };
 
             modalCertificateImage.onerror = () => {
-                modalLoadingSpinner.innerText = 'فشل تحميل الشهادة.'; // عرض رسالة خطأ
-                modalLoadingSpinner.style.color = 'red'; // تغيير لون الخطأ
-                modalCertificateImage.style.display = 'none'; // إخفاء الصورة في حالة الخطأ
+                modalLoadingSpinner.innerText = 'فشل تحميل الشهادة.';
+                modalLoadingSpinner.style.color = 'red';
+                modalCertificateImage.style.display = 'none';
             };
+        }
+
+        // **دالة جديدة لفتح الشهادة في نافذة متصفح جديدة (خاصة بالشهادة الثانية)**
+        function openCertificateInNewWindow(certificateUrl) {
+            window.open(certificateUrl, '_blank');
         }
 
         // دالة لإغلاق الـ Modal
         closeButton.onclick = () => {
-            certificateModal.style.display = 'none'; // إخفاء الـ Modal
-            // إعادة تهيئة حالة الصورة والمؤشر عند الإغلاق
-            modalCertificateImage.src = ''; // مسح src لتجنب بقاء الصورة في الذاكرة
+            certificateModal.style.display = 'none';
+            modalCertificateImage.src = '';
             modalCertificateImage.classList.remove('loaded');
-            modalCertificateImage.style.display = 'block'; // إعادة إظهار الصورة تحسبًا للعرض التالي
-            modalLoadingSpinner.innerText = 'جاري تحميل الشهادة...'; // إعادة تعيين نص المؤشر
-            modalLoadingSpinner.style.color = '#555'; // إعادة تعيين لون المؤشر
+            modalCertificateImage.style.display = 'block';
+            modalLoadingSpinner.innerText = 'جاري تحميل الشهادة...';
+            modalLoadingSpinner.style.color = '#555';
         };
 
         // إغلاق الـ Modal عند النقر خارج المحتوى
