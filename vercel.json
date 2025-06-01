@@ -48,14 +48,5 @@
       "source": "/api/generateCertificateTwo2/:id",
       "destination": "/api/generateCertificateTwo2.js"
     }
-  ],
-  "build": {
-    "env": {
-      "VERCEL_FORCE_NO_BUILD_CACHE": "1"
-    }
-  },
-  "includeFiles": [
-    "public/fonts/**/*",
-    "public/images/full/wwee.png"
   ]
 }
