@@ -307,13 +307,15 @@
                     deleteCell.classList.add('actions');
                     deleteCell.innerHTML = `<button class="delete-btn" onclick="deleteStudent('${student.id}')">حذف</button>`;
 
+                    // **تعديل مهم: استخدام دالة showCertificateInModal الجديدة لكلا الزرين**
                     const printCellOne = row.insertCell();
                     // تأكد أن /api/generateCertificateOne1 موجود لديك ويستقبل ID الطالب
                     printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificateInModal('/api/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
 
                     const printCellTwo = row.insertCell();
-                    // **التعديل هنا لفتح الشهادة الثانية في تبويب جديد**
-                    printCellTwo.innerHTML = `<button class="print-btn" onclick="window.open('/api/generateCertificateTwo2?id=${student.id}', '_blank')">عرض الثانية</button>`;
+                    // **هنا تم التعديل: استخدام openCertificateInNewTab لفتح الشهادة الثانية في تبويب جديد**
+                    // إذا كان generateCertificateTwo2 لا يأخذ ID، أزل ?id=${student.id}
+                    printCellTwo.innerHTML = `<button class="print-btn" onclick="openCertificateInNewTab('/api/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>`;
 
                 });
             } else {
@@ -331,7 +333,12 @@
             noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
         });
 
-        // دالة لعرض الشهادة داخل الـ Modal (تظل كما هي لزر الشهادة الأولى)
+        // دالة لفتح الشهادة في نافذة جديدة (جديدة)
+        function openCertificateInNewTab(certificateUrl) {
+            window.open(certificateUrl, '_blank');
+        }
+
+        // دالة لعرض الشهادة داخل الـ Modal (مخصصة للشهادة الأولى إذا أردت)
         function showCertificateInModal(certificateUrl) {
             // إظهار الـ Modal
             certificateModal.style.display = 'flex'; // استخدام flex لتوسيط المحتوى

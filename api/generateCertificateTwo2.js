@@ -6,20 +6,20 @@ import path from 'path';
 import fs from 'fs/promises';
 
 // **مسار صورة الشهادة:**
-// تأكد أن ملف wwee.png موجود الآن في: [جذر_مشروعك]/api/images/full/wwee.png
-const CERTIFICATE_IMAGE_PATH = path.join(__dirname, 'images', 'full', 'wwee.png');
+// تأكد أن ملف wwee.png موجود هنا: [جذر_مشروعك]/public/images/full/wwee.png
+const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.png');
 
 // **مسار الخط الجديد (Arial):**
-// تأكد أن ملف arial.ttf موجود الآن في: [جذر_مشروعك]/api/fonts/arial.ttf
+// تأكد أن ملف arial.ttf موجود هنا: [جذر_مشروعك]/public/fonts/arial.ttf
 const FONT_FILENAME = 'arial.ttf';
-const FONT_PATH = path.join(__dirname, 'fonts', FONT_FILENAME);
+const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
 // **اسم الخط للاستخدام في CSS (مهم لـ sharp):**
 const FONT_CSS_FAMILY_NAME = 'Arial'; // الاسم الشائع لخط Arial
 
 // تعريف ألوان النصوص
-const RED_COLOR_HEX = '#FF0000';    // أحمر
-const BLUE_COLOR_HEX = '#0000FF';   // أزرق
+const RED_COLOR_HEX = '#FF0000';     // أحمر
+const BLUE_COLOR_HEX = '#0000FF';    // أزرق
 const GREEN_COLOR_HEX = '#00FF00';  // أخضر
 
 // تعريف إحداثيات ومواصفات نصوص الترحيب
@@ -156,12 +156,12 @@ export default async function handler(req, res) {
         const finalImageBuffer = await processedImage
             .png({
                 quality: 90,        // جودة الصورة (من 1 إلى 100). يمكنك تعديلها.
-                progressive: false // هذا الحل لمنع التحميل التدريجي
+                progressive: false  // **هذا هو الحل الرئيسي لمنع التحميل التدريجي.**
             })
             .toBuffer();
 
         res.setHeader('Content-Type', 'image/png');
-        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate');
+        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate'); // لتقليل إعادة التحميل غير الضرورية
         return res.status(200).send(finalImageBuffer);
 
     } catch (error) {
