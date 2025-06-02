@@ -82,31 +82,11 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
     }
 
     // بناء SVG النصي مع تضمين الخط (ttf) مباشرة كـ Base64
-    // **تمت استعادة طريقة تضمين الخط التي كانت تعمل لديك سابقًا.**
-    const svgText = `
-        <svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
-            <style>
-                @font-face {
-                    font-family: '${fontCssFamilyName}';
-                    src: url('data:font/ttf;base64,${fontBuffer.toString('base64')}') format('truetype');
-                }
-                text {
-                    font-family: '${fontCssFamilyName}', sans-serif; /* استخدام اسم الخط المحدد مع sans-serif كبديل */
-                    font-size: ${fontSize}px;
-                    fill: ${color};
-                    text-anchor: ${textAnchor};
-                    dominant-baseline: middle;
-                    direction: rtl;
-                    /* تم إزالة unicode-bidi: bidi-override; لتجنب المشاكل المحتملة في العرض */
-                }
-            </style>
-            <text x="${xPosition}" y="${svgHeight / 2}">
-                ${text}
-            </text>
-        </svg>
-    `;
+    // **تمت إزالة الأسطر الفارغة الزائدة والمسافات قدر الإمكان لجعل الـ SVG أكثر إحكامًا.**
+    const svgText = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg"><style>@font-face{font-family:'${fontCssFamilyName}';src:url('data:font/ttf;base64,${fontBuffer.toString('base64')}') format('truetype');}text{font-family:'${fontCssFamilyName}', sans-serif;font-size:${fontSize}px;fill:${color};text-anchor:${textAnchor};dominant-baseline:middle;direction:rtl;}</style><text x="${xPosition}" y="${svgHeight / 2}">${text}</text></svg>`;
+    
     // تحويل SVG إلى صورة (PNG مؤقتة) يمكن لـ Sharp دمجها بسهولة كطبقة
-    // **التعديل هنا: إضافة .trim() لضمان إزالة أي مسافات بيضاء أو أسطر جديدة غير ضرورية من بداية ونهاية الـ SVG string.**
+    // **ابقاء .trim() لضمان إزالة أي مسافات بيضاء أو أسطر جديدة غير ضرورية من بداية ونهاية الـ SVG string.**
     return sharp(Buffer.from(svgText.trim())).png().toBuffer();
 }
 
