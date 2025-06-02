@@ -12,34 +12,34 @@ const FONT_FILENAME = 'arial.ttf';
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 const FONT_CSS_FAMILY_NAME = 'Arial';
 
-const BLACK_COLOR_HEX = '#000000'; // اللون الأسود غالباً هو الأوضح
+const BLACK_COLOR_HEX = '#000000'; // اللون الأسود هو الأنسب للوضوح
 
-// تم تعديل إحداثيات X و Y هنا لرفع النصوص لأعلى وجعلها مرئية
+// تم تعديل هذا الكائن لضبط أماكن وحجم النصوص الثلاثة المطلوبة
 const CERTIFICATE_TEXT_POSITIONS = {
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
         field: "residency_number",
-        x: 100, // مثال: إحداثي X من اليسار
-        y: 200, // مثال: إحداثي Y (أعلى الصفحة)
-        fontSize: 40, // زيادة حجم الخط قليلاً ليكون أوضح
+        x: 150, // مثال: إحداثي X من اليسار
+        y: 800, // مثال: إحداثي Y (أعلى قليلاً من منتصف الصورة)
+        fontSize: 40, // حجم الخط
         color: BLACK_COLOR_HEX,
         gravity: 'west' // النص يبدأ من اليسار
     },
     CHASSIS_NUMBER: {
         label: "رقم الهيكل:",
         field: "chassis_number",
-        x: 100, // نفس إحداثي X، بحيث تكون تحت رقم الإقامة مباشرة
-        y: 260, // Y ليكون تحت رقم الإقامة بمسافة مناسبة (200 + 40 + 20) = 260
-        fontSize: 40,
+        x: 900, // مثال: إحداثي X من اليمين (نصف الصورة تقريباً)
+        y: 800, // نفس إحداثي Y لرقم الإقامة، ليكون على نفس السطر
+        fontSize: 40, // نفس حجم الخط لرقم الإقامة
         color: BLACK_COLOR_HEX,
-        gravity: 'west'
+        gravity: 'west' // النص يبدأ من اليسار
     },
     CREATED_AT: {
         label: "تاريخ الإضافة:",
         field: "created_at",
-        x: 100, // نفس إحداثي X
-        y: 320, // Y ليكون تحت رقم الهيكل بمسافة مناسبة (260 + 40 + 20) = 320
-        fontSize: 40,
+        x: 155, // إحداثي X من اليسار، ليكون تحت رقم الإقامة والهيكل
+        y: 900, // Y ليكون تحت النصوص الأخرى بمسافة مناسبة
+        fontSize: 40, // نفس حجم الخط
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     }
@@ -58,10 +58,8 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
         align = 'right';
     }
 
-    // حجم SVG يجب أن يكون كافياً لاحتواء النص
-    // يمكنك زيادة ارتفاع SVG قليلاً إذا كانت النصوص تظهر مقطوعة
-    const estimatedTextHeight = fontSize * 1.5; // تقدير تقريبي لارتفاع النص
-    const textSvgHeight = Math.max(svgHeight, estimatedTextHeight + 20); // ضمان ارتفاع كافٍ
+    const estimatedTextHeight = fontSize * 1.5;
+    const textSvgHeight = Math.max(svgHeight, estimatedTextHeight + 20);
 
     return sharp({
         text: {
@@ -69,7 +67,7 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
             font: fontCssFamilyName,
             fontfile: FONT_PATH,
             width: svgWidth,
-            height: textSvgHeight, // استخدام الارتفاع المحدث
+            height: textSvgHeight,
             align: align,
             rgba: true
         }
@@ -78,7 +76,7 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
 
 
 export default async function handler(req, res) {
-    console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 (نسخة مختصرة ومعدلة الإحداثيات) ---');
+    console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 (نسخة نهائية مع ضبط الإحداثيات) ---');
 
     if (req.method !== 'GET') {
         console.log('طلب غير مسموح به:', req.method);
