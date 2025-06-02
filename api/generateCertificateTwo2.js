@@ -1,6 +1,12 @@
+import { MongoClient, ObjectId } from 'mongodb'; // هذه المكتبة الآن ستصبح ضرورية لجلب البيانات
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
+
+// **ملاحظة هامة:** يجب تعريف MONGODB_URI كمتغير بيئة في Vercel
+const uri = process.env.MONGODB_URI;
+const dbName = 'Cluster0'; // تأكد من اسم قاعدة البيانات الصحيح
+const collectionName = 'enrolled_students_tbl'; // تأكد من اسم الـ collection الصحيح
 
 // مسار صورة الشهادة
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg'); // تأكد من أنه .jpg أو .png حسب ملفك الفعلي
@@ -16,10 +22,12 @@ const FONT_CSS_FAMILY_NAME = 'Arial';
 const RED_COLOR_HEX = '#FF0000';
 const BLUE_COLOR_HEX = '#0000FF';
 const GREEN_COLOR_HEX = '#00FF00';
-const BLACK_COLOR_HEX = '#000000'; // أضفت اللون الأسود للنص الرئيسي
+const BLACK_COLOR_HEX = '#000000';
 
-// تعريف إحداثيات ومواصفات نصوص الترحيب
-const GREETING_POSITIONS = {
+// تعريف إحداثيات ومواصفات نصوص الترحيب والحقول الجديدة
+// **هذه الإحداثيات (x, y) هي قيم تقديرية. يجب عليك تعديلها بعناية لتناسب تصميم شهادتك (wwee.jpg).**
+const CERTIFICATE_TEXT_POSITIONS = {
+    // نصوص الترحيب الحالية
     GREETING1: {
         text: "أهلاً وسهلاً بكم!",
         x: 0,
@@ -28,8 +36,8 @@ const GREETING_POSITIONS = {
         color: RED_COLOR_HEX,
         gravity: 'center'
     },
-    GREETED_NAME: { // هذا هو النص الذي كان مفقودًا
-        text: "محمد أحمد علي", // هذا النص يجب أن يأتي من بيانات الطالب ديناميكيًا لاحقًا
+    GREETED_NAME: {
+        text: "محمد أحمد علي", // هذا سيتم استبداله باسم الطالب
         x: 0,
         y: 180, // هذا يجب أن يكون موضع y الذي تريده للاسم
         fontSize: 55,
@@ -51,24 +59,71 @@ const GREETING_POSITIONS = {
         fontSize: 25,
         color: GREEN_COLOR_HEX,
         gravity: 'east'
+    },
+    // --- الحقول الجديدة من بيانات الطالب ---
+    RESIDENCY_NUMBER: {
+        label: "رقم الإقامة:",
+        field: "residency_number", // اسم الحقل في قاعدة البيانات
+        x: 100, // مثال لموضع الحقل، اضبطه حسب تصميمك
+        y: 500, // مثال لموضع الحقل، اضبطه حسب تصميمك
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    SERIAL_NUMBER: {
+        label: "الرقم التسلسلي:",
+        field: "serial_number", // اسم الحقل في قاعدة البيانات
+        x: 100,
+        y: 550,
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    PLATE_NUMBER: {
+        label: "رقم اللوحة:",
+        field: "plate_number", // اسم الحقل في قاعدة البيانات
+        x: 100,
+        y: 600,
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    INSPECTION_DATE: {
+        label: "تاريخ الفحص:",
+        field: "inspection_date", // اسم الحقل في قاعدة البيانات
+        x: 100,
+        y: 650,
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
     }
+    // يمكنك إضافة المزيد من الحقول هنا بنفس الطريقة
+    // على سبيل المثال:
+    // CAR_TYPE: {
+    //     label: "نوع السيارة:",
+    //     field: "car_type",
+    //     x: 100,
+    //     y: 700,
+    //     fontSize: 30,
+    //     color: BLACK_COLOR_HEX,
+    //     gravity: 'west'
+    // },
+    // CHASSIS_NUMBER: {
+    //     label: "رقم الهيكل:",
+    //     field: "chassis_number",
+    //     x: 100,
+    //     y: 750,
+    //     fontSize: 30,
+    //     color: BLACK_COLOR_HEX,
+    //     gravity: 'west'
+    // }
 };
 
 /**
  * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp باستخدام sharp.text().
- * @param {string} text - النص المراد عرضه.
- * @param {number} fontSize - حجم الخط بالبكسل.
- * @param {string} color - لون النص (مثال: '#FF0000').
- * @param {number} svgWidth - العرض الكلي لمساحة النص (يجب أن يكون عرض الصورة).
- * @param {number} svgHeight - الارتفاع الكلي لمساحة النص (مربع نص مؤقت).
- * @param {string} gravity - محاذاة النص ('center', 'west', 'east').
- * @param {Buffer} fontBuffer - بيانات ملف الخط (لن يتم استخدامها هنا بشكل مباشر ولكن تبقى للمستقبل).
- * @param {string} fontCssFamilyName - الاسم الذي سيتم استخدامه للخط في Pango.
- * @returns {Buffer} - كائن Buffer يحتوي على بيانات النص.
  */
-async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontBuffer, fontCssFamilyName) {
-    // ترجمة 'gravity' إلى محاذاة 'align' لـ sharp.text()
-    let align = 'centre'; // الافتراضي هو 'centre'
+async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontCssFamilyName) {
+    let align = 'centre';
     if (gravity === 'west') {
         align = 'left';
     } else if (gravity === 'east') {
@@ -77,13 +132,13 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
 
     return sharp({
         text: {
-            text: `<span foreground="${color}">${text}</span>`, // استخدام Pango Markup لتطبيق اللون
-            font: fontCssFamilyName, // اسم الخط الذي يجب أن يتعرف عليه sharp
-            fontfile: FONT_PATH, // مسار ملف الخط (مهم جدًا هنا)
-            width: svgWidth, // عرض المنطقة التي سيتم رسم النص فيها
-            height: svgHeight, // ارتفاع المنطقة التي سيتم رسم النص فيها
+            text: `<span foreground="${color}">${text}</span>`,
+            font: fontCssFamilyName,
+            fontfile: FONT_PATH,
+            width: svgWidth,
+            height: svgHeight,
             align: align,
-            rgba: true // يجب أن تكون true لاستخدام الألوان في Pango Markup
+            rgba: true
         }
     }).png().toBuffer();
 }
@@ -97,7 +152,36 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
+    const { id } = req.query; // جلب الـ ID من URL
+
+    if (!id) {
+        console.log('معرف الطالب غير موجود في الطلب.');
+        return res.status(400).json({ error: 'معرف الطالب (ID) مطلوب.' });
+    }
+
+    let client;
     try {
+        // 1. الاتصال بقاعدة البيانات وجلب بيانات الطالب
+        console.log('جارٍ الاتصال بقاعدة البيانات...');
+        client = new MongoClient(uri);
+        await client.connect();
+        console.log('تم الاتصال بقاعدة البيانات بنجاح.');
+
+        const db = client.db(dbName);
+        const collection = db.collection(collectionName);
+
+        // جلب الطالب باستخدام الـ ID. تأكد أن الـ ID في MongoDB هو ObjectId إذا كان هذا هو نوعه.
+        // إذا كان ID في MongoDB هو string عادي، استخدم { id: id }
+        const student = await collection.findOne({ id: id }); // افتراض أن الـ ID هو string
+
+        if (!student) {
+            console.log('لم يتم العثور على طالب بالمعرف:', id);
+            return res.status(404).json({ error: 'لم يتم العثور على طالب بهذا المعرف.' });
+        }
+        console.log('تم جلب بيانات الطالب:', student.residency_number);
+
+
+        // 2. التحقق من وجود صورة الشهادة
         console.log('جارٍ التحقق من صورة الشهادة...');
         try {
             await fs.access(CERTIFICATE_IMAGE_PATH);
@@ -105,7 +189,7 @@ export default async function handler(req, res) {
         } catch (fileError) {
             console.error('خطأ: صورة الشهادة غير موجودة أو لا يمكن الوصول إليها:', fileError.message);
             return res.status(500).json({
-                error: 'صورة الشهادة غير موجودة أو لا يمكن الوصول إليها.',
+                error: 'صورة الشهادة غير موجودة أو لا يمكن الوصول إليها. يرجى التحقق من مسار ملف الصورة في النشر.',
                 details: fileError.message,
                 path: CERTIFICATE_IMAGE_PATH
             });
@@ -121,9 +205,6 @@ export default async function handler(req, res) {
         let processedImage = baseImage;
 
         console.log('جارٍ التحقق من ملف الخط...');
-        // في هذا الإصدار، لا نقوم بقراءة الخط إلى buffer هنا، بل نمرر المسار مباشرةً إلى sharp.text()
-        // fs.readFile(FONT_PATH) لم تعد ضرورية هنا لأن sharp.text تتولى قراءة الملف بنفسها عبر 'fontfile'
-        // نتحقق من وجوده فقط
         try {
             await fs.access(FONT_PATH);
             console.log('ملف الخط موجود في المسار المحدد:', FONT_PATH);
@@ -137,45 +218,55 @@ export default async function handler(req, res) {
         }
 
         console.log('جارٍ إضافة النصوص إلى الصورة...');
-        for (const key in GREETING_POSITIONS) {
-            const pos = GREETING_POSITIONS[key];
-            // تحديد ارتفاع مناسب لمربع النص لضمان ظهور النص كاملاً
+        for (const key in CERTIFICATE_TEXT_POSITIONS) {
+            const pos = CERTIFICATE_TEXT_POSITIONS[key];
+            let textToDisplay = pos.text; // النص الافتراضي لنصوص الترحيب
+
+            // إذا كان هذا الحقل هو من بيانات الطالب، قم باستبدال النص
+            if (pos.field && student[pos.field]) {
+                textToDisplay = `${pos.label || ''} ${student[pos.field]}`;
+            } else if (key === 'GREETED_NAME') {
+                // يمكنك جلب الاسم من بيانات الطالب هنا.
+                // سأفترض أن لديك حقل 'name' أو 'student_name' في بيانات الطالب.
+                // إذا لم يكن كذلك، يرجى إخباري باسم الحقل الصحيح.
+                textToDisplay = `الاسم: ${student.student_name || 'اسم الطالب غير متوفر'}`;
+                // يمكنك أيضًا تحديد الاسم الكامل للطالب إذا كانت البيانات مفصولة
+                // textToDisplay = `${student.first_name || ''} ${student.middle_name || ''} ${student.last_name || ''}`.trim();
+            }
+
             const textHeight = pos.fontSize * 2; // ضعف حجم الخط كارتفاع تقريبي للمربع
 
-            console.log(`إنشاء نص لـ: ${key} بـ: ${pos.text}`);
+            console.log(`إنشاء نص لـ: ${key} بـ: ${textToDisplay}`);
 
             const textOverlayBuffer = await createSharpTextBuffer(
-                pos.text,
+                textToDisplay,
                 pos.fontSize,
                 pos.color,
-                imageWidth, // عرض النص بالكامل هو عرض الصورة
-                textHeight, // الارتفاع الذي حسبناه
+                imageWidth,
+                textHeight,
                 pos.gravity,
-                null, // لا نحتاج fontBuffer هنا لأن sharp.text() يستخدم fontfile
                 FONT_CSS_FAMILY_NAME
             );
             console.log(`تم إنشاء Buffer للنص ${key}`);
 
-            // تركيب النص كـ overlay
             processedImage = await processedImage.composite([{
                 input: textOverlayBuffer,
                 left: pos.x,
                 top: pos.y,
-                // blend: 'overlay' // يمكن إزالة blend إذا لم تكن بحاجة لتأثير خاص
             }]);
             console.log(`تم تركيب النص ${key}`);
         }
 
         console.log('جارٍ إنشاء الصورة النهائية...');
         const finalImageBuffer = await processedImage
-            .flatten({ background: { r: 255, g: 255, b: 255, alpha: 1 } }) // إعادة Flattening لمنع مشاكل الشفافية
-            .jpeg({ // تغيير إلى jpeg إذا كانت الصورة النهائية يجب أن تكون jpeg
+            .flatten({ background: { r: 255, g: 255, b: 255, alpha: 1 } })
+            .jpeg({
                 quality: 85,
                 progressive: true
             }).toBuffer();
         console.log('تم إنشاء الصورة النهائية.');
 
-        res.setHeader('Content-Type', 'image/jpeg'); // تغيير إلى image/jpeg إذا كانت الصورة النهائية jpeg
+        res.setHeader('Content-Type', 'image/jpeg');
         res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate');
         console.log('تم إرسال الصورة بنجاح.');
         return res.status(200).send(finalImageBuffer);
@@ -201,5 +292,10 @@ export default async function handler(req, res) {
             details: error.message,
             stack: error.stack
         });
+    } finally {
+        if (client) {
+            await client.close();
+            console.log('تم إغلاق اتصال قاعدة البيانات.');
+        }
     }
 }
