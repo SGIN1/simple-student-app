@@ -7,6 +7,13 @@ const noResultsMessage = document.getElementById('no_results');
 
 let allStudents = []; // لتخزين جميع بيانات الطلاب التي تم جلبها
 
+// تعريف عناصر الـ Modal
+const certificateModal = document.getElementById('certificateModal');
+const closeButton = document.querySelector('.close-button'); // تأكد من أن هذا يختار الزر الصحيح داخل الـ Modal
+const modalCertificateImage = document.getElementById('modalCertificateImage');
+const modalLoadingContainer = document.getElementById('modalLoadingContainer');
+const modalErrorMessage = document.getElementById('modalErrorMessage');
+
 /**
  * دالة لجلب بيانات الطلاب من Vercel API Function.
  * تتضمن معالجة مرنة لشكل البيانات القادمة من الخادم.
@@ -16,21 +23,17 @@ async function fetchStudents() {
         const response = await fetch('/api/getStudent'); // تأكد أن هذا المسار صحيح
         const data = await response.json();
 
-        // **هام لـ Debugging:** اطبع البيانات في Console المتصفح لتتأكد من شكلها
         console.log('Fetched data from /api/getStudent:', data);
 
         if (response.ok) {
-            // تحقق من أن البيانات هي مصفوفة مباشرة
             if (Array.isArray(data)) {
                 allStudents = data;
                 renderStudentsTable(allStudents);
             }
-            // أو إذا كانت البيانات ملفوفة داخل كائن (مثال: { students: [...] } أو { data: [...] })
             else if (data && (Array.isArray(data.students) || Array.isArray(data.data))) {
-                allStudents = data.students || data.data; // استخدم الاسم الصحيح للعنصر الذي يحتوي على المصفوفة
+                allStudents = data.students || data.data;
                 renderStudentsTable(allStudents);
             }
-            // إذا لم تكن البيانات مصفوفة بأي شكل متوقع
             else {
                 console.error('صيغة بيانات الطلاب المستلمة غير صحيحة:', data);
                 studentsTbody.innerHTML = '<tr><td colspan="19">صيغة بيانات الطلاب غير صحيحة. يرجى مراجعة سجلات الخادم أو المتصفح.</td></tr>';
@@ -59,20 +62,20 @@ function renderStudentsTable(students) {
             const row = studentsTbody.insertRow();
             // تأكد أن أسماء الحقول هنا (student.id, student.serial_number, إلخ) تطابق تمامًا أسماء الحقول في قاعدة بياناتك والبيانات التي يعيدها getStudent.js
             row.insertCell().textContent = student.id;
-            row.insertCell().textContent = student.serial_number || ''; // إضافة || '' لتجنب ظهور 'null' أو 'undefined'
+            row.insertCell().textContent = student.serial_number || '';
             row.insertCell().textContent = student.residency_number || '';
             row.insertCell().textContent = student.document_serial_number || '';
             row.insertCell().textContent = student.plate_number || '';
-            row.insertCell().textContent = student.inspection_date ? new Date(student.inspection_date).toLocaleDateString('ar-SA') : ''; // تنسيق التاريخ
+            row.insertCell().textContent = student.inspection_date ? new Date(student.inspection_date).toLocaleDateString('ar-SA') : '';
             row.insertCell().textContent = student.manufacturer || '';
-            row.insertCell().textContent = student.inspection_expiry_date ? new Date(student.inspection_expiry_date).toLocaleDateString('ar-SA') : ''; // تنسيق التاريخ
+            row.insertCell().textContent = student.inspection_expiry_date ? new Date(student.inspection_expiry_date).toLocaleDateString('ar-SA') : '';
             row.insertCell().textContent = student.car_type || '';
             row.insertCell().textContent = student.counter_reading || '';
             row.insertCell().textContent = student.chassis_number || '';
             row.insertCell().textContent = student.vehicle_model || '';
             row.insertCell().textContent = student.color || '';
             row.insertCell().textContent = student.serial_number_duplicate || '';
-            row.insertCell().textContent = student.created_at ? new Date(student.created_at).toLocaleString('ar-SA') : ''; // تنسيق التاريخ والوقت
+            row.insertCell().textContent = student.created_at ? new Date(student.created_at).toLocaleString('ar-SA') : '';
 
             const editCell = row.insertCell();
             editCell.classList.add('actions');
@@ -82,11 +85,9 @@ function renderStudentsTable(students) {
             deleteCell.classList.add('actions');
             deleteCell.innerHTML = `<button class="delete-btn" onclick="deleteStudent('${student.id}')">حذف</button>`;
 
-            const printCellOne = row.insertCell();
-            printCellOne.innerHTML = `<button class="print-btn" onclick="showCertificateInNewWindow('/api/generateCertificateOne1?id=${student.id}')">عرض الأولى</button>`;
-
+            // **الزر الخاص بالشهادة الثانية فقط - تم حذف زر الشهادة الأولى**
             const printCellTwo = row.insertCell();
-            printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificateInNewWindow('/api/generateCertificateTwo2?id=${student.id}')">عرض الثانية</button>`;
+            printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificateInNewWindow('/api/generateCertificateTwo2?id=${student.id}')">عرض الشهادة</button>`;
         });
     } else {
         studentsTbody.innerHTML = '<tr><td colspan="19">لا يوجد أي طلاب مسجلين.</td></tr>';
@@ -101,121 +102,60 @@ searchInput.addEventListener('keyup', function() {
     const filteredStudents = allStudents.filter(student =>
         (student.residency_number && student.residency_number.toLowerCase().includes(searchTerm)) ||
         (student.serial_number && student.serial_number.toLowerCase().includes(searchTerm))
-        // أضف المزيد من الحقول للبحث فيها إذا أردت
     );
     renderStudentsTable(filteredStudents);
     noResultsMessage.style.display = filteredStudents.length === 0 && searchTerm !== '' ? 'block' : 'none';
 });
 
 /**
- * دالة لفتح الشهادة في نافذة جديدة مع مؤشر تحميل وعرض سلس.
- * **هذه هي الدالة الوحيدة التي سنقوم بتعديلها.**
+ * دالة لفتح الشهادة في نافذة Modal على نفس الصفحة.
+ * @param {string} url - رابط API الذي يولد الشهادة (مثال: '/api/generateCertificateTwo2?id=...')
  */
-function showCertificateInNewWindow(url) {
-    // سيتم استبدال هذه الدالة لاحقًا بالكود الجديد الذي يحتوي على مؤشر التحميل
-    // Placeholder to keep the original structure for now
-    const newWindow = window.open('about:blank', '_blank');
-    if (!newWindow) {
-        alert('المتصفح منع فتح النافذة المنبثقة. يرجى السماح بها.');
-        return;
+async function showCertificateInNewWindow(url) {
+    // 1. إظهار الـ Modal وإعداد حالة التحميل
+    certificateModal.style.display = 'flex'; // استخدم flex لإظهار وتوسيط المحتوى
+    modalLoadingContainer.style.display = 'flex'; // إظهار السبينر
+    modalCertificateImage.style.display = 'none'; // إخفاء الصورة
+    modalErrorMessage.style.display = 'none'; // إخفاء رسالة الخطأ
+    modalCertificateImage.src = ''; // مسح src السابق لضمان إعادة تحميل جديدة
+
+    try {
+        // 2. جلب الصورة كـ Blob (Binary Large Object)
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // 3. قراءة الاستجابة كـ Blob وإنشاء Object URL
+        const imageBlob = await response.blob();
+        const imageUrl = URL.createObjectURL(imageBlob);
+
+        // 4. تعيين مصدر الصورة في الـ Modal وتحميلها
+        modalCertificateImage.src = imageUrl;
+
+        // استخدام Promise لانتظار تحميل الصورة بالكامل
+        await new Promise((resolve, reject) => {
+            modalCertificateImage.onload = () => {
+                URL.revokeObjectURL(imageUrl); // تحرير الـ Object URL بعد التحميل
+                resolve();
+            };
+            modalCertificateImage.onerror = () => {
+                URL.revokeObjectURL(imageUrl); // تحرير حتى في حالة الخطأ
+                reject(new Error('Failed to load image into modal.'));
+            };
+        });
+
+        // 5. إخفاء السبينر وعرض الصورة بعد اكتمال التحميل
+        modalLoadingContainer.style.display = 'none';
+        modalCertificateImage.style.display = 'block';
+
+    } catch (error) {
+        console.error('Error loading certificate:', error);
+        modalLoadingContainer.style.display = 'none';
+        modalErrorMessage.style.display = 'block';
+        modalErrorMessage.textContent = 'عذراً، حدث خطأ في تحميل الشهادة. يرجى المحاولة مرة أخرى لاحقاً.';
     }
-
-    const pageContent = `
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>عرض الشهادة</title>
-            <style>
-                body {
-                    margin: 0;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    min-height: 100vh;
-                    background-color: #f0f0f0;
-                    flex-direction: column;
-                    overflow: auto;
-                    font-family: Arial, sans-serif;
-                    color: #333;
-                }
-                .loading-container {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    z-index: 10;
-                }
-                .loading-spinner {
-                    border: 5px solid rgba(0, 0, 0, 0.1);
-                    border-top: 5px solid #3498db;
-                    border-radius: 50%;
-                    width: 50px;
-                    height: 50px;
-                    animation: spin 1s linear infinite;
-                    margin-bottom: 15px;
-                }
-                .loading-text {
-                    font-size: 1.1em;
-                    color: #555;
-                }
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-                #certificateImage {
-                    max-width: 100%;
-                    height: auto;
-                    display: none;
-                    box-shadow: 0 6px 12px rgba(0,0,0,0.25);
-                    border-radius: 8px;
-                    transition: opacity 0.5s ease-in-out;
-                }
-                .error-message {
-                    color: #d9534f;
-                    font-size: 1.2em;
-                    text-align: center;
-                    padding: 20px;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="loading-container" id="loadingContainer">
-                <div class="loading-spinner"></div>
-                <div class="loading-text">جاري تحضير الشهادة...</div>
-            </div>
-            <img id="certificateImage" alt="Certificate Image">
-            <script>
-                const img = document.getElementById('certificateImage');
-                const loadingContainer = document.getElementById('loadingContainer');
-                const imageUrl = "${url}";
-
-                img.onload = function() {
-                    loadingContainer.style.display = 'none';
-                    img.style.display = 'block';
-                    img.style.opacity = 1;
-                };
-
-                img.onerror = function() {
-                    loadingContainer.style.display = 'none';
-                    img.style.display = 'none';
-                    newWindow.document.body.innerHTML = '<h1 class="error-message">عذراً، حدث خطأ في تحميل الشهادة. يرجى المحاولة مرة أخرى لاحقاً.</h1>';
-                    console.error('Failed to load certificate image from:', imageUrl);
-                };
-
-                img.src = imageUrl;
-            </script>
-        </body>
-        </html>
-    `;
-
-    newWindow.document.write(pageContent);
-    newWindow.document.close();
 }
 
 /**
@@ -247,6 +187,20 @@ async function deleteStudent(studentId) {
         alert('حدث خطأ غير متوقع أثناء الحذف.');
     }
 }
+
+// إغلاق الـ Modal عند النقر على زر الإغلاق (X)
+closeButton.addEventListener('click', () => {
+    certificateModal.style.display = 'none';
+    modalCertificateImage.src = ''; // مسح مصدر الصورة لتجنب تسرب الذاكرة
+});
+
+// إغلاق الـ Modal عند النقر خارج المحتوى
+window.addEventListener('click', (event) => {
+    if (event.target == certificateModal) {
+        certificateModal.style.display = 'none';
+        modalCertificateImage.src = '';
+    }
+});
 
 // استدعاء الدالة لجلب وعرض الطلاب عند تحميل الصفحة
 fetchStudents();
