@@ -75,14 +75,9 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
 
     if (gravity === 'west') {
         textAnchor = 'start';
-        // في حالة 'west' (يسار)، النص يبدأ من x المحدد في GREETING_POSITIONS.
-        // لكن داخل الـ SVG، إذا كان text-anchor 'start' و xPosition 0، فإنه يبدأ من اليسار.
-        // الموضع الفعلي x في composite هو الذي يحدد offset.
         xPosition = 0;
     } else if (gravity === 'east') {
         textAnchor = 'end';
-        // في حالة 'east' (يمين)، النص ينتهي عند x المحدد في GREETING_POSITIONS.
-        // داخل الـ SVG، إذا كان text-anchor 'end' و xPosition هو عرض الـ SVG، فإنه ينتهي عند الحافة اليمنى.
         xPosition = svgWidth;
     }
 
@@ -101,7 +96,7 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
                     fill: ${color};
                     text-anchor: ${textAnchor};
                     dominant-baseline: middle;
-                    direction: rtl; /* مهم جداً للنص العربي */
+                    direction: rtl;
                     /* تم إزالة unicode-bidi: bidi-override; لتجنب المشاكل المحتملة في العرض */
                 }
             </style>
@@ -111,7 +106,8 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
         </svg>
     `;
     // تحويل SVG إلى صورة (PNG مؤقتة) يمكن لـ Sharp دمجها بسهولة كطبقة
-    return sharp(Buffer.from(svgText)).png().toBuffer();
+    // **التعديل هنا: إضافة .trim() لضمان إزالة أي مسافات بيضاء أو أسطر جديدة غير ضرورية من بداية ونهاية الـ SVG string.**
+    return sharp(Buffer.from(svgText.trim())).png().toBuffer();
 }
 
 // ----------------------------------------------------
