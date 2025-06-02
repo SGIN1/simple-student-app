@@ -1,61 +1,53 @@
-import { MongoClient, ObjectId } from 'mongodb'; // هذه المكتبة الآن ستصبح ضرورية لجلب البيانات
+import { MongoClient, ObjectId } from 'mongodb';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 
-// **ملاحظة هامة:** يجب تعريف MONGODB_URI كمتغير بيئة في Vercel
 const uri = process.env.MONGODB_URI;
-const dbName = 'Cluster0'; // تأكد من اسم قاعدة البيانات الصحيح
-const collectionName = 'enrolled_students_tbl'; // تأكد من اسم الـ collection الصحيح
+const dbName = 'Cluster0';
+const collectionName = 'enrolled_students_tbl';
 
-// مسار صورة الشهادة
-const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg'); // تأكد من أنه .jpg أو .png حسب ملفك الفعلي
+const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
-// مسار الخط (Arial)
 const FONT_FILENAME = 'arial.ttf';
-const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME); // تأكد من وجود arial.ttf هنا
+const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
-// اسم الخط للاستخدام في CSS (مهم لـ sharp.text())
 const FONT_CSS_FAMILY_NAME = 'Arial';
 
-// تعريف ألوان النصوص
 const RED_COLOR_HEX = '#FF0000';
 const BLUE_COLOR_HEX = '#0000FF';
 const GREEN_COLOR_HEX = '#00FF00';
 const BLACK_COLOR_HEX = '#000000';
 
-// تعريف إحداثيات ومواصفات نصوص الترحيب والحقول الجديدة
-// **هذه الإحداثيات (x, y) هي قيم تقديرية. يجب عليك تعديلها بعناية لتناسب تصميم شهادتك (wwee.jpg).**
 const CERTIFICATE_TEXT_POSITIONS = {
-    // نصوص الترحيب الحالية
     GREETING1: {
         text: "أهلاً وسهلاً بكم!",
         x: 0,
-        y: 80, // هذا يجب أن يكون موضع y الذي تريده لـ GREETING1
+        y: 80,
         fontSize: 40,
         color: RED_COLOR_HEX,
         gravity: 'center'
     },
     GREETED_NAME: {
-        text: "محمد أحمد علي", // هذا سيتم استبداله باسم الطالب
+        text: "اسم الطالب هنا", // هذا سيتم استبداله باسم الطالب
         x: 0,
-        y: 180, // هذا يجب أن يكون موضع y الذي تريده للاسم
+        y: 180,
         fontSize: 55,
         color: BLACK_COLOR_HEX,
         gravity: 'center'
     },
     GREETING2: {
         text: "نتمنى لكم يوماً سعيداً.",
-        x: 50, // هذا يجب أن يكون موضع x الذي تريده لـ GREETING2
-        y: 300, // هذا يجب أن يكون موضع y الذي تريده لـ GREETING2
+        x: 50,
+        y: 300,
         fontSize: 30,
         color: BLUE_COLOR_HEX,
         gravity: 'west'
     },
     GREETING3: {
         text: "شكراً لزيارتكم.",
-        x: 0, // هذا يجب أن يكون موضع x الذي تريده لـ GREETING3 (يتمركز على اليمين)
-        y: 450, // هذا يجب أن يكون موضع y الذي تريده لـ GREETING3
+        x: 0,
+        y: 450,
         fontSize: 25,
         color: GREEN_COLOR_HEX,
         gravity: 'east'
@@ -63,65 +55,123 @@ const CERTIFICATE_TEXT_POSITIONS = {
     // --- الحقول الجديدة من بيانات الطالب ---
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
-        field: "residency_number", // اسم الحقل في قاعدة البيانات
-        x: 100, // مثال لموضع الحقل، اضبطه حسب تصميمك
-        y: 500, // مثال لموضع الحقل، اضبطه حسب تصميمك
+        field: "residency_number",
+        x: 100,
+        y: 500, // اضبط هذا الموضع
         fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     SERIAL_NUMBER: {
         label: "الرقم التسلسلي:",
-        field: "serial_number", // اسم الحقل في قاعدة البيانات
+        field: "serial_number",
         x: 100,
-        y: 550,
+        y: 550, // اضبط هذا الموضع
         fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     PLATE_NUMBER: {
         label: "رقم اللوحة:",
-        field: "plate_number", // اسم الحقل في قاعدة البيانات
+        field: "plate_number",
         x: 100,
-        y: 600,
+        y: 600, // اضبط هذا الموضع
         fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     INSPECTION_DATE: {
         label: "تاريخ الفحص:",
-        field: "inspection_date", // اسم الحقل في قاعدة البيانات
+        field: "inspection_date",
         x: 100,
-        y: 650,
+        y: 650, // اضبط هذا الموضع
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    MANUFACTURER: {
+        label: "الشركة الصانعة:",
+        field: "manufacturer",
+        x: 100,
+        y: 700, // اضبط هذا الموضع
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    INSPECTION_EXPIRY_DATE: {
+        label: "تاريخ انتهاء الفحص:",
+        field: "inspection_expiry_date",
+        x: 100,
+        y: 750, // اضبط هذا الموضع
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    CAR_TYPE: {
+        label: "نوع السيارة:",
+        field: "car_type",
+        x: 100,
+        y: 800, // اضبط هذا الموضع
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    COUNTER_READING: {
+        label: "قراءة العداد:",
+        field: "counter_reading",
+        x: 100,
+        y: 850, // اضبط هذا الموضع
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    CHASSIS_NUMBER: {
+        label: "رقم الهيكل:",
+        field: "chassis_number",
+        x: 100,
+        y: 900, // اضبط هذا الموضع
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    VEHICLE_MODEL: {
+        label: "طراز المركبة:",
+        field: "vehicle_model",
+        x: 100,
+        y: 950, // اضبط هذا الموضع
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    COLOR: {
+        label: "اللون:",
+        field: "color",
+        x: 100,
+        y: 1000, // اضبط هذا الموضع
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    SERIAL_NUMBER_DUPLICATE: {
+        label: "الرقم التسلسلي (مكرر):",
+        field: "serial_number_duplicate",
+        x: 100,
+        y: 1050, // اضبط هذا الموضع
+        fontSize: 30,
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    CREATED_AT: {
+        label: "تاريخ الإضافة:",
+        field: "created_at",
+        x: 100,
+        y: 1100, // اضبط هذا الموضع
         fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     }
-    // يمكنك إضافة المزيد من الحقول هنا بنفس الطريقة
-    // على سبيل المثال:
-    // CAR_TYPE: {
-    //     label: "نوع السيارة:",
-    //     field: "car_type",
-    //     x: 100,
-    //     y: 700,
-    //     fontSize: 30,
-    //     color: BLACK_COLOR_HEX,
-    //     gravity: 'west'
-    // },
-    // CHASSIS_NUMBER: {
-    //     label: "رقم الهيكل:",
-    //     field: "chassis_number",
-    //     x: 100,
-    //     y: 750,
-    //     fontSize: 30,
-    //     color: BLACK_COLOR_HEX,
-    //     gravity: 'west'
-    // }
 };
 
-/**
- * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp باستخدام sharp.text().
- */
 async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontCssFamilyName) {
     let align = 'centre';
     if (gravity === 'west') {
@@ -143,7 +193,6 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
     }).png().toBuffer();
 }
 
-
 export default async function handler(req, res) {
     console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 ---');
 
@@ -152,7 +201,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const { id } = req.query; // جلب الـ ID من URL
+    const { id } = req.query;
 
     if (!id) {
         console.log('معرف الطالب غير موجود في الطلب.');
@@ -161,7 +210,6 @@ export default async function handler(req, res) {
 
     let client;
     try {
-        // 1. الاتصال بقاعدة البيانات وجلب بيانات الطالب
         console.log('جارٍ الاتصال بقاعدة البيانات...');
         client = new MongoClient(uri);
         await client.connect();
@@ -170,9 +218,18 @@ export default async function handler(req, res) {
         const db = client.db(dbName);
         const collection = db.collection(collectionName);
 
-        // جلب الطالب باستخدام الـ ID. تأكد أن الـ ID في MongoDB هو ObjectId إذا كان هذا هو نوعه.
-        // إذا كان ID في MongoDB هو string عادي، استخدم { id: id }
-        const student = await collection.findOne({ id: id }); // افتراض أن الـ ID هو string
+        // *** التعديل الرئيسي هنا: استخدام ObjectId للبحث عن _id ***
+        let student;
+        try {
+            const objectId = new ObjectId(id);
+            student = await collection.findOne({ _id: objectId });
+            console.log('تم البحث عن الطالب باستخدام _id:', objectId);
+        } catch (e) {
+            console.error('خطأ في تحويل ID إلى ObjectId:', e.message);
+            return res.status(400).json({ error: 'مُعرّف الطالب غير صالح. يجب أن يكون ObjectId صحيحًا.' });
+        }
+        // *** نهاية التعديل الرئيسي ***
+
 
         if (!student) {
             console.log('لم يتم العثور على طالب بالمعرف:', id);
@@ -180,8 +237,6 @@ export default async function handler(req, res) {
         }
         console.log('تم جلب بيانات الطالب:', student.residency_number);
 
-
-        // 2. التحقق من وجود صورة الشهادة
         console.log('جارٍ التحقق من صورة الشهادة...');
         try {
             await fs.access(CERTIFICATE_IMAGE_PATH);
@@ -220,18 +275,22 @@ export default async function handler(req, res) {
         console.log('جارٍ إضافة النصوص إلى الصورة...');
         for (const key in CERTIFICATE_TEXT_POSITIONS) {
             const pos = CERTIFICATE_TEXT_POSITIONS[key];
-            let textToDisplay = pos.text; // النص الافتراضي لنصوص الترحيب
+            let textToDisplay = '';
 
-            // إذا كان هذا الحقل هو من بيانات الطالب، قم باستبدال النص
-            if (pos.field && student[pos.field]) {
-                textToDisplay = `${pos.label || ''} ${student[pos.field]}`;
+            if (pos.field) {
+                // استخدام قيمة الحقل مباشرة، مع fallback لـ '' إذا كانت undefined
+                const fieldValue = student[pos.field] || '';
+                // تنسيق تاريخ الإضافة إذا كان الحقل هو created_at
+                if (pos.field === 'created_at' && fieldValue) {
+                    textToDisplay = `${pos.label || ''} ${new Date(fieldValue).toLocaleDateString('ar-SA', { year: 'numeric', month: 'numeric', day: 'numeric' })}`;
+                } else {
+                    textToDisplay = `${pos.label || ''} ${fieldValue}`;
+                }
             } else if (key === 'GREETED_NAME') {
-                // يمكنك جلب الاسم من بيانات الطالب هنا.
-                // سأفترض أن لديك حقل 'name' أو 'student_name' في بيانات الطالب.
-                // إذا لم يكن كذلك، يرجى إخباري باسم الحقل الصحيح.
-                textToDisplay = `الاسم: ${student.student_name || 'اسم الطالب غير متوفر'}`;
-                // يمكنك أيضًا تحديد الاسم الكامل للطالب إذا كانت البيانات مفصولة
-                // textToDisplay = `${student.first_name || ''} ${student.middle_name || ''} ${student.last_name || ''}`.trim();
+                // استخدام حقل 'arabic_name' لاسم الطالب أو 'اسم الطالب غير متوفر' كافتراضي
+                textToDisplay = `${student.arabic_name || 'اسم الطالب غير متوفر'}`;
+            } else {
+                textToDisplay = pos.text; // للنصوص الثابتة مثل GREETING1, GREETING2, GREETING3
             }
 
             const textHeight = pos.fontSize * 2; // ضعف حجم الخط كارتفاع تقريبي للمربع
