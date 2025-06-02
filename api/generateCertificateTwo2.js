@@ -17,8 +17,6 @@ const BLUE_COLOR_HEX = '#0000FF';
 const GREEN_COLOR_HEX = '#00FF00';
 const BLACK_COLOR_HEX = '#000000';
 
-// **مهم جدًا:** تم تعديل 'field' ليطابق أسماء الحقول في بيانات الطالب التي أظهرتها السجلات.
-// يرجى تعديل قيم X و Y بدقة لتناسب تصميم شهادتك (wwee.jpg).
 const CERTIFICATE_TEXT_POSITIONS = {
     GREETING1: {
         text: "أهلاً وسهلاً بكم!",
@@ -30,9 +28,7 @@ const CERTIFICATE_TEXT_POSITIONS = {
     },
     GREETED_NAME: {
         text: "اسم الطالب هنا",
-        // حقل 'arabic_name' قيمته null في البيانات، لذا سيعرض 'اسم الطالب غير متوفر'
-        // تأكد من تحديث هذا الحقل في قاعدة البيانات إذا كنت تريده أن يظهر
-        field: "arabic_name", // <--- تم إضافة هذا لمطابقة البيانات
+        field: "arabic_name",
         x: 0,
         y: 300,
         fontSize: 80,
@@ -55,7 +51,6 @@ const CERTIFICATE_TEXT_POSITIONS = {
         color: GREEN_COLOR_HEX,
         gravity: 'east'
     },
-    // --- حقول بيانات الطالب مع الأسماء الصحيحة من السجلات ---
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
         field: "residency_number",
@@ -85,7 +80,7 @@ const CERTIFICATE_TEXT_POSITIONS = {
     },
     PLATE_NUMBER: {
         label: "رقم اللوحة:",
-        field: "plate_number", // <--- الاسم صحيح هنا
+        field: "plate_number",
         x: 150,
         y: 920,
         fontSize: 30,
@@ -121,7 +116,7 @@ const CERTIFICATE_TEXT_POSITIONS = {
     },
     CAR_TYPE: {
         label: "نوع السيارة:",
-        field: "نوع_السيارة", // <--- تم تغيير الاسم هنا ليتطابق
+        field: "نوع_السيارة",
         x: 900,
         y: 800,
         fontSize: 30,
@@ -139,7 +134,7 @@ const CERTIFICATE_TEXT_POSITIONS = {
     },
     CHASSIS_NUMBER: {
         label: "رقم الهيكل:",
-        field: "رقم_الهيكل", // <--- تم تغيير الاسم هنا ليتطابق
+        field: "رقم_الهيكل",
         x: 900,
         y: 880,
         fontSize: 30,
@@ -188,6 +183,9 @@ const CERTIFICATE_TEXT_POSITIONS = {
  * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp باستخدام sharp.text().
  */
 async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontCssFamilyName) {
+    // **التعديل الرئيسي هنا: تأكد من أن النص ليس فارغًا أو مجرد مسافات بيضاء**
+    const textToRender = (text && text.trim() !== '') ? text : 'غير متوفر'; // نص افتراضي
+
     let align = 'centre';
     if (gravity === 'west') {
         align = 'left';
@@ -197,7 +195,7 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
 
     return sharp({
         text: {
-            text: `<span foreground="${color}">${text}</span>`,
+            text: `<span foreground="${color}">${textToRender}</span>`, // استخدام textToRender
             font: fontCssFamilyName,
             fontfile: FONT_PATH,
             width: svgWidth,
@@ -207,6 +205,7 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
         }
     }).png().toBuffer();
 }
+
 
 export default async function handler(req, res) {
     console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 ---');
@@ -247,7 +246,6 @@ export default async function handler(req, res) {
             console.log('لم يتم العثور على طالب بالمعرف:', id);
             return res.status(404).json({ error: 'لم يتم العثور على طالب بهذا المعرف.' });
         }
-        // طباعة بيانات الطالب التي تم جلبها لمساعدتك في التأكد من أسماء الحقول
         console.log('تم جلب بيانات الطالب:', JSON.stringify(student, null, 2));
 
 
@@ -272,7 +270,6 @@ export default async function handler(req, res) {
         const imageHeight = metadata.height;
         console.log('أبعاد الصورة الفعلية التي تم تحميلها:', imageWidth, 'x', imageHeight);
 
-        // هنا نقوم بالتحقق من أبعاد الصورة الفعلية
         if (imageWidth !== 1754 || imageHeight !== 1238) {
             console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (1754x1238). قد تحتاج لضبط إحداثيات النصوص مرة أخرى.`);
         }
@@ -298,28 +295,26 @@ export default async function handler(req, res) {
             const pos = CERTIFICATE_TEXT_POSITIONS[key];
             let textToDisplay = '';
 
-            // هنا نتحقق من وجود pos.field
             if (pos.field) {
                 let fieldValue = student[pos.field];
-                if (fieldValue === undefined || fieldValue === null) {
-                    fieldValue = ''; // لضمان عدم عرض 'undefined' أو 'null'
+                // **التعديل الثاني هنا: التأكد من أن fieldValue ليس null أو undefined**
+                if (fieldValue === undefined || fieldValue === null || String(fieldValue).trim() === '') {
+                    fieldValue = 'غير متوفر'; // نص افتراضي للحقول الفارغة
                 }
 
-                // تنسيق التواريخ
                 if (pos.field === 'created_at' || pos.field === 'inspection_date' || pos.field === 'inspection_expiry_date') {
-                    if (fieldValue) {
+                    if (fieldValue !== 'غير متوفر' && fieldValue) { // تأكد من أن fieldValue ليس النص الافتراضي
                         textToDisplay = `${pos.label || ''} ${new Date(fieldValue).toLocaleDateString('ar-SA', { year: 'numeric', month: 'numeric', day: 'numeric' })}`;
                     } else {
-                        textToDisplay = `${pos.label || ''} لا يوجد`; // أو أي نص آخر تفضله للتواريخ الفارغة
+                        textToDisplay = `${pos.label || ''} غير متوفر`;
                     }
                 } else {
                     textToDisplay = `${pos.label || ''} ${fieldValue}`;
                 }
             } else {
-                textToDisplay = pos.text; // للنصوص الثابتة التي ليس لها حقل مثل GREETING1, GREETING2, GREETING3
+                textToDisplay = pos.text;
             }
 
-            // فحص إحداثي Y للنص قبل إضافته
             const textRenderHeight = pos.fontSize * 2;
             if ((pos.y + textRenderHeight) > imageHeight) {
                 console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) قد يتجاوز ارتفاع الصورة (Y: ${pos.y}, ارتفاع الصورة: ${imageHeight}). قد لا يظهر بالكامل.`);
@@ -374,6 +369,12 @@ export default async function handler(req, res) {
             return res.status(500).json({
                 error: 'ملف الصورة الأساسي غير موجود أو لا يمكن الوصول إليه.',
                 details: error.message
+            });
+        } else if (error.message.includes('text: no text to render')) {
+            return res.status(500).json({
+                error: 'حدث خطأ أثناء محاولة رسم نص فارغ. يرجى التحقق من وجود بيانات للنصوص المراد عرضها.',
+                details: error.message,
+                stack: error.stack
             });
         }
         return res.status(500).json({
