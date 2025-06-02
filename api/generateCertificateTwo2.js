@@ -1,11 +1,13 @@
 // api/generateCertificateTwo2.js
 // هذا الملف يستخدم الآن ES Module syntax
 
+// لا داعي لاستيراد MongoClient و ObjectId إذا لم يتم استخدامهما
+// import { MongoClient, ObjectId } from 'mongodb';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 
-// **MongoDB URI (يمكن الإبقاء عليها إذا كنت تستخدمها لجلب بيانات الطلاب لاحقاً)**
+// **ملاحظة هامة:** MONGODB_URI لم تعد ضرورية لعرض نص ثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
 // const uri = process.env.MONGODB_URI;
 // const dbName = 'Cluster0';
 // const collectionName = 'enrolled_students_tbl';
@@ -22,7 +24,7 @@ const FONT_FILENAME = 'arial.ttf'; // <--- تأكد من وجود ملف arial.t
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
 // **اسم الخط للاستخدام في CSS داخل SVG:**
-const FONT_CSS_FAMILY_NAME = 'Arial'; // الاسم الشائع لخط Arial
+const FONT_CSS_FAMILY_NAME = 'ArialUnicode'; // تغيير اسم الخط هنا لتجنب التعارضات الداخلية في Pango
 
 // تعريف ألوان النصوص
 const RED_COLOR_HEX = '#FF0000';    // أحمر
@@ -35,23 +37,23 @@ const GREETING_POSITIONS = {
     GREETING1: {
         text: "أهلاً وسهلاً بكم!",
         x: 0,
-        y: 400,
+        y: 400, // يمكنك تعديل هذه القيمة
         fontSize: 70,
         color: RED_COLOR_HEX,
         gravity: 'center'
     },
     GREETING2: {
         text: "نتمنى لكم يوماً سعيداً.",
-        x: 50,
-        y: 550,
+        x: 50, // يمكنك تعديل هذه القيمة
+        y: 550, // يمكنك تعديل هذه القيمة
         fontSize: 50,
         color: BLUE_COLOR_HEX,
         gravity: 'west'
     },
     GREETING3: {
         text: "شكراً لزيارتكم.",
-        x: 0,
-        y: 700,
+        x: 0, // يمكنك تعديل هذه القيمة
+        y: 700, // يمكنك تعديل هذه القيمة
         fontSize: 40,
         color: GREEN_COLOR_HEX,
         gravity: 'east'
@@ -60,6 +62,8 @@ const GREETING_POSITIONS = {
 
 /**
  * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp من SVG.
+ * **هذه الدالة هي التي تم تعديلها بشكل حاسم لحل مشكلة الخط.**
+ *
  * @param {string} text - النص المراد عرضه.
  * @param {number} fontSize - حجم الخط بالبكسل.
  * @param {string} color - لون النص (مثال: '#FF0000').
@@ -71,9 +75,25 @@ const GREETING_POSITIONS = {
  * @returns {Buffer} - كائن Buffer يحتوي على بيانات النص كصورة PNG شفافة.
  */
 async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontBuffer, fontCssFamilyName) {
+    // تحديد محاذاة النص بناءً على gravity
+    let textAnchor = 'middle'; // Center
+    let xPosition = svgWidth / 2; // Center
+
+    if (gravity === 'west') {
+        textAnchor = 'start'; // Left
+        xPosition = 0;
+    } else if (gravity === 'east') {
+        textAnchor = 'end'; // Right
+        xPosition = svgWidth;
+    }
+
     // إنشاء SVG Markup للنص
+    // **التعديلات الهامة هنا لضمان عمل الخط العربي:**
+    // 1. تضمين الخط كـ Base64 مباشرة في CSS داخل SVG.
+    // 2. استخدام خصائص CSS لـ text-anchor و dominant-baseline والمحاذاة.
+    // 3. إضافة direction: rtl و unicode-bidi: bidi-override لدعم اللغة العربية.
     const svgText = `
-        <svg width="${svgWidth}" height="${svgHeight}">
+        <svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
             <style>
                 @font-face {
                     font-family: '${fontCssFamilyName}';
@@ -83,20 +103,22 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
                     font-family: '${fontCssFamilyName}';
                     font-size: ${fontSize}px;
                     fill: ${color};
-                    text-anchor: ${gravity === 'center' ? 'middle' : (gravity === 'west' ? 'start' : 'end')};
-                    dominant-baseline: ${gravity === 'center' ? 'middle' : 'auto'};
+                    text-anchor: ${textAnchor};
+                    dominant-baseline: middle; /* للتوسيط العمودي */
+                    direction: rtl; /* لضمان عرض النص العربي من اليمين لليسار */
+                    unicode-bidi: bidi-override; /* لتعزيز دعم RTL */
                 }
             </style>
-            <text x="${gravity === 'center' ? svgWidth / 2 : (gravity === 'west' ? 0 : svgWidth)}"
-                  y="${svgHeight / 2}">
+            <text x="${xPosition}" y="${svgHeight / 2}">
                 ${text}
             </text>
         </svg>
     `;
 
     // استخدام sharp لتحويل SVG إلى PNG شفاف
+    // هذا يضمن أن النص له خلفية شفافة عند وضعه فوق الصورة الأصلية
     return sharp(Buffer.from(svgText))
-        .png()
+        .png() // تحويل SVG إلى PNG
         .toBuffer();
 }
 
@@ -125,7 +147,7 @@ export default async function handler(req, res) {
             return res.status(500).json({
                 error: 'صورة الشهادة غير موجودة أو لا يمكن الوصول إليها. يرجى التحقق من مسار ملف الصورة في النشر.',
                 details: fileError.message,
-                path: CERTIFICATE_IMAGE_PATH // عرض المسار للتشخيص
+                path: CERTIFICATE_IMAGE_PATH
             });
         }
 
@@ -147,7 +169,7 @@ export default async function handler(req, res) {
             return res.status(500).json({
                 error: 'ملف الخط غير موجود أو لا يمكن الوصول إليه. يرجى التأكد من وضعه في المسار الصحيح وتضمينه في النشر.',
                 details: fontError.message,
-                path: FONT_PATH // عرض المسار للتشخيص
+                path: FONT_PATH
             });
         }
 
@@ -169,11 +191,11 @@ export default async function handler(req, res) {
             );
 
             // تركيب النص كـ overlay. sharp سيستخدم الوضع الافتراضي لدمج PNG الشفاف.
+            // تمت إزالة 'blend' صراحةً للسماح لـ sharp بالتعامل مع PNG الشفاف بشكل صحيح.
             processedImage = await processedImage.composite([{
                 input: textOverlayBuffer,
                 left: pos.x,
                 top: pos.y,
-                // لا نحدد blend هنا، sharp يستخدم 'over' افتراضياً لـ PNG فوق صورة أخرى
             }]);
         }
 
@@ -197,7 +219,7 @@ export default async function handler(req, res) {
         // رسائل خطأ أكثر تفصيلاً للتشخيص
         if (error.message.includes('fontconfig') || error.message.includes('freetype')) {
             return res.status(500).json({
-                error: 'حدث خطأ في معالجة الخطوط. قد تكون بيئة النشر لا تدعم Fontconfig أو FreeType بالشكل المطلوب لخطوط مخصصة.',
+                error: 'حدث خطأ في معالجة الخطوط. قد تكون بيئة النشر لا تدعم Fontconfig أو FreeType بالشكل المطلوب لخطوط مخصصة. حاول استخدام خط بديل أو تأكد من تضمين الخط بالكامل في الـ SVG.',
                 details: error.message,
                 stack: error.stack
             });
@@ -209,7 +231,6 @@ export default async function handler(req, res) {
                 stack: error.stack
             });
         }
-
 
         return res.status(500).json({
             error: 'حدث خطأ أثناء توليد الشهادة.',
