@@ -67,19 +67,36 @@ const GREETING_POSITIONS = {
  * @returns {Buffer} - كائن Buffer يحتوي على بيانات النص.
  */
 async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontBuffer, fontCssFamilyName) {
-    return sharp({
-        text: {
-            text: `<span foreground="${color}">${text}</span>`, // استخدام span لتطبيق اللون
-            font: fontCssFamilyName, // اسم الخط
-            fontfile: FONT_PATH, // مسار ملف الخط
-            width: svgWidth, // عرض المساحة المتاحة للنص
-            height: svgHeight, // ارتفاع المساحة المتاحة للنص
-            align: gravity === 'center' ? 'centre' : (gravity === 'west' ? 'left' : 'right'),
-            rgba: true // يجب أن تكون true لاستخدام الألوان في Pango Markup
-        }
-    }).png().toBuffer();
-}
+    // إنشاء SVG Markup للنص
+    const svgText = `
+        <svg width="${svgWidth}" height="${svgHeight}">
+            <style>
+                @font-face {
+                    font-family: '${fontCssFamilyName}';
+                    src: url('data:font/ttf;charset=utf-8;base64,${fontBuffer.toString('base64')}');
+                }
+                text {
+                    font-family: '${fontCssFamilyName}';
+                    font-size: ${fontSize}px;
+                    fill: ${color};
+                    /* لضمان توسيط النص أفقياً وعمودياً داخل الـ SVG إذا كان gravity هو 'center' */
+                    text-anchor: ${gravity === 'center' ? 'middle' : (gravity === 'west' ? 'start' : 'end')};
+                    dominant-baseline: ${gravity === 'center' ? 'middle' : 'auto'};
+                }
+            </style>
+            <text x="${gravity === 'center' ? svgWidth / 2 : (gravity === 'west' ? 0 : svgWidth)}" 
+                  y="${svgHeight / 2}">
+                ${text}
+            </text>
+        </svg>
+    `;
 
+    // استخدام sharp لتحويل SVG إلى PNG شفاف
+    // هذا يضمن أن النص له خلفية شفافة عند وضعه فوق الصورة الأصلية
+    return sharp(Buffer.from(svgText))
+        .png()
+        .toBuffer();
+}
 
 /**
  * وظيفة Vercel Serverless Function لإنشاء الشهادة.
@@ -110,7 +127,7 @@ export default async function handler(req, res) {
         const baseImage = sharp(CERTIFICATE_IMAGE_PATH);
         const metadata = await baseImage.metadata();
         const imageWidth = metadata.width;
-        const imageHeight = metadata.height; // احصل على ارتفاع الصورة أيضاً
+        const imageHeight = metadata.height;
 
         let processedImage = baseImage;
 
@@ -139,30 +156,34 @@ export default async function handler(req, res) {
                 pos.text,
                 pos.fontSize,
                 pos.color,
-                imageWidth, // عرض النص بالكامل هو عرض الصورة
-                textHeight, // الارتفاع الذي حسبناه
+                imageWidth,
+                textHeight,
                 pos.gravity,
                 fontBuffer,
                 FONT_CSS_FAMILY_NAME
             );
 
             // تركيب النص كـ overlay
+            // نستخدم 'at' mode وهو الوضع الافتراضي لsharp
+            // هذا يضمن أن النص الشفاف يوضع فوق الصورة الأصلية دون تغيير خلفية الصورة
             processedImage = await processedImage.composite([{
                 input: textOverlayBuffer,
                 left: pos.x,
                 top: pos.y,
-                blend: 'over' // **تغيير من 'overlay' إلى 'over' للحصول على نتيجة مباشرة للنص**
+                // blend: 'at' هو الوضع الافتراضي إذا لم يتم تحديده، ولكن يمكن تحديده صراحة للوضوح
+                // blend: 'over' قد يعمل أيضاً بشكل صحيح هنا
+                // مهم: لا تستخدم 'overlay' أو 'dest-over' أو غيرها التي قد تغير لون الخلفية
             }]);
         }
 
-        // **التعديل الجوهري هنا: توليد الصورة كـ JPEG متدرج (Progressive JPEG)**
+        // توليد الصورة كـ JPEG متدرج (Progressive JPEG)
         const finalImageBuffer = await processedImage.jpeg({
-            quality: 80, // جودة الصورة (0-100)، 80 جيدة للتوازن بين الجودة والحجم
-            progressive: true // **الأهم: يجعلها progressive JPEG لتحسين تجربة التحميل البصري**
+            quality: 85, // جودة الصورة (0-100)، رفعناها قليلاً
+            progressive: true // يجعلها progressive JPEG
         }).toBuffer();
 
-        res.setHeader('Content-Type', 'image/jpeg'); // **تغيير نوع المحتوى المرسل إلى image/jpeg**
-        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate'); // تحكم في التخزين المؤقت
+        res.setHeader('Content-Type', 'image/jpeg'); // نوع المحتوى image/jpeg
+        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate');
         return res.status(200).send(finalImageBuffer);
 
     } catch (error) {
