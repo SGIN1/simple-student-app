@@ -24,12 +24,12 @@ async function fetchStudents() {
             if (Array.isArray(data)) {
                 allStudents = data;
                 renderStudentsTable(allStudents);
-            } 
+            }
             // أو إذا كانت البيانات ملفوفة داخل كائن (مثال: { students: [...] } أو { data: [...] })
             else if (data && (Array.isArray(data.students) || Array.isArray(data.data))) {
                 allStudents = data.students || data.data; // استخدم الاسم الصحيح للعنصر الذي يحتوي على المصفوفة
                 renderStudentsTable(allStudents);
-            } 
+            }
             // إذا لم تكن البيانات مصفوفة بأي شكل متوقع
             else {
                 console.error('صيغة بيانات الطلاب المستلمة غير صحيحة:', data);
@@ -108,75 +108,14 @@ searchInput.addEventListener('keyup', function() {
 });
 
 /**
- * دالة لفتح الشهادة في نافذة جديدة مع مؤشر تحميل.
+ * دالة لفتح الشهادة في نافذة جديدة مباشرة على الرابط.
  */
 function showCertificateInNewWindow(url) {
-    const newWindow = window.open('about:blank', '_blank'); 
+    // ببساطة، افتح النافذة الجديدة مباشرة على الـ URL الذي يولد الصورة
+    const newWindow = window.open(url, '_blank');
     if (!newWindow) {
         alert('المتصفح منع فتح النافذة المنبثقة. يرجى السماح بها.');
-        return;
     }
-
-    const pageContent = `
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>عرض الشهادة</title>
-            <style>
-                body {
-                    margin: 0;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    min-height: 100vh;
-                    background-color: #f0f0f0;
-                    flex-direction: column;
-                    overflow: auto;
-                }
-                .loading-spinner {
-                    border: 4px solid rgba(0, 0, 0, 0.1);
-                    border-top: 4px solid #3498db;
-                    border-radius: 50%;
-                    width: 40px;
-                    height: 40px;
-                    animation: spin 1s linear infinite;
-                    margin-bottom: 20px;
-                }
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-                #certificateImage {
-                    max-width: 100%;
-                    height: auto;
-                    display: none;
-                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                }
-            </style>
-        </head>
-        <body>
-            <div class="loading-spinner"></div>
-            <img id="certificateImage" src="${url}" alt="Certificate Image">
-            <script>
-                document.getElementById('certificateImage').onload = function() {
-                    document.querySelector('.loading-spinner').style.display = 'none';
-                    this.style.display = 'block'; // إظهار الصورة عند اكتمال التحميل
-                };
-                document.getElementById('certificateImage').onerror = function() {
-                    document.querySelector('.loading-spinner').style.display = 'none';
-                    this.style.display = 'none';
-                    document.body.innerHTML = '<h1>عذراً، حدث خطأ في تحميل الشهادة. يرجى المحاولة مرة أخرى لاحقاً.</h1>';
-                    console.error('Failed to load certificate image from:', this.src);
-                };
-            </script>
-        </body>
-        </html>
-    `;
-
-    newWindow.document.write(pageContent);
-    newWindow.document.close();
 }
 
 /**
@@ -212,7 +151,7 @@ async function deleteStudent(studentId) {
 // استدعاء الدالة لجلب وعرض الطلاب عند تحميل الصفحة
 fetchStudents();
 
-// لجعل الدوال متاحة عالمياً (مثل deleteStudent و showCertificateInNewWindow) 
+// لجعل الدوال متاحة عالمياً (مثل deleteStudent و showCertificateInNewWindow)
 // بحيث يمكن استدعاؤها من خلال onclick في HTML
 window.deleteStudent = deleteStudent;
 window.showCertificateInNewWindow = showCertificateInNewWindow;
