@@ -7,12 +7,9 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// تأكد أن هذا هو المسار الصحيح لصورتك
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
-
 const FONT_FILENAME = 'arial.ttf';
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
-
 const FONT_CSS_FAMILY_NAME = 'Arial';
 
 const RED_COLOR_HEX = '#FF0000';
@@ -20,50 +17,51 @@ const BLUE_COLOR_HEX = '#0000FF';
 const GREEN_COLOR_HEX = '#00FF00';
 const BLACK_COLOR_HEX = '#000000';
 
-// **مهم جدًا:** تم تعديل إحداثيات X و Y وأحجام الخطوط لتناسب أبعاد الصورة الفعلية 1754x1238 بكسل.
-// يجب عليك مراجعة هذه القيم وتعديلها يدويًا لتناسب تصميم شهادتك (wwee.jpg) بدقة.
+// **مهم جدًا:** تم تعديل 'field' ليطابق أسماء الحقول في بيانات الطالب التي أظهرتها السجلات.
+// يرجى تعديل قيم X و Y بدقة لتناسب تصميم شهادتك (wwee.jpg).
 const CERTIFICATE_TEXT_POSITIONS = {
-    // نصوص الترحيب: سأفترض أنها في الأعلى
     GREETING1: {
         text: "أهلاً وسهلاً بكم!",
         x: 0,
-        y: 150, // تم زيادة Y لتناسب الارتفاع الجديد
-        fontSize: 60, // زيادة حجم الخط ليتناسب مع الصورة الأكبر
+        y: 150,
+        fontSize: 60,
         color: RED_COLOR_HEX,
         gravity: 'center'
     },
     GREETED_NAME: {
-        text: "اسم الطالب هنا", // هذا سيتم استبداله باسم الطالب
+        text: "اسم الطالب هنا",
+        // حقل 'arabic_name' قيمته null في البيانات، لذا سيعرض 'اسم الطالب غير متوفر'
+        // تأكد من تحديث هذا الحقل في قاعدة البيانات إذا كنت تريده أن يظهر
+        field: "arabic_name", // <--- تم إضافة هذا لمطابقة البيانات
         x: 0,
-        y: 300, // تم زيادة Y
-        fontSize: 80, // زيادة حجم الخط
+        y: 300,
+        fontSize: 80,
         color: BLACK_COLOR_HEX,
         gravity: 'center'
     },
     GREETING2: {
         text: "نتمنى لكم يوماً سعيداً.",
-        x: 100, // زيادة X قليلاً
-        y: 500, // تم زيادة Y
-        fontSize: 45, // زيادة حجم الخط
+        x: 100,
+        y: 500,
+        fontSize: 45,
         color: BLUE_COLOR_HEX,
         gravity: 'west'
     },
     GREETING3: {
         text: "شكراً لزيارتكم.",
         x: 0,
-        y: 650, // تم زيادة Y
-        fontSize: 40, // زيادة حجم الخط
+        y: 650,
+        fontSize: 40,
         color: GREEN_COLOR_HEX,
         gravity: 'east'
     },
-    // --- حقول بيانات الطالب: سنضعها في منطقة أسفل النصوص الترحيبية ---
-    // سأفترض عمودين، ابدأ بتعديل هذه القيم بدقة
+    // --- حقول بيانات الطالب مع الأسماء الصحيحة من السجلات ---
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
         field: "residency_number",
-        x: 150, // موضع العمود الأول
-        y: 800, // بدء من 800 بكسل تقريبًا
-        fontSize: 30, // حجم خط مناسب
+        x: 150,
+        y: 800,
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
@@ -71,7 +69,7 @@ const CERTIFICATE_TEXT_POSITIONS = {
         label: "الرقم التسلسلي:",
         field: "serial_number",
         x: 150,
-        y: 840, // كل حقل سيزيد 40 بكسل تقريبًا
+        y: 840,
         fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
@@ -87,7 +85,7 @@ const CERTIFICATE_TEXT_POSITIONS = {
     },
     PLATE_NUMBER: {
         label: "رقم اللوحة:",
-        field: "plate_number",
+        field: "plate_number", // <--- الاسم صحيح هنا
         x: 150,
         y: 920,
         fontSize: 30,
@@ -123,9 +121,9 @@ const CERTIFICATE_TEXT_POSITIONS = {
     },
     CAR_TYPE: {
         label: "نوع السيارة:",
-        field: "car_type",
-        x: 900, // موضع العمود الثاني (تم زيادته كثيرًا ليتناسب مع العرض الجديد)
-        y: 800, // نفس مستوى Y للعمود الأول
+        field: "نوع_السيارة", // <--- تم تغيير الاسم هنا ليتطابق
+        x: 900,
+        y: 800,
         fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
@@ -141,7 +139,7 @@ const CERTIFICATE_TEXT_POSITIONS = {
     },
     CHASSIS_NUMBER: {
         label: "رقم الهيكل:",
-        field: "chassis_number",
+        field: "رقم_الهيكل", // <--- تم تغيير الاسم هنا ليتطابق
         x: 900,
         y: 880,
         fontSize: 30,
@@ -209,7 +207,6 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
         }
     }).png().toBuffer();
 }
-
 
 export default async function handler(req, res) {
     console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 ---');
@@ -301,13 +298,14 @@ export default async function handler(req, res) {
             const pos = CERTIFICATE_TEXT_POSITIONS[key];
             let textToDisplay = '';
 
+            // هنا نتحقق من وجود pos.field
             if (pos.field) {
                 let fieldValue = student[pos.field];
                 if (fieldValue === undefined || fieldValue === null) {
-                    fieldValue = '';
+                    fieldValue = ''; // لضمان عدم عرض 'undefined' أو 'null'
                 }
 
-                // تنسيق تاريخ الإضافة وتاريخ الفحص/الانتهاء
+                // تنسيق التواريخ
                 if (pos.field === 'created_at' || pos.field === 'inspection_date' || pos.field === 'inspection_expiry_date') {
                     if (fieldValue) {
                         textToDisplay = `${pos.label || ''} ${new Date(fieldValue).toLocaleDateString('ar-SA', { year: 'numeric', month: 'numeric', day: 'numeric' })}`;
@@ -317,21 +315,14 @@ export default async function handler(req, res) {
                 } else {
                     textToDisplay = `${pos.label || ''} ${fieldValue}`;
                 }
-            } else if (key === 'GREETED_NAME') {
-                // اسم الطالب موجود في 'arabic_name' حسب سجلاتك
-                textToDisplay = `${student.arabic_name || 'اسم الطالب غير متوفر'}`;
             } else {
-                textToDisplay = pos.text;
+                textToDisplay = pos.text; // للنصوص الثابتة التي ليس لها حقل مثل GREETING1, GREETING2, GREETING3
             }
 
             // فحص إحداثي Y للنص قبل إضافته
-            // ارتفاع منطقة النص التقديرية (ضعف حجم الخط)
             const textRenderHeight = pos.fontSize * 2;
-            // إذا كان موضع بداية النص + ارتفاع النص يتجاوز ارتفاع الصورة
             if ((pos.y + textRenderHeight) > imageHeight) {
                 console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) قد يتجاوز ارتفاع الصورة (Y: ${pos.y}, ارتفاع الصورة: ${imageHeight}). قد لا يظهر بالكامل.`);
-                // يمكنك هنا اختيار تخطي النص بـ 'continue;' إذا كنت لا تريد أن يظهر أبدًا خارج الصورة.
-                // حاليًا، سنسمح له بالرسم، ولكن سيكون مقطوعًا إذا تجاوز الارتفاع.
             }
 
             console.log(`إنشاء نص لـ: ${key} بـ: "${textToDisplay}" عند X: ${pos.x}, Y: ${pos.y}`);
@@ -340,8 +331,8 @@ export default async function handler(req, res) {
                 textToDisplay,
                 pos.fontSize,
                 pos.color,
-                imageWidth, // استخدم العرض الفعلي للصورة
-                textRenderHeight, // استخدم الارتفاع التقديري للنص
+                imageWidth,
+                textRenderHeight,
                 pos.gravity,
                 FONT_CSS_FAMILY_NAME
             );
