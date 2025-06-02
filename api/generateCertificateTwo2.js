@@ -7,6 +7,7 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
+// تأكد أن هذا هو المسار الصحيح لصورتك
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
 const FONT_FILENAME = 'arial.ttf';
@@ -19,168 +20,167 @@ const BLUE_COLOR_HEX = '#0000FF';
 const GREEN_COLOR_HEX = '#00FF00';
 const BLACK_COLOR_HEX = '#000000';
 
-// تم تحديث إحداثيات Y لتناسب ارتفاع الشهادة 727px
-// يرجى تعديل قيم X و Y بدقة لتناسب تصميم شهادتك (wwee.jpg)
+// **مهم جدًا:** تم تعديل إحداثيات X و Y وأحجام الخطوط لتناسب أبعاد الصورة الفعلية 1754x1238 بكسل.
+// يجب عليك مراجعة هذه القيم وتعديلها يدويًا لتناسب تصميم شهادتك (wwee.jpg) بدقة.
 const CERTIFICATE_TEXT_POSITIONS = {
-    // نصوص الترحيب الحالية
+    // نصوص الترحيب: سأفترض أنها في الأعلى
     GREETING1: {
         text: "أهلاً وسهلاً بكم!",
         x: 0,
-        y: 80, // لا يزال في مكان جيد
-        fontSize: 40,
+        y: 150, // تم زيادة Y لتناسب الارتفاع الجديد
+        fontSize: 60, // زيادة حجم الخط ليتناسب مع الصورة الأكبر
         color: RED_COLOR_HEX,
         gravity: 'center'
     },
     GREETED_NAME: {
         text: "اسم الطالب هنا", // هذا سيتم استبداله باسم الطالب
         x: 0,
-        y: 180, // لا يزال في مكان جيد
-        fontSize: 55,
+        y: 300, // تم زيادة Y
+        fontSize: 80, // زيادة حجم الخط
         color: BLACK_COLOR_HEX,
         gravity: 'center'
     },
     GREETING2: {
         text: "نتمنى لكم يوماً سعيداً.",
-        x: 50,
-        y: 280, // تم تعديل Y لتقليل المسافة قليلاً
-        fontSize: 30,
+        x: 100, // زيادة X قليلاً
+        y: 500, // تم زيادة Y
+        fontSize: 45, // زيادة حجم الخط
         color: BLUE_COLOR_HEX,
         gravity: 'west'
     },
     GREETING3: {
         text: "شكراً لزيارتكم.",
         x: 0,
-        y: 340, // تم تعديل Y لتقليل المسافة قليلاً
-        fontSize: 25,
+        y: 650, // تم زيادة Y
+        fontSize: 40, // زيادة حجم الخط
         color: GREEN_COLOR_HEX,
         gravity: 'east'
     },
-    // --- الحقول الجديدة من بيانات الطالب ---
-    // هذه المواضع مقترحة. يجب تعديلها بناءً على تصميمك.
-    // سأفترض أن لديك منطقة فارغة في أسفل الشهادة لوضع هذه البيانات.
+    // --- حقول بيانات الطالب: سنضعها في منطقة أسفل النصوص الترحيبية ---
+    // سأفترض عمودين، ابدأ بتعديل هذه القيم بدقة
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
         field: "residency_number",
-        x: 100,
-        y: 450, // بدأت من 450 بكسل
-        fontSize: 22, // قللت حجم الخط قليلاً لاستيعاب المزيد من النصوص
+        x: 150, // موضع العمود الأول
+        y: 800, // بدء من 800 بكسل تقريبًا
+        fontSize: 30, // حجم خط مناسب
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     SERIAL_NUMBER: {
         label: "الرقم التسلسلي:",
         field: "serial_number",
-        x: 100,
-        y: 480, // بزيادة 30 بكسل
-        fontSize: 22,
+        x: 150,
+        y: 840, // كل حقل سيزيد 40 بكسل تقريبًا
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
-    DOCUMENT_SERIAL_NUMBER: { // تم إضافة هذا الحقل
+    DOCUMENT_SERIAL_NUMBER: {
         label: "الرقم التسلسلي للوثيقة:",
         field: "document_serial_number",
-        x: 100,
-        y: 510,
-        fontSize: 22,
+        x: 150,
+        y: 880,
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     PLATE_NUMBER: {
         label: "رقم اللوحة:",
         field: "plate_number",
-        x: 100,
-        y: 540,
-        fontSize: 22,
+        x: 150,
+        y: 920,
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     INSPECTION_DATE: {
         label: "تاريخ الفحص:",
         field: "inspection_date",
-        x: 100,
-        y: 570,
-        fontSize: 22,
+        x: 150,
+        y: 960,
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     MANUFACTURER: {
         label: "الشركة الصانعة:",
         field: "manufacturer",
-        x: 100,
-        y: 600,
-        fontSize: 22,
+        x: 150,
+        y: 1000,
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     INSPECTION_EXPIRY_DATE: {
         label: "تاريخ انتهاء الفحص:",
         field: "inspection_expiry_date",
-        x: 100,
-        y: 630,
-        fontSize: 22,
+        x: 150,
+        y: 1040,
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     CAR_TYPE: {
         label: "نوع السيارة:",
         field: "car_type",
-        x: 550, // هذا الحقل والحقول التالية تم نقلها إلى اليمين
-        y: 450, // نفس سطر رقم الإقامة
-        fontSize: 22,
+        x: 900, // موضع العمود الثاني (تم زيادته كثيرًا ليتناسب مع العرض الجديد)
+        y: 800, // نفس مستوى Y للعمود الأول
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     COUNTER_READING: {
         label: "قراءة العداد:",
         field: "counter_reading",
-        x: 550,
-        y: 480,
-        fontSize: 22,
+        x: 900,
+        y: 840,
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     CHASSIS_NUMBER: {
         label: "رقم الهيكل:",
         field: "chassis_number",
-        x: 550,
-        y: 510,
-        fontSize: 22,
+        x: 900,
+        y: 880,
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     VEHICLE_MODEL: {
         label: "طراز المركبة:",
         field: "vehicle_model",
-        x: 550,
-        y: 540,
-        fontSize: 22,
+        x: 900,
+        y: 920,
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     COLOR: {
         label: "اللون:",
         field: "color",
-        x: 550,
-        y: 570,
-        fontSize: 22,
+        x: 900,
+        y: 960,
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     SERIAL_NUMBER_DUPLICATE: {
         label: "الرقم التسلسلي (مكرر):",
         field: "serial_number_duplicate",
-        x: 550,
-        y: 600,
-        fontSize: 22,
+        x: 900,
+        y: 1000,
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
-    CREATED_AT: { // هذا هو حقل "تاريخ الإضافة"
+    CREATED_AT: {
         label: "تاريخ الإضافة:",
         field: "created_at",
-        x: 550,
-        y: 630,
-        fontSize: 22,
+        x: 900,
+        y: 1040,
+        fontSize: 30,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     }
@@ -250,7 +250,9 @@ export default async function handler(req, res) {
             console.log('لم يتم العثور على طالب بالمعرف:', id);
             return res.status(404).json({ error: 'لم يتم العثور على طالب بهذا المعرف.' });
         }
-        console.log('تم جلب بيانات الطالب:', student); // اطبع كائن الطالب بالكامل للتأكد
+        // طباعة بيانات الطالب التي تم جلبها لمساعدتك في التأكد من أسماء الحقول
+        console.log('تم جلب بيانات الطالب:', JSON.stringify(student, null, 2));
+
 
         // 2. التحقق من وجود صورة الشهادة
         console.log('جارٍ التحقق من صورة الشهادة...');
@@ -269,13 +271,13 @@ export default async function handler(req, res) {
         console.log('جارٍ معالجة الصورة الأساسية...');
         const baseImage = sharp(CERTIFICATE_IMAGE_PATH);
         const metadata = await baseImage.metadata();
-        const imageWidth = metadata.width; // 1030
-        const imageHeight = metadata.height; // 727
-        console.log('أبعاد الصورة:', imageWidth, 'x', imageHeight);
+        const imageWidth = metadata.width;
+        const imageHeight = metadata.height;
+        console.log('أبعاد الصورة الفعلية التي تم تحميلها:', imageWidth, 'x', imageHeight);
 
-        // تأكيد أبعاد الصورة التي تم تحميلها
-        if (imageWidth !== 1030 || imageHeight !== 727) {
-            console.warn(`تحذير: أبعاد الصورة (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (1030x727). قد تحتاج لضبط إحداثيات النصوص.`);
+        // هنا نقوم بالتحقق من أبعاد الصورة الفعلية
+        if (imageWidth !== 1754 || imageHeight !== 1238) {
+            console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (1754x1238). قد تحتاج لضبط إحداثيات النصوص مرة أخرى.`);
         }
 
 
@@ -300,42 +302,46 @@ export default async function handler(req, res) {
             let textToDisplay = '';
 
             if (pos.field) {
-                // استخدام قيمة الحقل مباشرة، مع fallback لـ '' إذا كانت undefined
                 let fieldValue = student[pos.field];
                 if (fieldValue === undefined || fieldValue === null) {
-                    fieldValue = ''; // لضمان عدم عرض 'undefined' أو 'null'
+                    fieldValue = '';
                 }
 
-                // تنسيق تاريخ الإضافة إذا كان الحقل هو created_at
-                if (pos.field === 'created_at' && fieldValue) {
-                    // تحويل إلى تاريخ عربي مع تنسيق يمني (إذا كان ذلك مفضلاً)
-                    textToDisplay = `${pos.label || ''} ${new Date(fieldValue).toLocaleDateString('ar-SA', { year: 'numeric', month: 'numeric', day: 'numeric' })}`;
+                // تنسيق تاريخ الإضافة وتاريخ الفحص/الانتهاء
+                if (pos.field === 'created_at' || pos.field === 'inspection_date' || pos.field === 'inspection_expiry_date') {
+                    if (fieldValue) {
+                        textToDisplay = `${pos.label || ''} ${new Date(fieldValue).toLocaleDateString('ar-SA', { year: 'numeric', month: 'numeric', day: 'numeric' })}`;
+                    } else {
+                        textToDisplay = `${pos.label || ''} لا يوجد`; // أو أي نص آخر تفضله للتواريخ الفارغة
+                    }
                 } else {
                     textToDisplay = `${pos.label || ''} ${fieldValue}`;
                 }
             } else if (key === 'GREETED_NAME') {
-                // استخدام حقل 'arabic_name' لاسم الطالب أو 'اسم الطالب غير متوفر' كافتراضي
+                // اسم الطالب موجود في 'arabic_name' حسب سجلاتك
                 textToDisplay = `${student.arabic_name || 'اسم الطالب غير متوفر'}`;
             } else {
-                textToDisplay = pos.text; // للنصوص الثابتة مثل GREETING1, GREETING2, GREETING3
+                textToDisplay = pos.text;
             }
 
-            // تأكد أن Y لا يتجاوز ارتفاع الصورة
-            if (pos.y >= imageHeight) {
-                console.warn(`النص ${key} (${textToDisplay}) يتجاوز ارتفاع الصورة (Y: ${pos.y}, ارتفاع الصورة: ${imageHeight}). لن يظهر هذا النص.`);
-                continue; // تخطي هذا النص إذا كان خارج النطاق
+            // فحص إحداثي Y للنص قبل إضافته
+            // ارتفاع منطقة النص التقديرية (ضعف حجم الخط)
+            const textRenderHeight = pos.fontSize * 2;
+            // إذا كان موضع بداية النص + ارتفاع النص يتجاوز ارتفاع الصورة
+            if ((pos.y + textRenderHeight) > imageHeight) {
+                console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) قد يتجاوز ارتفاع الصورة (Y: ${pos.y}, ارتفاع الصورة: ${imageHeight}). قد لا يظهر بالكامل.`);
+                // يمكنك هنا اختيار تخطي النص بـ 'continue;' إذا كنت لا تريد أن يظهر أبدًا خارج الصورة.
+                // حاليًا، سنسمح له بالرسم، ولكن سيكون مقطوعًا إذا تجاوز الارتفاع.
             }
 
-            const textHeight = pos.fontSize * 2; // ضعف حجم الخط كارتفاع تقريبي للمربع
-
-            console.log(`إنشاء نص لـ: ${key} بـ: ${textToDisplay} عند Y: ${pos.y}`);
+            console.log(`إنشاء نص لـ: ${key} بـ: "${textToDisplay}" عند X: ${pos.x}, Y: ${pos.y}`);
 
             const textOverlayBuffer = await createSharpTextBuffer(
                 textToDisplay,
                 pos.fontSize,
                 pos.color,
-                imageWidth,
-                textHeight,
+                imageWidth, // استخدم العرض الفعلي للصورة
+                textRenderHeight, // استخدم الارتفاع التقديري للنص
                 pos.gravity,
                 FONT_CSS_FAMILY_NAME
             );
