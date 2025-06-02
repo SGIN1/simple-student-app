@@ -1,19 +1,12 @@
 // api/generateCertificateTwo2.js
 // هذا الملف يستخدم الآن ES Module syntax
 
-// لا داعي لاستيراد MongoClient و ObjectId إذا لم يتم استخدامهما
-// import { MongoClient, ObjectId } from 'mongodb';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 
-// **ملاحظة هامة:** MONGODB_URI لم تعد ضرورية لعرض نص ثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
-// const uri = process.env.MONGODB_URI;
-// const dbName = 'Cluster0';
-// const collectionName = 'enrolled_students_tbl';
-
 // ----------------------------------------------------
-// **تعريفات المتغيرات والثوابت - يجب أن تكون هنا في الأعلى**
+// **تعريفات المتغيرات والثوابت**
 // ----------------------------------------------------
 
 // **مسار صورة الشهادة:**
@@ -24,37 +17,47 @@ const FONT_FILENAME = 'arial.ttf'; // <--- تأكد من وجود ملف arial.t
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
 // **اسم الخط للاستخدام في CSS داخل SVG:**
-const FONT_CSS_FAMILY_NAME = 'ArialUnicode'; // تغيير اسم الخط هنا لتجنب التعارضات الداخلية في Pango
+const FONT_CSS_FAMILY_NAME = 'ArialUnicode'; // تم تغيير هذا الاسم لتجنب تعارضات الخطوط
 
 // تعريف ألوان النصوص
 const RED_COLOR_HEX = '#FF0000';    // أحمر
 const BLUE_COLOR_HEX = '#0000FF';   // أزرق
 const GREEN_COLOR_HEX = '#00FF00';  // أخضر
+const BLACK_COLOR_HEX = '#000000';  // أسود
 
 // تعريف إحداثيات ومواصفات نصوص الترحيب
-// **هذه الإحداثيات (x, y) هي قيم تقديرية. يجب عليك تعديلها بعناية لتناسب تصميم شهادتك (wwee.png).**
+// **هذه الإحداثيات (x, y) تم ضبطها لتناسب أبعاد شهادتك: العرض 1000 بكسل، الارتفاع 1220 بكسل.**
+// **قد تحتاج إلى تعديلات دقيقة لهذه القيم بناءً على تصميم شهادتك المحدد.**
 const GREETING_POSITIONS = {
     GREETING1: {
-        text: "أهلاً وشكراًببببببببببببببببببببببببببببببببببببببب كيفك حبيبي وينك ي قلبي واو وينك ي شيخ وربي وحشتني  لزيارتكمسهلاً بكم!",
-        x: 0,
-        y: 400, // يمكنك تعديل هذه القيمة
-        fontSize: 70,
+        text: "أهلاً وسهلاً بكم!",
+        x: 0, // 0 مع gravity 'center' يعني المنتصف الأفقي
+        y: 200, // مثلاً: 200 بكسل من الأعلى
+        fontSize: 50, // حجم مناسب لـ 1000 بكسل عرض
         color: RED_COLOR_HEX,
         gravity: 'center'
     },
+    GREETED_NAME: { // نص تجريبي لاسم الطالب (يمكنك تعديل هذا أو حذفه لاحقًا)
+        text: "محمد أحمد علي", // نص تجريبي، استبدله ببيانات الطالب الفعلية لاحقًا
+        x: 0,
+        y: 350, // مثلاً: 350 بكسل من الأعلى
+        fontSize: 70, // حجم أكبر للأسماء
+        color: BLACK_COLOR_HEX,
+        gravity: 'center'
+    },
     GREETING2: {
-        text: "نتمنى لكمشكراًببببببببببببببببببببببببببببببببببببببب كيفك حبيبي وينك ي قلبي واو وينك ي شيخ وربي وحشتني  لزيارتكم يوماً سعيداً.",
-        x: 50, // يمكنك تعديل هذه القيمة
-        y: 550, // يمكنك تعديل هذه القيمة
-        fontSize: 50,
+        text: "نتمنى لكم يوماً سعيداً.",
+        x: 50, // 50 بكسل من اليسار (لـ 'west' - أي start)
+        y: 500, // مثلاً: 500 بكسل من الأعلى
+        fontSize: 40,
         color: BLUE_COLOR_HEX,
         gravity: 'west'
     },
     GREETING3: {
-        text: "شكراًببببببببببببببببببببببببببببببببببببببب كيفك حبيبي وينك ي قلبي واو وينك ي شيخ وربي وحشتني  لزيارتكم.",
-        x: 0, // يمكنك تعديل هذه القيمة
-        y: 700, // يمكنك تعديل هذه القيمة
-        fontSize: 40,
+        text: "شكراً لزيارتكم.",
+        x: 0, // 0 مع gravity 'east' يعني أقصى اليمين من عرض الـ SVG (1000 بكسل)
+        y: 650, // مثلاً: 650 بكسل من الأعلى
+        fontSize: 30,
         color: GREEN_COLOR_HEX,
         gravity: 'east'
     }
@@ -62,7 +65,7 @@ const GREETING_POSITIONS = {
 
 /**
  * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp من SVG.
- * **هذه الدالة هي التي تم تعديلها بشكل حاسم لحل مشكلة الخط.**
+ * هذه الدالة تم تحسينها لضمان دعم الخط العربي بشكل صحيح.
  *
  * @param {string} text - النص المراد عرضه.
  * @param {number} fontSize - حجم الخط بالبكسل.
@@ -88,10 +91,6 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
     }
 
     // إنشاء SVG Markup للنص
-    // **التعديلات الهامة هنا لضمان عمل الخط العربي:**
-    // 1. تضمين الخط كـ Base64 مباشرة في CSS داخل SVG.
-    // 2. استخدام خصائص CSS لـ text-anchor و dominant-baseline والمحاذاة.
-    // 3. إضافة direction: rtl و unicode-bidi: bidi-override لدعم اللغة العربية.
     const svgText = `
         <svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
             <style>
@@ -116,7 +115,6 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
     `;
 
     // استخدام sharp لتحويل SVG إلى PNG شفاف
-    // هذا يضمن أن النص له خلفية شفافة عند وضعه فوق الصورة الأصلية
     return sharp(Buffer.from(svgText))
         .png() // تحويل SVG إلى PNG
         .toBuffer();
@@ -177,13 +175,14 @@ export default async function handler(req, res) {
         for (const key in GREETING_POSITIONS) {
             const pos = GREETING_POSITIONS[key];
 
-            const textHeight = pos.fontSize * 2; // ارتفاع تقديري لمربع النص
+            // يجب أن يكون ارتفاع النص كافياً لاحتوائه
+            const textHeight = pos.fontSize * 2; // ضعف حجم الخط كارتفاع تقريبي لمربع النص
 
             const textOverlayBuffer = await createSharpTextBuffer(
                 pos.text,
                 pos.fontSize,
                 pos.color,
-                imageWidth,
+                imageWidth, // يجب أن يكون عرض الـ SVG هو عرض الصورة الكاملة
                 textHeight,
                 pos.gravity,
                 fontBuffer,
@@ -191,7 +190,6 @@ export default async function handler(req, res) {
             );
 
             // تركيب النص كـ overlay. sharp سيستخدم الوضع الافتراضي لدمج PNG الشفاف.
-            // تمت إزالة 'blend' صراحةً للسماح لـ sharp بالتعامل مع PNG الشفاف بشكل صحيح.
             processedImage = await processedImage.composite([{
                 input: textOverlayBuffer,
                 left: pos.x,
