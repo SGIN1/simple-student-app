@@ -1,64 +1,92 @@
 // api/generateCertificateTwo2.js
+// هذا الملف يستخدم الآن ES Module syntax
 
+import { MongoClient, ObjectId } from 'mongodb'; // هذه المكتبة لم تعد ضرورية للنص الثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 
-// المسارات الثابتة للملفات
+// **ملاحظة هامة:** MONGODB_URI لم تعد ضرورية لعرض نص ثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
+const uri = process.env.MONGODB_URI;
+const dbName = 'Cluster0';
+const collectionName = 'enrolled_students_tbl';
+
+// **مسار صورة الشهادة:**
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.png');
-const FONT_FILENAME = 'arial.ttf'; // تأكد من هذا الاسم يطابق تماماً ملفك
+
+// **مسار الخط الجديد (Arial):**
+const FONT_FILENAME = 'arial.ttf'; // <--- تأكد من وجود ملف arial.ttf في public/fonts/
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
+
+// **اسم الخط للاستخدام في CSS:**
+const FONT_CSS_FAMILY_NAME = 'Arial'; // الاسم الشائع لخط Arial
 
 // تعريف ألوان النصوص
 const RED_COLOR_HEX = '#FF0000';    // أحمر
 const BLUE_COLOR_HEX = '#0000FF';   // أزرق
 const GREEN_COLOR_HEX = '#00FF00';  // أخضر
 
-// تعريف إحداثيات ومواصفات نصوص الترحيب على الشهادة
-// (هذه القيم تقديرية، قد تحتاج لتعديلها لتناسب تصميم شهادتك بالضبط)
+// تعريف إحداثيات ومواصفات نصوص الترحيب
+// **هذه الإحداثيات (x, y) هي قيم تقديرية. يجب عليك تعديلها بعناية لتناسب تصميم شهادتك (wwee.png).**
 const GREETING_POSITIONS = {
-    // القيم x و y هنا ستكون هي إحداثيات وضع طبقة النص الناتجة من sharp.text()
-    // وليس إحداثيات داخل SVG. قد تحتاج لتعديلها قليلاً بعد التجربة.
-    GREETING1: { text: "أهلاً وسهلاً بكم!", x: 0, y: 400, fontSize: 70, color: RED_COLOR_HEX, gravity: 'center' },
-    GREETING2: { text: "نتمنى لكم يوماً سعيداً.", x: 50, y: 550, fontSize: 50, color: BLUE_COLOR_HEX, gravity: 'west' },
-    GREETING3: { text: "شكراً لزيارتكم.", x: 0, y: 700, fontSize: 40, color: GREEN_COLOR_HEX, gravity: 'east' }
+    GREETING1: {
+        text: "أهلاً وسهلاً بكم!",
+        x: 0,
+        y: 400,
+        fontSize: 70,
+        color: RED_COLOR_HEX,
+        gravity: 'center'
+    },
+    GREETING2: {
+        text: "نتمنى لكم يوماً سعيداً.",
+        x: 50,
+        y: 550,
+        fontSize: 50,
+        color: BLUE_COLOR_HEX,
+        gravity: 'west'
+    },
+    GREETING3: {
+        text: "شكراً لزيارتكم.",
+        x: 0,
+        y: 700,
+        fontSize: 40,
+        color: GREEN_COLOR_HEX,
+        gravity: 'east'
+    }
 };
 
 /**
- * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp باستخدام sharp.text().
- * هذا يتجاوز مشاكل Fontconfig بالكامل.
+ * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp.
  * @param {string} text - النص المراد عرضه.
  * @param {number} fontSize - حجم الخط بالبكسل.
  * @param {string} color - لون النص (مثال: '#FF0000').
- * @param {Buffer} fontBuffer - محتوى ملف الخط كـ Buffer.
- * @returns {Promise<Buffer>} - Buffer لصورة PNG تحتوي على النص.
+ * @param {number} svgWidth - العرض الكلي لمساحة النص (يجب أن يكون عرض الصورة).
+ * @param {number} svgHeight - الارتفاع الكلي لمساحة النص.
+ * @param {string} gravity - محاذاة النص ('center', 'west', 'east').
+ * @param {Buffer} fontBuffer - بيانات ملف الخط (buffer).
+ * @param {string} fontCssFamilyName - الاسم الذي سيتم استخدامه للخط.
+ * @returns {Buffer} - كائن Buffer يحتوي على بيانات النص.
  */
-async function createSharpTextBuffer(text, fontSize, color, fontBuffer) {
+async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontBuffer, fontCssFamilyName) {
     return sharp({
         text: {
-            text: text,
-            font: FONT_PATH, // يحدد مسار ملف الخط مباشرة
-            fontFile: fontBuffer, // يمرر الـ Buffer الخاص بالخط
-            width: 2000, // عرض تقديري كبير بما يكفي للنص، سيتم اقتصاصه لاحقًا
-            height: fontSize * 2, // ارتفاع تقديري
-            align: 'center', // المحاذاة داخل مربع النص، يمكن أن تكون 'center', 'left', 'right'
-            rgba: true // لتمكين الشفافية والألوان الكاملة
+            text: `<span foreground="${color}">${text}</span>`, // استخدام span لتطبيق اللون
+            font: fontCssFamilyName, // اسم الخط
+            fontfile: FONT_PATH, // مسار ملف الخط
+            width: svgWidth, // عرض المساحة المتاحة للنص
+            height: svgHeight, // ارتفاع المساحة المتاحة للنص
+            align: gravity === 'center' ? 'centre' : (gravity === 'west' ? 'left' : 'right'),
+            rgba: true // يجب أن تكون true لاستخدام الألوان في Pango Markup
         }
-    })
-    .resize({
-        // يمكننا استخدام resize لضبط الحجم النهائي للصورة النصية
-        // أو نتركها لتحديد sharp الحجم الأنسب تلقائيًا.
-        // عادة ما ينتج sharp.text صورة بالحجم المناسب للنص.
-        // يمكننا إزالة هذا الـ resize إذا لم يكن ضروريًا
-    })
-    .png() // تحويل النص إلى صورة PNG مع خلفية شفافة
-    .toBuffer();
+    }).png().toBuffer();
 }
 
+
 /**
- * وظيفة Vercel Serverless Function الرئيسية لتوليد الشهادة.
+ * وظيفة Vercel Serverless Function لإنشاء الشهادة.
+ *
  * @param {Object} req - كائن الطلب (HTTP request).
- * @param {Object} res - كائن الاستجابة (HTTP response).
+ * @param {Object} res - كائن الاستجابة (HTTP request).
  */
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -66,85 +94,90 @@ export default async function handler(req, res) {
     }
 
     try {
-        await fs.access(CERTIFICATE_IMAGE_PATH);
+        // 1. التحقق من وجود صورة الشهادة
+        try {
+            await fs.access(CERTIFICATE_IMAGE_PATH);
+            console.log('صورة الشهادة موجودة في المسار المحدد:', CERTIFICATE_IMAGE_PATH);
+        } catch (fileError) {
+            console.error('خطأ: صورة الشهادة غير موجودة أو لا يمكن الوصول إليها:', fileError.message);
+            return res.status(500).json({
+                error: 'صورة الشهادة غير موجودة أو لا يمكن الوصول إليها. يرجى التحقق من مسار ملف الصورة في النشر.',
+                details: fileError.message,
+                path: CERTIFICATE_IMAGE_PATH
+            });
+        }
+
+        // 2. قراءة صورة الشهادة الأساسية
         const baseImage = sharp(CERTIFICATE_IMAGE_PATH);
-        let metadata = await baseImage.metadata();
-        let imageWidth = metadata.width;
-        let imageHeight = metadata.height;
+        const metadata = await baseImage.metadata();
+        const imageWidth = metadata.width;
+        const imageHeight = metadata.height; // احصل على ارتفاع الصورة أيضاً
 
         let processedImage = baseImage;
 
+        // 3. التحقق من وجود ملف الخط وقراءته في الذاكرة
         let fontBuffer;
         try {
             fontBuffer = await fs.readFile(FONT_PATH);
+            console.log('ملف الخط موجود وتم قراءته:', FONT_PATH);
         } catch (fontError) {
-            console.error('Error: Font file not found or inaccessible at deployment:', fontError.message);
+            console.error('خطأ: ملف الخط غير موجود أو لا يمكن الوصول إليه:', fontError.message);
             return res.status(500).json({
                 error: 'ملف الخط غير موجود أو لا يمكن الوصول إليه. يرجى التأكد من وضعه في المسار الصحيح وتضمينه في النشر.',
                 details: fontError.message,
                 path: FONT_PATH
             });
         }
-        
-        // مصفوفة لتخزين طبقات النصوص
-        const textOverlays = [];
 
+
+        // --- إضافة نصوص الترحيب إلى الصورة باستخدام sharp.text() ---
         for (const key in GREETING_POSITIONS) {
             const pos = GREETING_POSITIONS[key];
-            
-            // توليد صورة النص باستخدام sharp.text()
-            const textImageBuffer = await createSharpTextBuffer(
+
+            // تحديد ارتفاع مناسب لمربع النص لضمان ظهور النص كاملاً
+            const textHeight = pos.fontSize * 2; // ضعف حجم الخط كارتفاع تقريبي للمربع
+
+            const textOverlayBuffer = await createSharpTextBuffer(
                 pos.text,
                 pos.fontSize,
                 pos.color,
-                fontBuffer // نمرر الـ Buffer الخاص بالخط مباشرة
+                imageWidth, // عرض النص بالكامل هو عرض الصورة
+                textHeight, // الارتفاع الذي حسبناه
+                pos.gravity,
+                fontBuffer,
+                FONT_CSS_FAMILY_NAME
             );
 
-            // نحتاج الآن لمعرفة أبعاد الصورة النصية التي تم إنشاؤها لضبط الإحداثيات
-            const textMetadata = await sharp(textImageBuffer).metadata();
-            const textWidth = textMetadata.width;
-            const textHeight = textMetadata.height;
-
-            let finalX = pos.x;
-            let finalY = pos.y;
-
-            // ضبط إحداثيات X بناءً على المحاذاة بعد معرفة عرض النص الفعلي
-            if (pos.gravity === 'center') {
-                finalX = (imageWidth - textWidth) / 2;
-            } else if (pos.gravity === 'east') {
-                finalX = imageWidth - textWidth - pos.x; // pos.x هنا يصبح هامش من اليمين
-            }
-            // إذا كانت 'west' فـ finalX = pos.x (كما هو في الأصل)
-
-            textOverlays.push({
-                input: textImageBuffer,
-                left: Math.max(0, finalX), // تأكد ألا تكون خارج حدود الصورة
-                top: Math.max(0, finalY),  // تأكد ألا تكون خارج حدود الصورة
-                blend: 'over'
-            });
+            // تركيب النص كـ overlay
+            processedImage = await processedImage.composite([{
+                input: textOverlayBuffer,
+                left: pos.x,
+                top: pos.y,
+                blend: 'overlay'
+            }]);
         }
 
-        // دمج جميع طبقات النصوص مرة واحدة
-        processedImage = await processedImage.composite(textOverlays);
+        const finalImageBuffer = await processedImage.png().toBuffer();
 
-        const finalImageBuffer = await processedImage
-            .webp({
-                quality: 85,
-                nearLossless: true,
-                chromaSubsampling: '4:4:4'
-            })
-            .toBuffer();
-
-        res.setHeader('Content-Type', 'image/webp');
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate');
         return res.status(200).send(finalImageBuffer);
 
     } catch (error) {
-        console.error('General error in generateCertificateTwo2 function:', error);
-        console.error('Error stack trace:', error.stack);
-        
+        console.error('خطأ عام في وظيفة generateCertificateTwo2:', error);
+        console.error('تتبع الخطأ:', error.stack);
+
+        // إذا كان الخطأ يتعلق بـ Fontconfig أو Freetype، قم بتوضيح ذلك
+        if (error.message.includes('fontconfig') || error.message.includes('freetype')) {
+            return res.status(500).json({
+                error: 'حدث خطأ في معالجة الخطوط. قد تكون بيئة النشر لا تدعم Fontconfig أو FreeType بالشكل المطلوب لخطوط مخصصة.',
+                details: error.message,
+                stack: error.stack
+            });
+        }
+
         return res.status(500).json({
-            error: `حدث خطأ أثناء توليد الشهادة: ${error.message}`,
+            error: 'حدث خطأ أثناء توليد الشهادة.',
             details: error.message,
             stack: error.stack
         });
