@@ -14,16 +14,12 @@ import fs from 'fs/promises';
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
 // **مسار الخط (Arial):**
-// سنبقي على ملف arial.ttf هنا لأنه قد يكون مطلوبًا
-// ولكننا سنطلب من الـ SVG استخدام خط مختلف في الـ CSS
-const FONT_FILENAME = 'arial.ttf';
+const FONT_FILENAME = 'arial.ttf'; // <--- تأكد من وجود ملف arial.ttf في public/fonts/
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
 // **اسم الخط للاستخدام في CSS داخل SVG:**
-// **هذا هو التغيير الرئيسي:** سنحاول استخدام خط "Noto Sans Arabic" أو "sans-serif" كبديل
-// Noto Sans Arabic معروف بدعمه القوي للعربية في العديد من البيئات.
-// إذا لم ينجح، قد نضطر لاستخدام 'sans-serif' ونتوكل على الخط الافتراضي للنظام.
-const FONT_CSS_FAMILY_NAME = 'Noto Sans Arabic'; // <--- **هذا هو التغيير الجديد**
+// **تمت إعادته إلى 'Arial' بناءً على الكود الذي يعمل لديك سابقًا.**
+const FONT_CSS_FAMILY_NAME = 'Arial'; 
 
 // تعريف ألوان النصوص
 const RED_COLOR_HEX = '#FF0000';    // أحمر
@@ -86,13 +82,16 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
     }
 
     // بناء SVG النصي مع تضمين الخط (ttf) مباشرة كـ Base64
+    // **تمت استعادة طريقة تضمين الخط التي كانت تعمل لديك سابقًا.**
     const svgText = `
         <svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
             <style>
-                /* لا نستخدم fontBuffer هنا مباشرة في @font-face، بل نعتمد على الخط المثبت في النظام */
-                /* ولكننا نمرر fontBuffer للدالة للتأكد من وجوده في البنية العامة للكود */
+                @font-face {
+                    font-family: '${fontCssFamilyName}';
+                    src: url('data:font/ttf;base64,${fontBuffer.toString('base64')}') format('truetype');
+                }
                 text {
-                    font-family: '${fontCssFamilyName}', sans-serif; /* استخدام Noto Sans Arabic كخط أساسي مع sans-serif كبديل */
+                    font-family: '${fontCssFamilyName}', sans-serif; /* استخدام اسم الخط المحدد مع sans-serif كبديل */
                     font-size: ${fontSize}px;
                     fill: ${color};
                     text-anchor: ${textAnchor};
@@ -141,7 +140,7 @@ export default async function handler(req, res) {
 
         let processedImage = baseImage;
 
-        // 3. التحقق من وجود ملف الخط وقراءته في الذاكرة (هذه الخطوة لازمة لتفادي أخطاء Sharp)
+        // 3. التحقق من وجود ملف الخط وقراءته في الذاكرة
         let fontBuffer;
         try {
             fontBuffer = await fs.readFile(FONT_PATH);
@@ -169,7 +168,7 @@ export default async function handler(req, res) {
                 imageWidth,
                 textHeight,
                 pos.gravity,
-                fontBuffer, // نمرر fontBuffer حتى لو لم نستخدمه مباشرة في @font-face داخل SVG
+                fontBuffer,
                 FONT_CSS_FAMILY_NAME
             );
 
