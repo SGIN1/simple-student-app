@@ -12,35 +12,34 @@ const FONT_FILENAME = 'arial.ttf';
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 const FONT_CSS_FAMILY_NAME = 'Arial';
 
-// يمكنك الاحتفاظ بهذه الألوان أو إزالتها إذا لم تعد تستخدمها
-const BLACK_COLOR_HEX = '#000000';
+const BLACK_COLOR_HEX = '#000000'; // اللون الأسود غالباً هو الأوضح
 
-// تم تعديل هذا الكائن ليتضمن فقط الحقول المطلوبة
+// تم تعديل إحداثيات X و Y هنا لرفع النصوص لأعلى وجعلها مرئية
 const CERTIFICATE_TEXT_POSITIONS = {
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
         field: "residency_number",
-        x: 150, // هذا مثال، ستحتاج لتعديل هذا الرقم
-        y: 800, // وهذا الرقم ليتناسب مع تصميمك
-        fontSize: 30,
+        x: 100, // مثال: إحداثي X من اليسار
+        y: 200, // مثال: إحداثي Y (أعلى الصفحة)
+        fontSize: 40, // زيادة حجم الخط قليلاً ليكون أوضح
         color: BLACK_COLOR_HEX,
-        gravity: 'west'
+        gravity: 'west' // النص يبدأ من اليسار
     },
     CHASSIS_NUMBER: {
         label: "رقم الهيكل:",
-        field: "chassis_number", // تأكد أن اسم الحقل في قاعدة البيانات هو 'chassis_number' وليس 'رقم_الهيكل'
-        x: 900, // هذا مثال، ستحتاج لتعديل هذا الرقم
-        y: 880, // وهذا الرقم ليتناسب مع تصميمك
-        fontSize: 30,
+        field: "chassis_number",
+        x: 100, // نفس إحداثي X، بحيث تكون تحت رقم الإقامة مباشرة
+        y: 260, // Y ليكون تحت رقم الإقامة بمسافة مناسبة (200 + 40 + 20) = 260
+        fontSize: 40,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
     CREATED_AT: {
         label: "تاريخ الإضافة:",
         field: "created_at",
-        x: 900, // هذا مثال، ستحتاج لتعديل هذا الرقم
-        y: 1040, // وهذا الرقم ليتناسب مع تصميمك
-        fontSize: 30,
+        x: 100, // نفس إحداثي X
+        y: 320, // Y ليكون تحت رقم الهيكل بمسافة مناسبة (260 + 40 + 20) = 320
+        fontSize: 40,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     }
@@ -50,8 +49,7 @@ const CERTIFICATE_TEXT_POSITIONS = {
  * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp باستخدام sharp.text().
  */
 async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontCssFamilyName) {
-    // **التعديل الرئيسي هنا: تأكد من أن النص ليس فارغًا أو مجرد مسافات بيضاء**
-    const textToRender = (text && String(text).trim() !== '') ? text : 'غير متوفر'; // نص افتراضي
+    const textToRender = (text && String(text).trim() !== '') ? text : 'غير متوفر';
 
     let align = 'centre';
     if (gravity === 'west') {
@@ -60,13 +58,18 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
         align = 'right';
     }
 
+    // حجم SVG يجب أن يكون كافياً لاحتواء النص
+    // يمكنك زيادة ارتفاع SVG قليلاً إذا كانت النصوص تظهر مقطوعة
+    const estimatedTextHeight = fontSize * 1.5; // تقدير تقريبي لارتفاع النص
+    const textSvgHeight = Math.max(svgHeight, estimatedTextHeight + 20); // ضمان ارتفاع كافٍ
+
     return sharp({
         text: {
-            text: `<span foreground="${color}">${textToRender}</span>`, // استخدام textToRender
+            text: `<span foreground="${color}">${textToRender}</span>`,
             font: fontCssFamilyName,
             fontfile: FONT_PATH,
             width: svgWidth,
-            height: svgHeight,
+            height: textSvgHeight, // استخدام الارتفاع المحدث
             align: align,
             rgba: true
         }
@@ -75,7 +78,7 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
 
 
 export default async function handler(req, res) {
-    console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 (نسخة مختصرة) ---');
+    console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 (نسخة مختصرة ومعدلة الإحداثيات) ---');
 
     if (req.method !== 'GET') {
         console.log('طلب غير مسموح به:', req.method);
@@ -116,7 +119,6 @@ export default async function handler(req, res) {
         console.log('تم جلب بيانات الطالب:', JSON.stringify(student, null, 2));
 
 
-        // 2. التحقق من وجود صورة الشهادة
         console.log('جارٍ التحقق من صورة الشهادة...');
         try {
             await fs.access(CERTIFICATE_IMAGE_PATH);
@@ -141,7 +143,6 @@ export default async function handler(req, res) {
             console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (1754x1238). قد تحتاج لضبط إحداثيات النصوص مرة أخرى.`);
         }
 
-
         let processedImage = baseImage;
 
         console.log('جارٍ التحقق من ملف الخط...');
@@ -164,13 +165,12 @@ export default async function handler(req, res) {
 
             if (pos.field) {
                 let fieldValue = student[pos.field];
-                // التأكد من أن fieldValue ليس null أو undefined
                 if (fieldValue === undefined || fieldValue === null || String(fieldValue).trim() === '') {
-                    fieldValue = 'غير متوفر'; // نص افتراضي للحقول الفارغة
+                    fieldValue = 'غير متوفر';
                 }
 
                 if (pos.field === 'created_at' || pos.field === 'inspection_date' || pos.field === 'inspection_expiry_date') {
-                    if (fieldValue !== 'غير متوفر' && fieldValue) { // تأكد من أن fieldValue ليس النص الافتراضي
+                    if (fieldValue !== 'غير متوفر' && fieldValue) {
                         textToDisplay = `${pos.label || ''} ${new Date(fieldValue).toLocaleDateString('ar-SA', { year: 'numeric', month: 'numeric', day: 'numeric' })}`;
                     } else {
                         textToDisplay = `${pos.label || ''} غير متوفر`;
@@ -252,7 +252,6 @@ export default async function handler(req, res) {
     } finally {
         if (client) {
             await client.close();
-            console.log('تم إغلاق اتصال قاعدة البيانات.');
         }
     }
 }
