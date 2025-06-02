@@ -10,16 +10,20 @@ import fs from 'fs/promises';
 // ----------------------------------------------------
 
 // **مسار صورة الشهادة:**
-// تأكد من المسار الصحيح سواء كانت wwee.png أو wwee.jpg
-// بناءً على رسالتك السابقة، يبدو أنك تستخدم wwee.jpg
+// بناءً على آخر كود أرسلته لي، الصورة هي wwee.jpg
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
 // **مسار الخط (Arial):**
-const FONT_FILENAME = 'arial.ttf'; // <--- تأكد من وجود ملف arial.ttf في public/fonts/
+// سنبقي على ملف arial.ttf هنا لأنه قد يكون مطلوبًا
+// ولكننا سنطلب من الـ SVG استخدام خط مختلف في الـ CSS
+const FONT_FILENAME = 'arial.ttf';
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
 // **اسم الخط للاستخدام في CSS داخل SVG:**
-const FONT_CSS_FAMILY_NAME = 'ArialUnicode'; // اسم الخط الذي يعمل الآن
+// **هذا هو التغيير الرئيسي:** سنحاول استخدام خط "Noto Sans Arabic" أو "sans-serif" كبديل
+// Noto Sans Arabic معروف بدعمه القوي للعربية في العديد من البيئات.
+// إذا لم ينجح، قد نضطر لاستخدام 'sans-serif' ونتوكل على الخط الافتراضي للنظام.
+const FONT_CSS_FAMILY_NAME = 'Noto Sans Arabic'; // <--- **هذا هو التغيير الجديد**
 
 // تعريف ألوان النصوص
 const RED_COLOR_HEX = '#FF0000';    // أحمر
@@ -34,32 +38,32 @@ const GREETING_POSITIONS = {
     GREETING1: {
         text: "أهلاً وسهلاً بكم!",
         x: 0, // 0 مع gravity 'center' يعني المنتصف الأفقي
-        y: 80, // **معدّل**: 80 بكسل من الأعلى (ابدأ بقيمة صغيرة وانتقل للأسفل)
-        fontSize: 40, // **معدّل**: حجم 40 بكسل (جرب 35, 45)
+        y: 80, // 80 بكسل من الأعلى
+        fontSize: 40, // حجم 40 بكسل
         color: RED_COLOR_HEX,
         gravity: 'center'
     },
-    GREETED_NAME: { // نص تجريبي لاسم الطالب (هذا النص مؤقت)
+    GREETED_NAME: { // نص تجريبي لاسم الطالب
         text: "محمد أحمد علي", // هذا النص مؤقت، سيتم استبداله ببيانات الطالب الفعلية لاحقًا
         x: 0,
-        y: 180, // **معدّل**: 180 بكسل من الأعلى
-        fontSize: 55, // **معدّل**: 55 بكسل للأسماء (جرب 50, 60)
+        y: 180, // 180 بكسل من الأعلى
+        fontSize: 55, // 55 بكسل للأسماء
         color: BLACK_COLOR_HEX,
         gravity: 'center'
     },
     GREETING2: {
         text: "نتمنى لكم يوماً سعيداً.",
         x: 50, // 50 بكسل من اليسار
-        y: 300, // **معدّل**: 300 بكسل من الأعلى
-        fontSize: 30, // **معدّل**: 30 بكسل
+        y: 300, // 300 بكسل من الأعلى
+        fontSize: 30, // 30 بكسل
         color: BLUE_COLOR_HEX,
         gravity: 'west'
     },
     GREETING3: {
         text: "شكراً لزيارتكم.",
         x: 0, // 0 مع gravity 'east' يعني أقصى اليمين من عرض الـ SVG
-        y: 450, // **معدّل**: 450 بكسل من الأعلى
-        fontSize: 25, // **معدّل**: 25 بكسل
+        y: 450, // 450 بكسل من الأعلى
+        fontSize: 25, // 25 بكسل
         color: GREEN_COLOR_HEX,
         gravity: 'east'
     }
@@ -81,15 +85,14 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
         xPosition = svgWidth;
     }
 
+    // بناء SVG النصي مع تضمين الخط (ttf) مباشرة كـ Base64
     const svgText = `
         <svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
             <style>
-                @font-face {
-                    font-family: '${fontCssFamilyName}';
-                    src: url('data:font/ttf;charset=utf-8;base64,${fontBuffer.toString('base64')}');
-                }
+                /* لا نستخدم fontBuffer هنا مباشرة في @font-face، بل نعتمد على الخط المثبت في النظام */
+                /* ولكننا نمرر fontBuffer للدالة للتأكد من وجوده في البنية العامة للكود */
                 text {
-                    font-family: '${fontCssFamilyName}';
+                    font-family: '${fontCssFamilyName}', sans-serif; /* استخدام Noto Sans Arabic كخط أساسي مع sans-serif كبديل */
                     font-size: ${fontSize}px;
                     fill: ${color};
                     text-anchor: ${textAnchor};
@@ -103,6 +106,7 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
             </text>
         </svg>
     `;
+    // تحويل SVG إلى صورة (PNG مؤقتة) يمكن لـ Sharp دمجها بسهولة كطبقة
     return sharp(Buffer.from(svgText)).png().toBuffer();
 }
 
@@ -137,11 +141,11 @@ export default async function handler(req, res) {
 
         let processedImage = baseImage;
 
-        // 3. التحقق من وجود ملف الخط وقراءته في الذاكرة
+        // 3. التحقق من وجود ملف الخط وقراءته في الذاكرة (هذه الخطوة لازمة لتفادي أخطاء Sharp)
         let fontBuffer;
         try {
             fontBuffer = await fs.readFile(FONT_PATH);
-            console.log('ملف الخط موجود وتم قراءته:', FONT_PATH);
+            console.log('الملف الخط موجود وتم قراءته:', FONT_PATH);
         } catch (fontError) {
             console.error('خطأ: ملف الخط غير موجود أو لا يمكن الوصول إليه:', fontError.message);
             return res.status(500).json({
@@ -156,16 +160,16 @@ export default async function handler(req, res) {
             const pos = GREETING_POSITIONS[key];
 
             // ارتفاع مربع النص يعتمد على حجم الخط لضمان احتواء النص
-            const textHeight = pos.fontSize * 2; // يضمن أن مربع الـ SVG كبير بما يكفي للنص
+            const textHeight = pos.fontSize * 2;
 
             const textOverlayBuffer = await createSharpTextBuffer(
                 pos.text,
                 pos.fontSize,
                 pos.color,
-                imageWidth, // نستخدم عرض الصورة الفعلية
+                imageWidth,
                 textHeight,
                 pos.gravity,
-                fontBuffer,
+                fontBuffer, // نمرر fontBuffer حتى لو لم نستخدمه مباشرة في @font-face داخل SVG
                 FONT_CSS_FAMILY_NAME
             );
 
@@ -179,12 +183,10 @@ export default async function handler(req, res) {
 
         // بما أنك تستخدم wwee.jpg، سنقوم بالإخراج كـ JPEG
         const finalImageBuffer = await processedImage
-            // بما أن JPG لا يدعم الشفافية، لا حاجة لـ flatten إلا إذا كانت هناك شفافية متبقية من overlays
-            // لكن إبقاؤها لا يضر ويضمن خلفية بيضاء إذا كانت هناك أي شفافية غير متوقعة
             .flatten({ background: { r: 255, g: 255, b: 255, alpha: 1 } })
             .jpeg({
-                quality: 85, // جودة الصورة (يمكنك تعديلها من 0 إلى 100)
-                progressive: true // يجعلها progressive JPEG للعرض التدريجي
+                quality: 85, // جودة الصورة
+                progressive: true // يجعلها progressive JPEG
             }).toBuffer();
 
         res.setHeader('Content-Type', 'image/jpeg'); // نوع المحتوى image/jpeg
@@ -197,7 +199,7 @@ export default async function handler(req, res) {
 
         if (error.message.includes('fontconfig') || error.message.includes('freetype')) {
             return res.status(500).json({
-                error: 'حدث خطأ في معالجة الخطوط. قد تكون بيئة النشر لا تدعم Fontconfig أو FreeType بالشكل المطلوب لخطوط مخصصة. حاول استخدام خط بديل أو تأكد من تضمين الخط بالكامل في الـ SVG.',
+                error: 'يبدو أن هناك مشكلة في معالجة الخطوط على الخادم. قد تكون بيئة النشر لا تدعم Fontconfig/FreeType بشكل كامل لبعض الخطوط.',
                 details: error.message,
                 stack: error.stack
             });
