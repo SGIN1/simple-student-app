@@ -6,7 +6,7 @@
     <title>بيانات الطلاب</title>
     <link rel="stylesheet" href="القالب_المشترك2.css">
     <style>
-        /* ستايلات أساسية للعرض - هذه ستايلاتك الأصلية */
+        /* ستايلاتك الأساسية التي كانت تعمل بشكل جيد */
         body {
             font-family: Arial, sans-serif;
             display: flex;
@@ -99,94 +99,6 @@
             color: #888;
             margin-top: 20px;
         }
-
-        /* --- ستايلات Modal جديدة وقوية --- */
-        .modal {
-            display: none; /* مخفي افتراضياً */
-            position: fixed; /* يبقى في مكانه حتى عند التمرير */
-            z-index: 1000; /* يظهر فوق كل العناصر الأخرى */
-            left: 0;
-            top: 0;
-            width: 100%; /* عرض كامل */
-            height: 100%; /* ارتفاع كامل */
-            overflow: auto; /* تمكين التمرير إذا كان المحتوى أكبر من الشاشة */
-            background-color: rgba(0,0,0,0.7); /* خلفية سوداء شبه شفافة */
-            display: flex; /* لتمكين التوسيط الرأسي والأفقي باستخدام Flexbox */
-            justify-content: center; /* توسيط أفقي */
-            align-items: center; /* توسيط رأسي */
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.4); /* ظل أقوى */
-            position: relative;
-            max-width: 95%; /* أقصى عرض للـ Modal */
-            max-height: 95%; /* أقصى ارتفاع للـ Modal */
-            overflow: hidden; /* إخفاء أي جزء يتجاوز الحدود */
-            display: flex; /* لتمكين توسيط المحتوى داخل الـ Modal */
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain; /* التأكد من أن الصورة تتناسب دون قص أو تشويه */
-            border-radius: 5px; /* حواف مستديرة للصورة */
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* ظل خفيف للصورة داخل الـ Modal */
-        }
-
-        .close-button {
-            color: #555;
-            position: absolute;
-            top: 15px;
-            right: 25px;
-            font-size: 35px; /* حجم أكبر لزر الإغلاق */
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.3s ease; /* انتقال سلس للون عند التحويم */
-        }
-
-        .close-button:hover,
-        .close-button:focus {
-            color: #333;
-            text-decoration: none;
-        }
-
-        /* Loading Spinner and Error Message styles */
-        .loading-container, .error-message {
-            display: flex; /* لإظهارها بواسطة JS */
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 50px;
-            text-align: center;
-        }
-        .loading-spinner {
-            border: 5px solid rgba(0, 0, 0, 0.1);
-            border-top: 5px solid #3498db; /* لون مميز للسبينر */
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin-bottom: 15px;
-        }
-        .loading-text {
-            font-size: 1.1em;
-            color: #555;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .error-message {
-            color: #dc3545; /* لون أحمر للخطأ */
-            font-size: 1.2em;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
@@ -227,18 +139,6 @@
         </table>
 
         <p id="no_results" class="no-results" style="display:none;">لا يوجد طلاب بهذا الرقم للإقامة.</p>
-    </div>
-
-    <div id="certificateModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <div class="loading-container" id="modalLoadingContainer">
-                <div class="loading-spinner"></div>
-                <div class="loading-text">جاري تحضير الشهادة...</div>
-            </div>
-            <img id="modalCertificateImage" src="" alt="Certificate Image" style="display:none;">
-            <div class="error-message" id="modalErrorMessage" style="display:none;"></div>
-        </div>
     </div>
 
     <script src="/js/main.js"></script>

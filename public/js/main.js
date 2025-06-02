@@ -7,13 +7,6 @@ const noResultsMessage = document.getElementById('no_results');
 
 let allStudents = []; // لتخزين جميع بيانات الطلاب التي تم جلبها
 
-// تعريف عناصر الـ Modal
-const certificateModal = document.getElementById('certificateModal');
-const closeButton = document.querySelector('.close-button'); // تأكد من أن هذا يختار الزر الصحيح داخل الـ Modal
-const modalCertificateImage = document.getElementById('modalCertificateImage');
-const modalLoadingContainer = document.getElementById('modalLoadingContainer');
-const modalErrorMessage = document.getElementById('modalErrorMessage');
-
 /**
  * دالة لجلب بيانات الطلاب من Vercel API Function.
  * تتضمن معالجة مرنة لشكل البيانات القادمة من الخادم.
@@ -85,7 +78,7 @@ function renderStudentsTable(students) {
             deleteCell.classList.add('actions');
             deleteCell.innerHTML = `<button class="delete-btn" onclick="deleteStudent('${student.id}')">حذف</button>`;
 
-            // **الزر الخاص بالشهادة الثانية فقط - تم حذف زر الشهادة الأولى**
+            // **الزر الخاص بالشهادة الثانية فقط - تم حذف زر الشهادة الأولى من هنا ومن HTML**
             const printCellTwo = row.insertCell();
             printCellTwo.innerHTML = `<button class="print-btn" onclick="showCertificateInNewWindow('/api/generateCertificateTwo2?id=${student.id}')">عرض الشهادة</button>`;
         });
@@ -108,53 +101,14 @@ searchInput.addEventListener('keyup', function() {
 });
 
 /**
- * دالة لفتح الشهادة في نافذة Modal على نفس الصفحة.
+ * دالة لفتح الشهادة في نافذة جديدة مباشرة.
+ * بما أن الـ API يولد Progressive JPEG، لن يكون هناك وميض.
  * @param {string} url - رابط API الذي يولد الشهادة (مثال: '/api/generateCertificateTwo2?id=...')
  */
-async function showCertificateInNewWindow(url) {
-    // 1. إظهار الـ Modal وإعداد حالة التحميل
-    certificateModal.style.display = 'flex'; // استخدم flex لإظهار وتوسيط المحتوى
-    modalLoadingContainer.style.display = 'flex'; // إظهار السبينر
-    modalCertificateImage.style.display = 'none'; // إخفاء الصورة
-    modalErrorMessage.style.display = 'none'; // إخفاء رسالة الخطأ
-    modalCertificateImage.src = ''; // مسح src السابق لضمان إعادة تحميل جديدة
-
-    try {
-        // 2. جلب الصورة كـ Blob (Binary Large Object)
-        const response = await fetch(url);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        // 3. قراءة الاستجابة كـ Blob وإنشاء Object URL
-        const imageBlob = await response.blob();
-        const imageUrl = URL.createObjectURL(imageBlob);
-
-        // 4. تعيين مصدر الصورة في الـ Modal وتحميلها
-        modalCertificateImage.src = imageUrl;
-
-        // استخدام Promise لانتظار تحميل الصورة بالكامل
-        await new Promise((resolve, reject) => {
-            modalCertificateImage.onload = () => {
-                URL.revokeObjectURL(imageUrl); // تحرير الـ Object URL بعد التحميل
-                resolve();
-            };
-            modalCertificateImage.onerror = () => {
-                URL.revokeObjectURL(imageUrl); // تحرير حتى في حالة الخطأ
-                reject(new Error('Failed to load image into modal.'));
-            };
-        });
-
-        // 5. إخفاء السبينر وعرض الصورة بعد اكتمال التحميل
-        modalLoadingContainer.style.display = 'none';
-        modalCertificateImage.style.display = 'block';
-
-    } catch (error) {
-        console.error('Error loading certificate:', error);
-        modalLoadingContainer.style.display = 'none';
-        modalErrorMessage.style.display = 'block';
-        modalErrorMessage.textContent = 'عذراً، حدث خطأ في تحميل الشهادة. يرجى المحاولة مرة أخرى لاحقاً.';
+function showCertificateInNewWindow(url) {
+    const newWindow = window.open(url, '_blank');
+    if (!newWindow) {
+        alert('المتصفح منع فتح النافذة المنبثقة. يرجى السماح بها.');
     }
 }
 
@@ -187,20 +141,6 @@ async function deleteStudent(studentId) {
         alert('حدث خطأ غير متوقع أثناء الحذف.');
     }
 }
-
-// إغلاق الـ Modal عند النقر على زر الإغلاق (X)
-closeButton.addEventListener('click', () => {
-    certificateModal.style.display = 'none';
-    modalCertificateImage.src = ''; // مسح مصدر الصورة لتجنب تسرب الذاكرة
-});
-
-// إغلاق الـ Modal عند النقر خارج المحتوى
-window.addEventListener('click', (event) => {
-    if (event.target == certificateModal) {
-        certificateModal.style.display = 'none';
-        modalCertificateImage.src = '';
-    }
-});
 
 // استدعاء الدالة لجلب وعرض الطلاب عند تحميل الصفحة
 fetchStudents();

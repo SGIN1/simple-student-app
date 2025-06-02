@@ -1,12 +1,11 @@
 // api/generateCertificateTwo2.js
 // هذا الملف يستخدم الآن ES Module syntax
 
-import { MongoClient, ObjectId } from 'mongodb'; // هذه المكتبة لم تعد ضرورية للنص الثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 
-// **ملاحظة هامة:** MONGODB_URI لم تعد ضرورية لعرض نص ثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
+// **ملاحظة هامة:** MONGODB_URI لم تعد ضرورية للنص الثابت ولكن تم إبقاؤها لتجنب الأخطاء إذا كانت مستخدمة في مكان آخر
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
@@ -129,7 +128,6 @@ export default async function handler(req, res) {
             });
         }
 
-
         // --- إضافة نصوص الترحيب إلى الصورة باستخدام sharp.text() ---
         for (const key in GREETING_POSITIONS) {
             const pos = GREETING_POSITIONS[key];
@@ -153,21 +151,24 @@ export default async function handler(req, res) {
                 input: textOverlayBuffer,
                 left: pos.x,
                 top: pos.y,
-                blend: 'overlay'
+                blend: 'over' // **تغيير من 'overlay' إلى 'over' للحصول على نتيجة مباشرة للنص**
             }]);
         }
 
-        const finalImageBuffer = await processedImage.png().toBuffer();
+        // **التعديل الجوهري هنا: توليد الصورة كـ JPEG متدرج (Progressive JPEG)**
+        const finalImageBuffer = await processedImage.jpeg({
+            quality: 80, // جودة الصورة (0-100)، 80 جيدة للتوازن بين الجودة والحجم
+            progressive: true // **الأهم: يجعلها progressive JPEG لتحسين تجربة التحميل البصري**
+        }).toBuffer();
 
-        res.setHeader('Content-Type', 'image/png');
-        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate');
+        res.setHeader('Content-Type', 'image/jpeg'); // **تغيير نوع المحتوى المرسل إلى image/jpeg**
+        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate'); // تحكم في التخزين المؤقت
         return res.status(200).send(finalImageBuffer);
 
     } catch (error) {
         console.error('خطأ عام في وظيفة generateCertificateTwo2:', error);
         console.error('تتبع الخطأ:', error.stack);
 
-        // إذا كان الخطأ يتعلق بـ Fontconfig أو Freetype، قم بتوضيح ذلك
         if (error.message.includes('fontconfig') || error.message.includes('freetype')) {
             return res.status(500).json({
                 error: 'حدث خطأ في معالجة الخطوط. قد تكون بيئة النشر لا تدعم Fontconfig أو FreeType بالشكل المطلوب لخطوط مخصصة.',
