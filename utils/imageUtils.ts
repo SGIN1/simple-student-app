@@ -1,4 +1,4 @@
-// your-project-root/utils/imageUtils.ts
+// C:\wamp64\www\simple-student-app\utils\imageUtils.ts
 
 // مساعدات للتعامل مع الخطوط العربية
 export const ARABIC_FONTS = {

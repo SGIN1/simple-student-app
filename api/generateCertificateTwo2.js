@@ -1,14 +1,13 @@
-// your-project-root/api/generateCertificateTwo2.js
+// C:\wamp64\www\simple-student-app\api\generateCertificateTwo2.js
 
 import { MongoClient, ObjectId } from 'mongodb';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 
-// **مهم جداً:** هذا هو سطر الاستيراد الصحيح بناءً على مسار ملفاتك:
-// 'generateCertificateTwo2.js' موجود في 'api/'
-// 'imageUtils.ts' موجود في 'utils/'
-// للوصول من 'api' إلى 'utils'، نحتاج للرجوع خطوة واحدة للأعلى (..) ثم الدخول لمجلد 'utils'.
+// **هذا هو سطر الاستيراد المصحح والمؤكد بناءً على سجلات Vercel الأخيرة ومسارات ملفاتك:**
+// للوصول من 'api/' (حيث توجد هذه الدالة) إلى 'utils/' (حيث يوجد imageUtils.ts)،
+// نستخدم '../' للرجوع مجلد واحد للخلف، ثم ندخل مجلد 'utils'.
 import { ARABIC_FONTS, createArabicTextSVG } from '../utils/imageUtils';
 
 const uri = process.env.MONGODB_URI;
