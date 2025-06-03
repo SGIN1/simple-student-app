@@ -16,20 +16,20 @@ const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
 const FONT_CSS_FAMILY_NAME = 'Arial'; // يجب أن يتطابق هذا مع اسم الخط داخل ملف .ttf
 
-const BLACK_COLOR_HEX = '#000000';
+const BLACK_COLOR_HEX = '#000000'; // نستخدم اللون الأسود لضمان الوضوح
 
-// تم تعديل إحداثيات Y لرقم الإقامة والرقم التسلسلي
-// الرقم التسلسلي الآن في المنتصف الأفقي، ورقم الإقامة في مكانه الحالي.
+// تم تعديل هذا الجزء لضبط إحداثيات Y لرقم الإقامة والرقم التسلسلي
+// سنضع الرقم التسلسلي فوق رقم الإقامة مباشرة بمسافة كافية.
 // يرجى مراجعة وتعديل هذه الإحداثيات (Y بشكل خاص) لتناسب تصميم شهادتك (wwee.jpg) بدقة.
 const CERTIFICATE_TEXT_POSITIONS = {
     SERIAL_NUMBER: {
         label: "الرقم التسلسلي:",
         field: "serial_number",
-        x: 0, // تعيين X إلى 0 واستخدام gravity: 'center' لوضعه في المنتصف أفقيًا
-        y: 650, // موضع عمودي أعلى قليلاً في منتصف الشهادة
-        fontSize: 45, // زيادة حجم الخط ليكون أكثر وضوحًا
+        x: 150, // نفس موضع X لرقم الإقامة للمحاذاة
+        y: 800, // موضع أعلى من رقم الإقامة (860 - 60 = 800)
+        fontSize: 40, // نُعيدها 40 لتكون متناسقة مع رقم الإقامة حاليًا
         color: BLACK_COLOR_HEX,
-        gravity: 'center' // لجعله في المنتصف الأفقي
+        gravity: 'west' // المحاذاة لليسار
     },
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
@@ -53,10 +53,8 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
         align = 'right';
     }
 
-    // استخدم ارتفاعًا تقديريًا أكبر قليلاً للنص لضمان عدم الاقتصاص
-    let estimatedLineHeight = fontSize * 1.5; // مثلاً 1.5 مرة حجم الخط
-    // **التعديل الجديد: تحويل الارتفاع إلى عدد صحيح**
-    estimatedLineHeight = Math.ceil(estimatedLineHeight); // أو Math.floor()، أو Math.round()
+    let estimatedLineHeight = fontSize * 1.5;
+    estimatedLineHeight = Math.ceil(estimatedLineHeight); // تحويل الارتفاع إلى عدد صحيح
 
     return sharp({
         text: {
@@ -184,7 +182,7 @@ export default async function handler(req, res) {
                 pos.fontSize,
                 pos.color,
                 imageWidth,
-                textRenderHeight, // هذه القيمة سيتم تحويلها لعدد صحيح داخل createSharpTextBuffer
+                textRenderHeight,
                 pos.gravity,
                 FONT_CSS_FAMILY_NAME
             );
@@ -216,7 +214,6 @@ export default async function handler(req, res) {
         console.error('خطأ عام في وظيفة generateCertificateTwo2 (داخل catch):', error);
         console.error('تتبع الخطأ (داخل catch):', error.stack);
 
-        // هنا يمكنك إضافة منطق معالجة خطأ خاص بـ text.height إذا أردت
         if (error.message.includes('expected positive integer for text.height')) {
             return res.status(500).json({
                 error: 'خطأ في معالجة أبعاد النص. قد يكون بسبب قيمة ارتفاع النص غير الصحيحة (عشري بدلاً من صحيح).',
