@@ -6,7 +6,6 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
-// **هنا هو التغيير الحاسم: استخدام المسار النسبي الصحيح**
 import { registerArabicFonts, generateCertificateWithArabicText, ARABIC_FONTS } from '../utils/imageUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -47,10 +46,9 @@ const CERTIFICATE_TEXT_POSITIONS = {
     }
 };
 
-// **إعداد runtime: "nodejs" مهم لـ Vercel Functions التي تستخدم Canvas/Sharp**
+// **الجزء الوحيد الذي تم تعديله: إزالة runtime: "nodejs"**
 export const config = {
-  runtime: "nodejs",
-  maxDuration: 30,
+  maxDuration: 30, // 30 seconds timeout
 };
 
 export default async function handler(req, res) {
