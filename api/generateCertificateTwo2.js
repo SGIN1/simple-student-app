@@ -21,7 +21,7 @@ const CERTIFICATE_TEXT_POSITIONS = {
     WELCOME_TEXT_TOP: {
         text: "أهلاً وسهلاً بكم في هذا الاختبار!", 
         x: 0, // لتوسيط النص أفقياً
-        y: 100, // موضع في الجزء العلوي من الشهادة
+        y: 155, // موضع في الجزء العلوي من الشهادة
         fontSize: 35, // حجم مناسب للأبعاد الجديدة
         color: RED_COLOR_HEX, 
         gravity: 'center' // توسيط النص أفقياً
