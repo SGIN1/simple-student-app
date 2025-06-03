@@ -10,29 +10,30 @@ const collectionName = 'enrolled_students_tbl';
 // تأكد أن هذا هو المسار الصحيح لصورتك
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
-const FONT_FILENAME = 'arial.ttf';
+// **تم التغيير هنا لاستخدام خط Noto Sans Arabic**
+const FONT_FILENAME = 'NotoSansArabic-Regular.ttf'; // يجب أن يكون هذا هو اسم ملف الخط الذي وضعته في public/fonts/
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
-const FONT_CSS_FAMILY_NAME = 'Arial'; 
+const FONT_CSS_FAMILY_NAME = 'Noto Sans Arabic'; // يجب أن يتطابق هذا مع اسم عائلة الخط داخل ملف .ttf
 
-const RED_COLOR_HEX = '#FF0000'; // لون أحمر لضمان الوضوح
+const RED_COLOR_HEX = '#FF0000'; 
 
-// **المواقع الجديدة للنصين الترحيبيين فقط، بناءً على أبعاد الصورة 978x1280**
+// المواقع الجديدة للنصين الترحيبيين بناءً على أبعاد الصورة 978x1280
 const CERTIFICATE_TEXT_POSITIONS = {
     WELCOME_TEXT_TOP: {
         text: "أهلاً وسهلاً بكم في هذا الاختبار!", 
-        x: 0, // لتوسيط النص أفقياً
-        y: 155, // موضع في الجزء العلوي من الشهادة
-        fontSize: 35, // حجم مناسب للأبعاد الجديدة
+        x: 0, 
+        y: 100, 
+        fontSize: 35, 
         color: RED_COLOR_HEX, 
-        gravity: 'center' // توسيط النص أفقياً
+        gravity: 'center' 
     },
     WELCOME_TEXT_BOTTOM: {
         text: "نأمل أن تظهر النصوص الآن بوضوح.", 
-        x: 0, // لتوسيط النص أفقياً
-        y: 150, // أسفل النص الأول بقليل
-        fontSize: 30, // حجم أصغر قليلاً
+        x: 0, 
+        y: 150, 
+        fontSize: 30, 
         color: RED_COLOR_HEX, 
-        gravity: 'center' // توسيط النص أفقياً
+        gravity: 'center' 
     }
 };
 
@@ -54,7 +55,7 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
         text: {
             text: `<span foreground="${color}">${text}</span>`,
             font: fontCssFamilyName,
-            fontfile: FONT_PATH,
+            fontfile: FONT_PATH, // هنا يتم الإشارة إلى ملف الخط الفعلي
             width: svgWidth, 
             height: estimatedLineHeight, 
             align: align,
@@ -126,7 +127,6 @@ export default async function handler(req, res) {
         const imageHeight = metadata.height;
         console.log('أبعاد الصورة الفعلية التي تم تحميلها:', imageWidth, 'x', imageHeight);
 
-        // هنا نؤكد على أننا نستخدم الأبعاد الفعلية 978x1280
         if (imageWidth !== 978 || imageHeight !== 1280) {
              console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (978x1280). يرجى التأكد من أن الصورة هي wwee.jpg بالأبعاد الصحيحة.`);
         }
@@ -148,18 +148,16 @@ export default async function handler(req, res) {
         }
 
         console.log('جارٍ إضافة النصوص إلى الصورة...');
-        // الآن سنضيف فقط النصين الترحيبيين
         const fieldsToDisplay = ['WELCOME_TEXT_TOP', 'WELCOME_TEXT_BOTTOM']; 
 
         for (const key of fieldsToDisplay) {
             const pos = CERTIFICATE_TEXT_POSITIONS?.[key]; 
             if (pos) {
-                let textToDisplay = pos.text; // هنا لا يوجد حقول من DB، فقط نصوص ثابتة
+                let textToDisplay = pos.text; 
 
                 const textRenderHeight = (pos.fontSize || 30) * 1.5;
                 const yPosition = pos.y || 0;
 
-                // تحسين التحقق من تجاوز النص لحدود الصورة بناءً على الأبعاد الفعلية
                 if ((pos.x < 0 || pos.x > imageWidth) || (yPosition < 0 || (yPosition + textRenderHeight) > imageHeight)) { 
                     console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) خارج حدود الصورة أو يتجاوزها (أبعاد الصورة: ${imageWidth}x${imageHeight}). قد لا يظهر بالكامل.`);
                 }
@@ -168,11 +166,11 @@ export default async function handler(req, res) {
 
                 const textOverlayBuffer = await createSharpTextBuffer(
                     textToDisplay,
-                    pos.fontSize || 30, // استخدام حجم الخط الافتراضي الجديد
+                    pos.fontSize || 30, 
                     pos.color || RED_COLOR_HEX, 
                     imageWidth, 
                     Math.ceil(textRenderHeight),
-                    pos.gravity || 'center', // استخدام التوسيط الافتراضي
+                    pos.gravity || 'center', 
                     FONT_CSS_FAMILY_NAME
                 );
                 console.log(`تم إنشاء Buffer للنص ${key}`);
