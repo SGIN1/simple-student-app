@@ -35,26 +35,27 @@ export default async function handler(req, res) {
                 if (student) {
                     return res.status(200).json({
                         id: student._id.toString(),
-                        serial_number: student.serial_number,
-                        residency_number: student.residency_number,
-                        document_serial_number: student.document_serial_number,
-                        plate_number: student.plate_number,
-                        inspection_date: student.inspection_date,
-                        manufacturer: student.manufacturer,
-                        inspection_expiry_date: student.inspection_expiry_date,
-                        car_type: student.car_type,
-                        counter_reading: student.counter_reading,
-                        chassis_number: student.chassis_number,
-                        vehicle_model: student.vehicle_model,
-                        color: student.color,
-                        serial_number_duplicate: student.serial_number_duplicate,
+                        serial_number: student.serial_number || 'غير محدد', // إضافة قيمة افتراضية
+                        residency_number: student.residency_number || 'غير محدد', // **التعديل هنا**
+                        document_serial_number: student.document_serial_number || 'غير محدد', // إضافة قيمة افتراضية
+                        plate_number: student.plate_number || 'غير محدد', // إضافة قيمة افتراضية
+                        inspection_date: student.inspection_date || 'غير محدد', // إضافة قيمة افتراضية
+                        manufacturer: student.manufacturer || 'غير محدد', // إضافة قيمة افتراضية
+                        inspection_expiry_date: student.inspection_expiry_date || 'غير محدد', // إضافة قيمة افتراضية
+                        car_type: student.car_type || 'غير محدد', // إضافة قيمة افتراضية
+                        counter_reading: student.counter_reading || 'غير محدد', // إضافة قيمة افتراضية
+                        chassis_number: student.chassis_number || 'غير محدد', // **التعديل هنا**
+                        vehicle_model: student.vehicle_model || 'غير محدد', // إضافة قيمة افتراضية
+                        color: student.color || 'غير محدد', // إضافة قيمة افتراضية
+                        serial_number_duplicate: student.serial_number_duplicate || 'غير محدد', // إضافة قيمة افتراضية
                         created_at: student.created_at ? new Date(student.created_at).toLocaleDateString() : 'غير محدد',
-                        arabic_name: student.arabic_name || ''
+                        arabic_name: student.arabic_name || 'غير محدد' // إضافة قيمة افتراضية
                     });
                 } else {
                     return res.status(404).json({ error: 'لم يتم العثور على طالب بهذا المُعرّف.' });
                 }
             } else {
+                // الجزء الخاص بـ search term - قم بتطبيق نفس المنطق هنا أيضًا
                 let query = {};
                 if (searchTerm) {
                     query = {
@@ -68,21 +69,21 @@ export default async function handler(req, res) {
                 const students = await studentsCollection.find(query).toArray();
                 const formattedStudents = students.map(student => ({
                     id: student._id.toString(),
-                    serial_number: student.serial_number,
-                    residency_number: student.residency_number,
-                    document_serial_number: student.document_serial_number,
-                    plate_number: student.plate_number,
-                    inspection_date: student.inspection_date,
-                    manufacturer: student.manufacturer,
-                    inspection_expiry_date: student.inspection_expiry_date,
-                    car_type: student.car_type,
-                    counter_reading: student.counter_reading,
-                    chassis_number: student.chassis_number,
-                    vehicle_model: student.vehicle_model,
-                    color: student.color,
-                    serial_number_duplicate: student.serial_number_duplicate,
+                    serial_number: student.serial_number || 'غير محدد',
+                    residency_number: student.residency_number || 'غير محدد', // **التعديل هنا**
+                    document_serial_number: student.document_serial_number || 'غير محدد',
+                    plate_number: student.plate_number || 'غير محدد',
+                    inspection_date: student.inspection_date || 'غير محدد',
+                    manufacturer: student.manufacturer || 'غير محدد',
+                    inspection_expiry_date: student.inspection_expiry_date || 'غير محدد',
+                    car_type: student.car_type || 'غير محدد',
+                    counter_reading: student.counter_reading || 'غير محدد',
+                    chassis_number: student.chassis_number || 'غير محدد', // **التعديل هنا**
+                    vehicle_model: student.vehicle_model || 'غير محدد',
+                    color: student.color || 'غير محدد',
+                    serial_number_duplicate: student.serial_number_duplicate || 'غير محدد',
                     created_at: student.created_at ? new Date(student.created_at).toLocaleDateString() : 'غير محدد',
-                    arabic_name: student.arabic_name || ''
+                    arabic_name: student.arabic_name || 'غير محدد'
                 }));
 
                 return res.status(200).json(formattedStudents);
