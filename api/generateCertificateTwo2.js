@@ -1,18 +1,17 @@
 // C:\wamp64\www\simple-student-app\api\generateCertificateTwo2.js
 
 import { MongoClient, ObjectId } from 'mongodb';
-import sharp from 'sharp';
+import sharp from 'sharp'; // Sharp لا يزال مطلوبًا لتحميل الصورة الأساسية وتركيب النصوص
 import path from 'path';
-import fs from 'fs/promises';
-import { fileURLToPath } from 'url'; // استيراد fileURLToPath
+import fs from 'fs/promises'; // استخدم fs.promises لضمان async/await
+import { fileURLToPath } from 'url';
+
+// استيراد الدوال الجديدة من imageUtils.js
+import { registerArabicFonts, generateCertificateWithArabicText, ARABIC_FONTS } from '../../utils/imageUtils.js';
 
 // تحديد __dirname و __filename بشكل صحيح لـ ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// **هذا هو سطر الاستيراد المصحح باستخدام المسار المطلق:**
-// نستخدم path.join لإنشاء مسار موثوق به من الدليل الحالي (api) للوصول إلى utils
-import { ARABIC_FONTS, createArabicTextSVG } from path.join(__dirname, '../utils/imageUtils.js');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -21,28 +20,40 @@ const collectionName = 'enrolled_students_tbl';
 // تأكد أن هذا هو المسار الصحيح لصورة الشهادة في مجلد public
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
-const RED_COLOR_HEX = '#FF0000';
+const RED_COLOR_HEX = '#FF0000'; // مثال للون
 
 // المواقع والنصوص المراد إضافتها للشهادة
+// ملاحظة: مع استخدام Canvas، الموضع (y) هنا سيكون هو الموضع الكلي لكتلة النص على الصورة الأساسية،
+// وليس موضع كل سطر داخل الـ SVG كما كان سابقًا.
 const CERTIFICATE_TEXT_POSITIONS = {
-    WELCOME_TEXT_TOP: {
-        text: "أهلاً وسهلاً بكم في هذا الاختبار!",
-        y: 100, // الموضع العمودي للنص (من أعلى الصورة)
-        fontSize: 35,
-        color: RED_COLOR_HEX,
-        textAlign: 'center' // المحاذاة الأفقية للنص داخل الـ SVG
+    STUDENT_NAME: {
+        text: "اسم الطالب: ", // سيتم دمج اسم الطالب هنا
+        y: 400, // مثال لموضع اسم الطالب
+        fontSize: 45,
+        color: "#000000", // لون داكن
     },
-    WELCOME_TEXT_BOTTOM: {
-        text: "نأمل أن تظهر النصوص الآن بوضوح.",
-        y: 150,
+    COURSE_NAME: {
+        text: "الدورة: ", // سيتم دمج اسم الدورة هنا
+        y: 500, // مثال لموضع اسم الدورة
+        fontSize: 35,
+        color: "#000000",
+    },
+    WELCOME_MESSAGE: {
+        text: "بكل فخر نقدم هذه الشهادة للطالب المتميز:",
+        y: 300, // رسالة ترحيب قبل الاسم
         fontSize: 30,
-        color: RED_COLOR_HEX,
-        textAlign: 'center'
+        color: "#34495E", // لون أزرق داكن
+    },
+    DATE_MESSAGE: {
+        text: "بتاريخ: " + new Date().toLocaleDateString('ar-SA'), // تاريخ اليوم
+        y: 600, // موضع التاريخ
+        fontSize: 25,
+        color: "#555555",
     }
 };
 
 export default async function handler(req, res) {
-    console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 (باستخدام SVG للنصوص) ---');
+    console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 (باستخدام Canvas لتركيب النصوص) ---');
 
     if (req.method !== 'GET') {
         console.log('طلب غير مسموح به:', req.method);
@@ -82,118 +93,106 @@ export default async function handler(req, res) {
         }
         console.log('تم جلب بيانات الطالب:', JSON.stringify(student, null, 2));
 
-
+        // **هام:** تحقق من وجود صورة الشهادة الأساسية
         console.log('جارٍ التحقق من صورة الشهادة الأساسية...');
         try {
-            await fs.access(CERTIFICATE_IMAGE_PATH); // التحقق من وجود ملف الصورة
+            await fs.access(CERTIFICATE_IMAGE_PATH);
             console.log('صورة الشهادة موجودة في المسار:', CERTIFICATE_IMAGE_PATH);
         } catch (fileError) {
             console.error('خطأ: صورة الشهادة غير موجودة أو لا يمكن الوصول إليها:', fileError.message);
             return res.status(500).json({
-                error: 'صورة الشهادة الأساسية غير موجودة أو لا يمكن الوصول إليها. يرجى التحقق من مسار ملف الصورة وتضمينه في النشر.',
+                error: 'صورة الشهادة الأساسية غير موجودة أو لا يمكن الوصول إليها. يرجى التحقق من مسار ملف الصورة.',
                 details: fileError.message,
                 path: CERTIFICATE_IMAGE_PATH
             });
         }
 
-        console.log('جارٍ تحميل الصورة الأساسية ومعالجة أبعادها...');
-        const baseImage = sharp(CERTIFICATE_IMAGE_PATH);
-        const metadata = await baseImage.metadata();
+        // قراءة الصورة الأساسية مرة واحدة
+        const baseImageBuffer = await sharp(CERTIFICATE_IMAGE_PATH).toBuffer();
+        const metadata = await sharp(baseImageBuffer).metadata();
         const imageWidth = metadata.width;
         const imageHeight = metadata.height;
-        console.log('أبعاد الصورة الفعلية التي تم تحميلها:', imageWidth, 'x', imageHeight);
+        console.log('أبعاد الصورة الأساسية التي تم تحميلها:', imageWidth, 'x', imageHeight);
 
-        // تحذير في حال كانت أبعاد الصورة غير مطابقة للتوقعات
-        if (imageWidth !== 978 || imageHeight !== 1280) {
-            console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (978x1280). قد يؤثر هذا على موضع النصوص.`);
-        }
+        // قم بتسجيل الخطوط (يمكن وضعها هنا أو في ملف imageUtils نفسه)
+        // registerArabicFonts(); // هذه الدالة يتم استدعاؤها داخل createArabicTextWithCanvas
 
-        let processedImage = baseImage;
 
-        console.log('جارٍ إضافة النصوص إلى الصورة باستخدام SVG...');
-        const fieldsToDisplay = ['WELCOME_TEXT_TOP', 'WELCOME_TEXT_BOTTOM'];
+        let processedImage = sharp(baseImageBuffer);
+        const textBuffersToComposite = [];
 
-        for (const key of fieldsToDisplay) {
-            const pos = CERTIFICATE_TEXT_POSITIONS?.[key];
+        // معالجة النصوص وتركيبها
+        // يمكنك تعديل هذه الأمثلة لتناسب تصميم شهادتك
+        const textFields = [
+            { key: 'WELCOME_MESSAGE', text: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.text },
+            { key: 'STUDENT_NAME', text: `${CERTIFICATE_TEXT_POSITIONS.STUDENT_NAME.text}${student.name_arabic || 'غير متوفر'}` },
+            { key: 'COURSE_NAME', text: `${CERTIFICATE_TEXT_POSITIONS.COURSE_NAME.text}${student.course_name || 'غير متوفر'}` },
+            { key: 'DATE_MESSAGE', text: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.text }
+        ];
+
+        for (const field of textFields) {
+            const pos = CERTIFICATE_TEXT_POSITIONS[field.key];
             if (pos) {
-                const textToDisplay = pos.text;
-                // تحديد ارتفاع الـ SVG بحيث يكون كافياً للنص مع بعض الهامش العلوي والسفلي
-                const svgHeight = (pos.fontSize || 30) * 1.5;
-                const yPosition = pos.y || 0; // الموضع الرأسي للنص على الصورة الأساسية
+                console.log(`🔄 إنشاء نص: "${field.text}" لـ ${field.key}`);
 
-                console.log(`إنشاء SVG للنص: ${key} بـ: "${textToDisplay}" عند Y: ${yPosition}`);
+                // عرض منطقة النص الافتراضية
+                const textRenderWidth = imageWidth; // يمكن للنص أن يمتد على عرض الصورة
+                const textRenderHeight = pos.fontSize * 2; // ارتفاع كافٍ للنص
 
-                // إنشاء الـ SVG للنص وتحويله إلى Buffer
-                const svgTextBuffer = Buffer.from(createArabicTextSVG(textToDisplay, {
-                    width: imageWidth, // اجعل عرض الـ SVG مساوياً لعرض الصورة الأساسية لسهولة التوسيط
-                    height: svgHeight,
-                    fontSize: pos.fontSize,
-                    fontFamily: ARABIC_FONTS.arial, // **تغيير: استخدام ARABIC_FONTS.arial**
-                    color: pos.color,
-                    textAlign: pos.textAlign // استخدم textAlign لتحديد المحاذاة داخل الـ SVG
-                }));
+                const textBuffer = await generateCertificateWithArabicText(
+                    // لا تحتاج ل baseImagePath هنا لأننا نستخدم createArabicTextWithCanvas مباشرة
+                    // ولكننا نمرر النص والخيارات
+                    '', // لا تحتاج لمسار الصورة الأساسية هنا
+                    field.text,
+                    {
+                        fontSize: pos.fontSize,
+                        fontFamily: ARABIC_FONTS.arial, // استخدم الخط الذي سجلناه
+                        color: pos.color,
+                        textWidth: textRenderWidth,
+                        textHeight: textRenderHeight,
+                        position: { left: 0, top: pos.y } // الموضع الفعلي سيتم تحديده لاحقًا في composite
+                    }
+                );
+                console.log(`✅ تم إنشاء صورة النص لـ ${field.key}`);
 
-                console.log(`تم إنشاء Buffer SVG للنص ${key}`);
-
-                // تركيب الـ SVG (الذي يمثل النص) على الصورة الأساسية
-                processedImage = await processedImage.composite([{
-                    input: svgTextBuffer,
-                    left: 0, // ضع الـ SVG من أقصى اليسار، والمحاذاة الأفقية للنص تتم داخل الـ SVG نفسه (باستخدام text-anchor)
-                    top: yPosition, // ضع الـ SVG عند الموضع Y المطلوب على الصورة الأساسية
-                }]);
-                console.log(`تم تركيب النص ${key}`);
+                textBuffersToComposite.push({
+                    input: textBuffer,
+                    // position: { left: 0, top: pos.y } // هذا ليس الموضع النهائي للـ SVG
+                    left: 0, // وضع الـ buffer من أقصى اليسار
+                    top: pos.y, // موضع Y على الصورة الأساسية
+                    // blend: 'overlay' // استخدم blend: 'over' أو لا تحددها
+                });
             }
         }
 
+        // تركيب جميع صور النصوص على الصورة الأساسية
+        console.log('🔄 جارٍ تركيب جميع النصوص على الصورة الأساسية...');
+        processedImage = await sharp(baseImageBuffer).composite(textBuffersToComposite);
+        console.log('✅ تم تركيب جميع النصوص.');
+
         console.log('جارٍ إنشاء الصورة النهائية...');
         const finalImageBuffer = await processedImage
-            .flatten({ background: { r: 255, g: 255, b: 255, alpha: 1 } }) // للتأكد من عدم وجود شفافية في الصورة النهائية
-            .jpeg({
-                quality: 85, // جودة الصورة النهائية (بين 0 و 100)
-                progressive: true // تحميل تدريجي للصورة (أفضل للويب)
-            }).toBuffer();
+            .flatten({ background: { r: 255, g: 255, b: 255, alpha: 1 } }) // للتأكد من عدم وجود شفافية
+            .jpeg({ quality: 85, progressive: true })
+            .toBuffer();
         console.log('تم إنشاء الصورة النهائية.');
 
         // إرسال الصورة النهائية كاستجابة
         res.setHeader('Content-Type', 'image/jpeg');
-        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate'); // تحسينات ذاكرة التخزين المؤقت
+        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate');
         console.log('تم إرسال الصورة بنجاح.');
         return res.status(200).send(finalImageBuffer);
 
     } catch (error) {
-        console.error('خطأ عام في وظيفة generateCertificateTwo2 (داخل catch):', error);
-        console.error('تتبع الخطأ (داخل catch):', error.stack);
+        console.error('❌ خطأ عام في وظيفة generateCertificateTwo2:', error);
+        console.error('❌ تتبع الخطأ:', error.stack);
 
-        // رسائل خطأ أكثر تحديداً لمساعدتك في التصحيح
-        if (error.message.includes('expected positive integer for text.height')) {
-            return res.status(500).json({
-                error: 'خطأ في معالجة أبعاد النص. قد يكون بسبب قيمة ارتفاع النص غير الصحيحة (عشري بدلاً من صحيح).',
-                details: error.message,
-                stack: error.stack
-            });
-        }
-        // يمكن أن يظهر خطأ Fontconfig هنا إذا كان Sharp لا يزال يواجه مشكلة في الخطوط ضمن بيئة Vercel
-        else if (error.message.includes('fontconfig') || error.message.includes('freetype') || error.message.includes('VIPS_WARNING') || error.message.includes('pango')) {
-            return res.status(500).json({
-                error: 'حدث خطأ في معالجة الخطوط (Fontconfig/FreeType/VIPS/Pango). يرجى التأكد من أن بيئة Vercel تدعم الخطوط العربية بشكل كامل أو أن الخط Noto Sans Arabic مثبت فيها.',
-                details: error.message,
-                stack: error.stack
-            });
-        } else if (error.message.includes('Input file is missing') || error.code === 'ENOENT') {
-            return res.status(500).json({
-                error: 'ملف الصورة الأساسي غير موجود أو لا يمكن الوصول إليه. يرجى التحقق من مسار CERTIFICATE_IMAGE_PATH.',
-                details: error.message,
-                path: CERTIFICATE_IMAGE_PATH
-            });
-        }
-        // خطأ عام غير متوقع
-        return res.status(500).json({
+        res.status(500).json({
             error: 'حدث خطأ غير متوقع أثناء معالجة الشهادة.',
             details: error.message,
-            stack: error.stack
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     } finally {
-        // إغلاق اتصال قاعدة البيانات في كل الأحوال
         if (client) {
             await client.close();
             console.log('تم إغلاق اتصال قاعدة البيانات.');
