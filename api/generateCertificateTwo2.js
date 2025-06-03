@@ -16,35 +16,34 @@ const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
 const FONT_CSS_FAMILY_NAME = 'Arial'; // يجب أن يتطابق هذا مع اسم الخط داخل ملف .ttf
 
-const BLACK_COLOR_HEX = '#000000';
-const RED_COLOR_HEX = '#FF0000'; // لون أحمر ليكون واضحًا
+// **التعديل هنا: استخدام اللون الأبيض لجميع النصوص لضمان الرؤية**
+const WHITE_COLOR_HEX = '#FFFFFF'; 
 
-// تم تعديل هذا الجزء لإضافة نص ترحيبي للاختبار
 const CERTIFICATE_TEXT_POSITIONS = {
     WELCOME_TEXT: {
         text: "مرحباً بك في الاختبار!",
-        x: 0, // في منتصف الأفق
-        y: 200, // بالقرب من أعلى الشهادة
+        x: 0, 
+        y: 200, 
         fontSize: 60,
-        color: RED_COLOR_HEX,
+        color: WHITE_COLOR_HEX, // تم تغيير اللون إلى الأبيض
         gravity: 'center'
     },
     SERIAL_NUMBER: {
         label: "الرقم التسلسلي:",
         field: "serial_number",
-        x: 150, // نفس موضع X لرقم الإقامة للمحاذاة
-        y: 800, // موضع أعلى من رقم الإقامة
+        x: 150, 
+        y: 800, 
         fontSize: 40,
-        color: BLACK_COLOR_HEX,
+        color: WHITE_COLOR_HEX, // تم تغيير اللون إلى الأبيض
         gravity: 'west'
     },
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
         field: "residency_number",
-        x: 150, // نُبقيه في مكانه الحالي (الذي يعمل)
-        y: 860, // نُبقيه في مكانه الحالي (الذي يعمل)
+        x: 150, 
+        y: 860, 
         fontSize: 40,
-        color: BLACK_COLOR_HEX,
+        color: WHITE_COLOR_HEX, // تم تغيير اللون إلى الأبيض
         gravity: 'west'
     }
 };
@@ -61,15 +60,15 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
     }
 
     let estimatedLineHeight = fontSize * 1.5;
-    estimatedLineHeight = Math.ceil(estimatedLineHeight); // تحويل الارتفاع إلى عدد صحيح
+    estimatedLineHeight = Math.ceil(estimatedLineHeight); 
 
     return sharp({
         text: {
             text: `<span foreground="${color}">${text}</span>`,
             font: fontCssFamilyName,
             fontfile: FONT_PATH,
-            width: svgWidth, // استخدم العرض الكامل للصورة للسماح بالمحاذاة
-            height: estimatedLineHeight, // استخدم ارتفاعًا كافيًا لسطر واحد
+            width: svgWidth, 
+            height: estimatedLineHeight, 
             align: align,
             rgba: true
         }
@@ -160,18 +159,17 @@ export default async function handler(req, res) {
         }
 
         console.log('جارٍ إضافة النصوص إلى الصورة...');
-        // تحديد ترتيب الحقول التي سيتم عرضها لضمان الظهور الصحيح
         const fieldsToDisplay = ['WELCOME_TEXT', 'SERIAL_NUMBER', 'RESIDENCY_NUMBER'];
 
         for (const key of fieldsToDisplay) {
-            const pos = CERTIFICATE_TEXT_POSITIONS?.[key]; // استخدام optional chaining لتجنب الأخطاء
+            const pos = CERTIFICATE_TEXT_POSITIONS?.[key]; 
             if (pos) {
                 let textToDisplay = '';
 
                 if (pos.text) {
                     textToDisplay = pos.text;
                 } else if (pos.field) {
-                    let fieldValue = student?.[pos.field]; // استخدام optional chaining
+                    let fieldValue = student?.[pos.field]; 
                     if (fieldValue === undefined || fieldValue === null) {
                         fieldValue = 'غير متوفر';
                     }
@@ -190,7 +188,7 @@ export default async function handler(req, res) {
                 const textOverlayBuffer = await createSharpTextBuffer(
                     textToDisplay,
                     pos.fontSize || 40,
-                    pos.color || BLACK_COLOR_HEX,
+                    pos.color || WHITE_COLOR_HEX, // استخدم اللون الأبيض الافتراضي
                     imageWidth,
                     Math.ceil(textRenderHeight),
                     pos.gravity || 'west',
