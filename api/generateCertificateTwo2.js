@@ -1,9 +1,73 @@
-// generateCertificateTwo2.js
+import { MongoClient, ObjectId } from 'mongodb';
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs/promises';
 
-// ... (بقية الـ imports والمتغيرات)
+const uri = process.env.MONGODB_URI;
+const dbName = 'Cluster0';
+const collectionName = 'enrolled_students_tbl';
+
+// تأكد أن هذا هو المسار الصحيح لصورتك
+const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
+
+const FONT_FILENAME = 'arial.ttf';
+const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
+
+const FONT_CSS_FAMILY_NAME = 'Arial';
+
+const BLACK_COLOR_HEX = '#000000';
+
+// تم تعديل هذا الجزء ليبقي على رقم الإقامة والرقم التسلسلي فقط.
+// يجب عليك مراجعة إحداثيات X و Y وأحجام الخطوط يدويًا لتناسب تصميم شهادتك (wwee.jpg) بدقة.
+const CERTIFICATE_TEXT_POSITIONS = {
+    RESIDENCY_NUMBER: {
+        label: "رقم الإقامة:",
+        field: "residency_number", // تأكد أن هذا هو اسم الحقل الصحيح في قاعدة البيانات
+        x: 150, // قم بتعديل هذا الموضع حسب تصميمك
+        y: 800, // قم بتعديل هذا الموضع حسب تصميمك
+        fontSize: 40, // قم بتعديل حجم الخط حسب تصميمك
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    },
+    SERIAL_NUMBER: {
+        label: "الرقم التسلسلي:",
+        field: "serial_number", // تأكد أن هذا هو اسم الحقل الصحيح في قاعدة البيانات
+        x: 150, // قم بتعديل هذا الموضع حسب تصميمك
+        y: 860, // قم بتعديل هذا الموضع (زيادة Y قليلاً عن السابق)
+        fontSize: 40, // قم بتعديل حجم الخط حسب تصميمك
+        color: BLACK_COLOR_HEX,
+        gravity: 'west'
+    }
+    // تم إزالة جميع الحقول الأخرى هنا
+};
+
+/**
+ * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp باستخدام sharp.text().
+ */
+async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontCssFamilyName) {
+    let align = 'centre';
+    if (gravity === 'west') {
+        align = 'left';
+    } else if (gravity === 'east') {
+        align = 'right';
+    }
+
+    return sharp({
+        text: {
+            text: `<span foreground="${color}">${text}</span>`,
+            font: fontCssFamilyName,
+            fontfile: FONT_PATH,
+            width: svgWidth,
+            height: svgHeight,
+            align: align,
+            rgba: true
+        }
+    }).png().toBuffer();
+}
+
 
 export default async function handler(req, res) {
-    console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 (نسخة نهائية مع ضبط الإحداثيات) ---');
+    console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 ---');
 
     if (req.method !== 'GET') {
         console.log('طلب غير مسموح به:', req.method);
@@ -17,41 +81,36 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'معرف الطالب (ID) مطلوب.' });
     }
 
-    let client; // لا نحتاج client هنا إذا كنا نعتمد على fetch API
+    let client;
     try {
-        console.log('جارٍ جلب بيانات الطالب من API...');
+        console.log('جارٍ الاتصال بقاعدة البيانات...');
+        client = new MongoClient(uri);
+        await client.connect();
+        console.log('تم الاتصال بقاعدة البيانات بنجاح.');
+
+        const db = client.db(dbName);
+        const collection = db.collection(collectionName);
+
         let student;
         try {
-            // *** التعديل الرئيسي هنا: استخدام مسار API النسبي مباشرة ***
-            // يجب أن يكون المسار '/api/getStudent' كافياً لطلب داخلي في Vercel.
-            // إذا كنت تختبر محلياً، قد تحتاج إلى http://localhost:3000/api/getStudent?id=${id}
-            // ولكن في Vercel، المسار النسبي يعمل بشكل أفضل بين وظائف الـ API.
-            const studentApiResponse = await fetch(`/api/getStudent?id=${id}`);
-            if (!studentApiResponse.ok) {
-                const errorData = await studentApiResponse.json();
-                console.error('خطأ في جلب بيانات الطالب من API:', studentApiResponse.status, errorData.error);
-                return res.status(studentApiResponse.status).json({ error: errorData.error });
-            }
-            student = await studentApiResponse.json();
-            console.log('تم جلب بيانات الطالب من API بنجاح:', JSON.stringify(student, null, 2));
-
+            const objectId = new ObjectId(id);
+            student = await collection.findOne({ _id: objectId });
+            console.log('تم البحث عن الطالب باستخدام _id:', objectId);
         } catch (e) {
-            console.error('خطأ في جلب بيانات الطالب من API أو تحويل المعرف:', e.message);
-            // هذا الخطأ كان "فشل تحليل عنوان URL"
-            return res.status(500).json({ error: 'حدث خطأ أثناء جلب بيانات الطالب للشهادة. الرجاء التأكد من صحة معرف الطالب.' });
+            console.error('خطأ في تحويل ID إلى ObjectId:', e.message);
+            return res.status(400).json({ error: 'مُعرّف الطالب غير صالح. يجب أن يكون ObjectId صحيحًا.' });
         }
 
         if (!student) {
             console.log('لم يتم العثور على طالب بالمعرف:', id);
             return res.status(404).json({ error: 'لم يتم العثور على طالب بهذا المعرف.' });
         }
-        // السجلات هنا ستعرض البيانات بعد معالجتها بواسطة api/getStudent.js
-        console.log('قيمة residency_number في الطالب:', student.residency_number);
-        console.log('قيمة chassis_number في الطالب:', student.chassis_number);
-        console.log('قيمة created_at في الطالب:', student.created_at);
+        // طباعة بيانات الطالب التي تم جلبها لمساعدتك في التأكد من أسماء الحقول
+        console.log('تم جلب بيانات الطالب:', JSON.stringify(student, null, 2));
 
+
+        // 2. التحقق من وجود صورة الشهادة
         console.log('جارٍ التحقق من صورة الشهادة...');
-        // ... (بقية الكود لم يتغير)
         try {
             await fs.access(CERTIFICATE_IMAGE_PATH);
             console.log('صورة الشهادة موجودة.', CERTIFICATE_IMAGE_PATH);
@@ -71,9 +130,11 @@ export default async function handler(req, res) {
         const imageHeight = metadata.height;
         console.log('أبعاد الصورة الفعلية التي تم تحميلها:', imageWidth, 'x', imageHeight);
 
+        // هنا نقوم بالتحقق من أبعاد الصورة الفعلية
         if (imageWidth !== 1754 || imageHeight !== 1238) {
             console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (1754x1238). قد تحتاج لضبط إحداثيات النصوص مرة أخرى.`);
         }
+
 
         let processedImage = baseImage;
 
@@ -95,11 +156,19 @@ export default async function handler(req, res) {
             const pos = CERTIFICATE_TEXT_POSITIONS[key];
             let textToDisplay = '';
 
-            let fieldValue = student[pos.field];
-            // الآن نعتمد على أن api/getStudent.js يضمن وجود قيمة نصية (حتى لو كانت "غير محدد")
-            textToDisplay = `${pos.label || ''} ${fieldValue}`;
+            // هذا الجزء سيتعامل فقط مع حقول رقم الإقامة والرقم التسلسلي
+            if (pos.field) {
+                let fieldValue = student[pos.field];
+                if (fieldValue === undefined || fieldValue === null) {
+                    fieldValue = 'غير متوفر'; // يمكنك تغيير هذا النص الافتراضي
+                }
+                textToDisplay = `${pos.label || ''} ${fieldValue}`;
+            } else {
+                // هذا الجزء لن يتم تنفيذه في الكود المحدّث لأنه لا يوجد نصوص ثابتة غير مرتبطة بحقول البيانات
+                textToDisplay = pos.text;
+            }
 
-
+            // فحص إحداثي Y للنص قبل إضافته
             const textRenderHeight = pos.fontSize * 2;
             if ((pos.y + textRenderHeight) > imageHeight) {
                 console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) قد يتجاوز ارتفاع الصورة (Y: ${pos.y}, ارتفاع الصورة: ${imageHeight}). قد لا يظهر بالكامل.`);
@@ -155,17 +224,16 @@ export default async function handler(req, res) {
                 error: 'ملف الصورة الأساسي غير موجود أو لا يمكن الوصول إليه.',
                 details: error.message
             });
-        } else if (error.message.includes('text: no text to render')) {
-            return res.status(500).json({
-                error: 'حدث خطأ أثناء محاولة رسم نص فارغ. يرجى التحقق من وجود بيانات للنصوص المراد عرضها.',
-                details: error.message,
-                stack: error.stack
-            });
         }
         return res.status(500).json({
             error: 'حدث خطأ غير متوقع أثناء معالجة الشهادة.',
             details: error.message,
             stack: error.stack
         });
-    } // لا نحتاج لـ finally هنا، حيث لا يوجد client.close()
+    } finally {
+        if (client) {
+            await client.close();
+            console.log('تم إغلاق اتصال قاعدة البيانات.');
+        }
+    }
 }

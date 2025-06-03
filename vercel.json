@@ -22,7 +22,7 @@
     },
     {
       "source": "/certificate/:id",
-      "destination": "/api/generateCertificateTwo2?id=:id"
+      "destination": "/api/generateCertificateTwo2"
     },
     {
       "source": "/api/addStudent",
@@ -46,7 +46,7 @@
     },
     {
       "source": "/api/generateCertificateTwo2/:id",
-      "destination": "/api/generateCertificateTwo2?id=:id"
+      "destination": "/api/generateCertificateTwo2"
     }
   ]
 }
