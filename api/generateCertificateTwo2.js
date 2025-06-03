@@ -24,7 +24,7 @@ const CERTIFICATE_TEXT_POSITIONS = {
         label: "رقم الإقامة:",
         field: "residency_number", // تأكد أن هذا هو اسم الحقل الصحيح في قاعدة البيانات
         x: 150, // قم بتعديل هذا الموضع حسب تصميمك
-        y: 800, // قم بتعديل هذا الموضع حسب تصميمك
+        y: 862, // قم بتعديل هذا الموضع حسب تصميمك
         fontSize: 40, // قم بتعديل حجم الخط حسب تصميمك
         color: BLACK_COLOR_HEX,
         gravity: 'west'
