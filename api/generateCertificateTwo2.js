@@ -12,87 +12,89 @@ const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'ful
 
 const FONT_FILENAME = 'arial.ttf';
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
-const FONT_CSS_FAMILY_NAME = 'Arial'; 
+const FONT_CSS_FAMILY_NAME = 'Arial'; // هذا الاسم يستخدمه sharp للإشارة إلى الخط
 
-const RED_COLOR_HEX = '#FF0000'; 
+const RED_COLOR_HEX = '#FF0000';
 
 // **تم تعديل المواقع بناءً على الأبعاد الحقيقية للصورة: 978x1280**
 // سنحاول وضع النصوص في المنتصف السفلي من الشهادة حيث يتوقع أن تكون منطقة بيضاء لكتابة البيانات.
+// سنفترض أن المنطقة البيضاء تبدأ من حوالي 400 بكسل من الأعلى
 const CERTIFICATE_TEXT_POSITIONS = {
     WELCOME_TEXT: {
         text: "مرحباً بك في الاختبار!", // نص ثابت للاختبار
         x: 0, // توسيط أفقي
-        y: 100, // أعلى قليلاً في الصورة (لتجنب التداخل)
-        fontSize: 40, // حجم أصغر ليتناسب مع الأبعاد الجديدة
-        color: RED_COLOR_HEX, 
-        gravity: 'center' 
+        y: 450, // موضع متوسط داخل منطقة النص
+        fontSize: 40,
+        color: RED_COLOR_HEX,
+        gravity: 'center' // لضمان التوسيط
     },
     SERIAL_NUMBER: {
         label: "الرقم التسلسلي:",
         field: "serial_number",
         x: 100, // موضع ثابت من اليسار
-        y: 600, // منتصف تقريباً، فوق رقم الإقامة
-        fontSize: 30, // حجم أصغر
-        color: RED_COLOR_HEX, 
+        y: 500, // أسفل نص الترحيب
+        fontSize: 30,
+        color: RED_COLOR_HEX,
         gravity: 'west' // المحاذاة لليسار
     },
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
         field: "residency_number",
         x: 100, // موضع ثابت من اليسار
-        y: 650, // أسفل الرقم التسلسلي بقليل
-        fontSize: 30, // حجم أصغر
-        color: RED_COLOR_HEX, 
+        y: 550, // أسفل الرقم التسلسلي بقليل
+        fontSize: 30,
+        color: RED_COLOR_HEX,
         gravity: 'west' // المحاذاة لليسار
     },
-    // يمكن إضافة المزيد من النصوص هنا وتعديل مواقعها
+    // يمكنك إضافة المزيد من النصوص هنا وتعديل مواقعها
     // EXAMPLE_FIELD_1: {
     //     label: "مثال 1:",
     //     field: "some_field_from_db", // استبدل بهذا اسم الحقل من قاعدة البيانات
     //     x: 100,
-    //     y: 700,
+    //     y: 600,
     //     fontSize: 30,
     //     color: RED_COLOR_HEX,
     //     gravity: 'west'
     // },
-    // EXAMPLE_FIELD_2: {
-    //     label: "مثال 2:",
-    //     field: "another_field_from_db", // استبدل بهذا اسم الحقل من قاعدة البيانات
-    //     x: 100,
-    //     y: 750,
-    //     fontSize: 30,
-    //     color: RED_COLOR_HEX,
-    //     gravity: 'west'
-    // }
 };
 
 /**
  * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp باستخدام sharp.text().
+ *
+ * @param {string} text - النص المراد عرضه.
+ * @param {number} fontSize - حجم الخط.
+ * @param {string} color - لون النص (بصيغة هيكس).
+ * @param {number} svgWidth - عرض الصورة التي سيتراكب عليها النص (مستخدم لحساب مساحة النص).
+ * @param {number} svgHeight - ارتفاع الصورة (مستخدم لحساب مساحة النص).
+ * @param {string} gravity - محاذاة النص ('west', 'center', 'east').
+ * @param {string} fontCssFamilyName - اسم عائلة الخط (كما هو مستخدم في CSS).
+ * @returns {Promise<Buffer>} - Buffer يحتوي على النص كصورة PNG.
  */
 async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontCssFamilyName) {
-    let align = 'centre';
-    if (gravity === 'west') {
-        align = 'left';
+    // sharp.text() يحتاج إلى SVG. سنقوم بإنشاء SVG بسيط يحتوي على النص.
+    // لضمان محاذاة صحيحة، سنقوم بضبط 'text-anchor' و 'x' بناءً على 'gravity'.
+    let textAnchor = 'start';
+    let xOffset = 0;
+    if (gravity === 'center') {
+        textAnchor = 'middle';
+        xOffset = svgWidth / 2; // توسيط النص أفقياً
     } else if (gravity === 'east') {
-        align = 'right';
+        textAnchor = 'end';
+        xOffset = svgWidth; // محاذاة النص لليمين
+    } else { // 'west' أو أي شيء آخر يكون 'start'
+        textAnchor = 'start';
+        xOffset = 0; // محاذاة النص لليسار
     }
 
-    let estimatedLineHeight = fontSize * 1.5;
-    estimatedLineHeight = Math.ceil(estimatedLineHeight); 
+    // `y` في SVG تبدأ من أعلى الصندوق، لذا `font-size` يمثل الجزء السفلي من النص.
+    // لجعله متناسباً مع `y` المستخدمة في `composite`، سنضع النص عند `fontSize` من الأعلى.
+    const svgText = `<text x="${xOffset}" y="${fontSize}" font-family="${fontCssFamilyName}" font-size="${fontSize}" fill="${color}" text-anchor="${textAnchor}">${text}</text>`;
+    const svg = `<svg width="${svgWidth}" height="${fontSize * 1.5}">${svgText}</svg>`; // ارتفاع تقريبي للنص
 
-    return sharp({
-        text: {
-            text: `<span foreground="${color}">${text}</span>`,
-            font: fontCssFamilyName,
-            fontfile: FONT_PATH,
-            width: svgWidth, // استخدام العرض الحقيقي للصورة
-            height: estimatedLineHeight, 
-            align: align,
-            rgba: true
-        }
-    }).png().toBuffer();
+    return sharp(Buffer.from(svg))
+        .png()
+        .toBuffer();
 }
-
 
 export default async function handler(req, res) {
     console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 ---');
@@ -156,12 +158,6 @@ export default async function handler(req, res) {
         const imageHeight = metadata.height;
         console.log('أبعاد الصورة الفعلية التي تم تحميلها:', imageWidth, 'x', imageHeight);
 
-        // **إزالة التحذير عن الأبعاد، لأننا الآن نستخدم الأبعاد الحقيقية**
-        // if (imageWidth !== 1754 || imageHeight !== 1238) {
-        //     console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (1754x1238). قد تحتاج لضبط إحداثيات النصوص مرة أخرى.`);
-        // }
-
-
         let processedImage = baseImage;
 
         console.log('جارٍ التحقق من ملف الخط...');
@@ -181,37 +177,32 @@ export default async function handler(req, res) {
         const fieldsToDisplay = ['WELCOME_TEXT', 'SERIAL_NUMBER', 'RESIDENCY_NUMBER']; // أضف هنا أي حقول أخرى تريد عرضها
 
         for (const key of fieldsToDisplay) {
-            const pos = CERTIFICATE_TEXT_POSITIONS?.[key]; 
+            const pos = CERTIFICATE_TEXT_POSITIONS?.[key];
             if (pos) {
                 let textToDisplay = '';
 
                 if (pos.text) {
                     textToDisplay = pos.text;
-                } 
+                }
                 else if (pos.field) {
-                    let fieldValue = student?.[pos.field]; 
+                    let fieldValue = student?.[pos.field];
                     if (fieldValue === undefined || fieldValue === null) {
-                        fieldValue = 'غير متوفر'; 
+                        fieldValue = 'غير متوفر';
                     }
                     textToDisplay = `${pos.label || ''} ${fieldValue}`;
                 }
 
+                // استخدم ارتفاعاً تقريبياً للنص لتحديد ارتفاع SVG
                 const textRenderHeight = (pos.fontSize || 40) * 1.5;
-                const yPosition = pos.y || 0;
 
-                // التحقق من تجاوز النص لحدود الصورة (باستخدام الأبعاد الحقيقية)
-                if ((pos.x + imageWidth) < (pos.x + 1) || (yPosition + textRenderHeight) > imageHeight) { // تحسين التحقق من العرض والارتفاع
-                    console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) قد يتجاوز حدود الصورة (أبعاد الصورة: ${imageWidth}x${imageHeight}). قد لا يظهر بالكامل.`);
-                }
-                
-                console.log(`إنشاء نص لـ: ${key} بـ: "${textToDisplay}" عند X: ${pos.x}, Y: ${yPosition}`);
+                console.log(`إنشاء نص لـ: ${key} بـ: "${textToDisplay}" عند X: ${pos.x}, Y: ${pos.y}`);
 
                 const textOverlayBuffer = await createSharpTextBuffer(
                     textToDisplay,
                     pos.fontSize || 40,
-                    pos.color || RED_COLOR_HEX, 
-                    imageWidth, // تمرير العرض الحقيقي
-                    Math.ceil(textRenderHeight),
+                    pos.color || RED_COLOR_HEX,
+                    imageWidth, // تمرير العرض الحقيقي للتحكم في توسيط النص داخل SVG
+                    Math.ceil(textRenderHeight), // ارتفاع تقديري
                     pos.gravity || 'west',
                     FONT_CSS_FAMILY_NAME
                 );
@@ -219,8 +210,8 @@ export default async function handler(req, res) {
 
                 processedImage = await processedImage.composite([{
                     input: textOverlayBuffer,
-                    left: pos.x || 0, 
-                    top: yPosition,
+                    left: pos.x || 0,
+                    top: pos.y, // استخدام موقع Y المباشر
                 }]);
                 console.log(`تم تركيب النص ${key}`);
             }
