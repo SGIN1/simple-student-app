@@ -18,7 +18,7 @@ const FONT_CSS_FAMILY_NAME = 'Arial'; // يجب أن يتطابق هذا مع ا
 
 const BLACK_COLOR_HEX = '#000000';
 
-// تم تعديل هذا الجزء لضبط إحداثيات Y لرقم الإقامة والرقم التسلسلي
+// تم تعديل إحداثيات Y لرقم الإقامة والرقم التسلسلي
 // الرقم التسلسلي الآن في المنتصف الأفقي، ورقم الإقامة في مكانه الحالي.
 // يرجى مراجعة وتعديل هذه الإحداثيات (Y بشكل خاص) لتناسب تصميم شهادتك (wwee.jpg) بدقة.
 const CERTIFICATE_TEXT_POSITIONS = {
@@ -54,7 +54,9 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
     }
 
     // استخدم ارتفاعًا تقديريًا أكبر قليلاً للنص لضمان عدم الاقتصاص
-    const estimatedLineHeight = fontSize * 1.5; // مثلاً 1.5 مرة حجم الخط
+    let estimatedLineHeight = fontSize * 1.5; // مثلاً 1.5 مرة حجم الخط
+    // **التعديل الجديد: تحويل الارتفاع إلى عدد صحيح**
+    estimatedLineHeight = Math.ceil(estimatedLineHeight); // أو Math.floor()، أو Math.round()
 
     return sharp({
         text: {
@@ -182,7 +184,7 @@ export default async function handler(req, res) {
                 pos.fontSize,
                 pos.color,
                 imageWidth,
-                textRenderHeight,
+                textRenderHeight, // هذه القيمة سيتم تحويلها لعدد صحيح داخل createSharpTextBuffer
                 pos.gravity,
                 FONT_CSS_FAMILY_NAME
             );
@@ -214,7 +216,15 @@ export default async function handler(req, res) {
         console.error('خطأ عام في وظيفة generateCertificateTwo2 (داخل catch):', error);
         console.error('تتبع الخطأ (داخل catch):', error.stack);
 
-        if (error.message.includes('fontconfig') || error.message.includes('freetype')) {
+        // هنا يمكنك إضافة منطق معالجة خطأ خاص بـ text.height إذا أردت
+        if (error.message.includes('expected positive integer for text.height')) {
+            return res.status(500).json({
+                error: 'خطأ في معالجة أبعاد النص. قد يكون بسبب قيمة ارتفاع النص غير الصحيحة (عشري بدلاً من صحيح).',
+                details: error.message,
+                stack: error.stack
+            });
+        }
+        else if (error.message.includes('fontconfig') || error.message.includes('freetype')) {
             return res.status(500).json({
                 error: 'حدث خطأ في معالجة الخطوط (Fontconfig/FreeType). يرجى التأكد من أن الخطوط المستخدمة مدعومة بشكل كامل في بيئة Vercel.',
                 details: error.message,
