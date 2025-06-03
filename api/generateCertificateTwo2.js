@@ -1,7 +1,14 @@
+// your-project-root/pages/api/generateCertificateTwo2.js
+
 import { MongoClient, ObjectId } from 'mongodb';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
+
+// **مهم جدًا:** تأكد من أن المسار هنا صحيح لملف imageUtils.ts
+// افترضنا هنا أن ملف generateCertificateTwo2.js موجود في 'pages/api/'
+// وأن ملف imageUtils.ts موجود في 'utils/' في جذر المشروع.
+import { ARABIC_FONTS, createArabicTextSVG } from '../../utils/imageUtils';
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -10,63 +17,28 @@ const collectionName = 'enrolled_students_tbl';
 // تأكد أن هذا هو المسار الصحيح لصورتك
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
-// **تم التغيير هنا لاستخدام خط Noto Sans Arabic**
-const FONT_FILENAME = 'NotoSansArabic-Regular.ttf'; // يجب أن يكون هذا هو اسم ملف الخط الذي وضعته في public/fonts/
-const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
-const FONT_CSS_FAMILY_NAME = 'Noto Sans Arabic'; // يجب أن يتطابق هذا مع اسم عائلة الخط داخل ملف .ttf
-
 const RED_COLOR_HEX = '#FF0000'; 
 
 // المواقع الجديدة للنصين الترحيبيين بناءً على أبعاد الصورة 978x1280
 const CERTIFICATE_TEXT_POSITIONS = {
     WELCOME_TEXT_TOP: {
         text: "أهلاً وسهلاً بكم في هذا الاختبار!", 
-        x: 0, 
-        y: 100, 
+        y: 100, // الموضع العمودي للنص
         fontSize: 35, 
         color: RED_COLOR_HEX, 
-        gravity: 'center' 
+        textAlign: 'center' // المحاذاة داخل الـ SVG
     },
     WELCOME_TEXT_BOTTOM: {
         text: "نأمل أن تظهر النصوص الآن بوضوح.", 
-        x: 0, 
         y: 150, 
         fontSize: 30, 
         color: RED_COLOR_HEX, 
-        gravity: 'center' 
+        textAlign: 'center' 
     }
 };
 
-/**
- * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp باستخدام sharp.text().
- */
-async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontCssFamilyName) {
-    let align = 'centre';
-    if (gravity === 'west') {
-        align = 'left';
-    } else if (gravity === 'east') {
-        align = 'right';
-    }
-
-    let estimatedLineHeight = fontSize * 1.5;
-    estimatedLineHeight = Math.ceil(estimatedLineHeight); 
-
-    return sharp({
-        text: {
-            text: `<span foreground="${color}">${text}</span>`,
-            font: fontCssFamilyName,
-            fontfile: FONT_PATH, // هنا يتم الإشارة إلى ملف الخط الفعلي
-            width: svgWidth, 
-            height: estimatedLineHeight, 
-            align: align,
-            rgba: true
-        }
-    }).png().toBuffer();
-}
-
-
 export default async function handler(req, res) {
-    console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 ---');
+    console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 (باستخدام SVG للنصوص) ---');
 
     if (req.method !== 'GET') {
         console.log('طلب غير مسموح به:', req.method);
@@ -134,50 +106,38 @@ export default async function handler(req, res) {
 
         let processedImage = baseImage;
 
-        console.log('جارٍ التحقق من ملف الخط...');
-        try {
-            await fs.access(FONT_PATH);
-            console.log('ملف الخط موجود في المسار المحدد:', FONT_PATH);
-        } catch (fontError) {
-            console.error('خطأ: ملف الخط غير موجود أو لا يمكن الوصول إليه:', fontError.message);
-            return res.status(500).json({
-                error: 'ملف الخط غير موجود أو لا يمكن الوصول إليه. يرجى التأكد من وضعه في المسار الصحيح وتضمينه في النشر.',
-                details: fontError.message,
-                path: FONT_PATH
-            });
-        }
-
-        console.log('جارٍ إضافة النصوص إلى الصورة...');
+        console.log('جارٍ إضافة النصوص إلى الصورة باستخدام SVG...');
         const fieldsToDisplay = ['WELCOME_TEXT_TOP', 'WELCOME_TEXT_BOTTOM']; 
 
         for (const key of fieldsToDisplay) {
             const pos = CERTIFICATE_TEXT_POSITIONS?.[key]; 
             if (pos) {
-                let textToDisplay = pos.text; 
-
-                const textRenderHeight = (pos.fontSize || 30) * 1.5;
+                const textToDisplay = pos.text; 
+                // تحديد ارتفاع SVG كافٍ للنص وبعض الهامش
+                const svgHeight = (pos.fontSize || 30) * 1.5; 
                 const yPosition = pos.y || 0;
 
-                if ((pos.x < 0 || pos.x > imageWidth) || (yPosition < 0 || (yPosition + textRenderHeight) > imageHeight)) { 
-                    console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) خارج حدود الصورة أو يتجاوزها (أبعاد الصورة: ${imageWidth}x${imageHeight}). قد لا يظهر بالكامل.`);
-                }
-                
-                console.log(`إنشاء نص لـ: ${key} بـ: "${textToDisplay}" عند X: ${pos.x}, Y: ${yPosition}`);
+                // يمكنك إضافة منطق wrapArabicText هنا إذا كانت النصوص طويلة وتحتاج لتغليف
+                // ملاحظة: لإنشاء أسطر متعددة في SVG تحتاج لاستخدام <tspan> أو تكرار <text> لكل سطر
+                // أو دمج كل الأسطر في نص واحد مفصول بـ \n إذا كان محرك SVG يتعامل معها (غالباً لا)
+                // لذلك، حالياً، createArabicTextSVG تصدر سطرًا واحدًا فقط.
 
-                const textOverlayBuffer = await createSharpTextBuffer(
-                    textToDisplay,
-                    pos.fontSize || 30, 
-                    pos.color || RED_COLOR_HEX, 
-                    imageWidth, 
-                    Math.ceil(textRenderHeight),
-                    pos.gravity || 'center', 
-                    FONT_CSS_FAMILY_NAME
-                );
-                console.log(`تم إنشاء Buffer للنص ${key}`);
+                console.log(`إنشاء SVG للنص: ${key} بـ: "${textToDisplay}" عند Y: ${yPosition}`);
+
+                const svgTextBuffer = Buffer.from(createArabicTextSVG(textToDisplay, {
+                    width: imageWidth, // اجعل عرض SVG مساوياً لعرض الصورة لتسهيل التوسيط الأفقي
+                    height: svgHeight,
+                    fontSize: pos.fontSize,
+                    fontFamily: ARABIC_FONTS.noto, // استخدم الخط المفضل من قائمة ARABIC_FONTS
+                    color: pos.color,
+                    textAlign: pos.textAlign // استخدم textAlign من pos
+                }));
+                
+                console.log(`تم إنشاء Buffer SVG للنص ${key}`);
 
                 processedImage = await processedImage.composite([{
-                    input: textOverlayBuffer,
-                    left: pos.x || 0, 
+                    input: svgTextBuffer,
+                    left: 0, // ضع الـ SVG من اليسار، والتوسيط الأفقي يتم داخله باستخدام text-anchor
                     top: yPosition,
                 }]);
                 console.log(`تم تركيب النص ${key}`);
@@ -186,7 +146,7 @@ export default async function handler(req, res) {
 
         console.log('جارٍ إنشاء الصورة النهائية...');
         const finalImageBuffer = await processedImage
-            .flatten({ background: { r: 255, g: 255, b: 255, alpha: 1 } })
+            .flatten({ background: { r: 255, g: 255, b: 255, alpha: 1 } }) // للتأكد من عدم وجود شفافية في الصورة النهائية (إذا كانت الخلفية شفافة)
             .jpeg({
                 quality: 85,
                 progressive: true
@@ -194,7 +154,7 @@ export default async function handler(req, res) {
         console.log('تم إنشاء الصورة النهائية.');
 
         res.setHeader('Content-Type', 'image/jpeg');
-        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate');
+        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate'); // تحسينات ذاكرة التخزين المؤقت
         console.log('تم إرسال الصورة بنجاح.');
         return res.status(200).send(finalImageBuffer);
 
@@ -202,6 +162,7 @@ export default async function handler(req, res) {
         console.error('خطأ عام في وظيفة generateCertificateTwo2 (داخل catch):', error);
         console.error('تتبع الخطأ (داخل catch):', error.stack);
 
+        // رسائل خطأ أكثر تحديداً للمساعدة في التصحيح
         if (error.message.includes('expected positive integer for text.height')) {
             return res.status(500).json({
                 error: 'خطأ في معالجة أبعاد النص. قد يكون بسبب قيمة ارتفاع النص غير الصحيحة (عشري بدلاً من صحيح).',
@@ -209,16 +170,18 @@ export default async function handler(req, res) {
                 stack: error.stack
             });
         }
-        else if (error.message.includes('fontconfig') || error.message.includes('freetype')) {
+        // يمكن أن يظهر خطأ Fontconfig هنا إذا كان Sharp يحاول تحميل الخط العربي ولا يجده في بيئة النظام
+        else if (error.message.includes('fontconfig') || error.message.includes('freetype') || error.message.includes('VIPS_WARNING')) {
             return res.status(500).json({
-                error: 'حدث خطأ في معالجة الخطوط (Fontconfig/FreeType). يرجى التأكد من أن الخطوط المستخدمة مدعومة بشكل كامل في بيئة Vercel.',
+                error: 'حدث خطأ في معالجة الخطوط (Fontconfig/FreeType/VIPS). يرجى التأكد من أن الخطوط المستخدمة مدعومة بشكل كامل في بيئة Vercel أو أن هناك مشكلة في بيئة Vercel نفسها.',
                 details: error.message,
                 stack: error.stack
             });
-        } else if (error.message.includes('Input file is missing')) {
+        } else if (error.message.includes('Input file is missing') || error.code === 'ENOENT') {
             return res.status(500).json({
-                error: 'ملف الصورة الأساسي غير موجود أو لا يمكن الوصول إليه.',
-                details: error.message
+                error: 'ملف الصورة الأساسي غير موجود أو لا يمكن الوصول إليه. يرجى التحقق من مسار CERTIFICATE_IMAGE_PATH.',
+                details: error.message,
+                path: CERTIFICATE_IMAGE_PATH
             });
         }
         return res.status(500).json({
