@@ -16,35 +16,36 @@ const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
 const FONT_CSS_FAMILY_NAME = 'Arial'; // يجب أن يتطابق هذا مع اسم الخط داخل ملف .ttf
 
-// **التعديل هنا: استخدام اللون الأبيض لجميع النصوص لضمان الرؤية**
-const WHITE_COLOR_HEX = '#FFFFFF'; 
+// **التعديل هنا: استخدام اللون الأحمر لجميع النصوص لضمان الرؤية**
+const RED_COLOR_HEX = '#FF0000'; 
 
+// تم تعديل هذا الجزء لإضافة نص ترحيبي للاختبار
 const CERTIFICATE_TEXT_POSITIONS = {
     WELCOME_TEXT: {
-        text: "مرحباً بك في الاختبار!",
-        x: 0, 
-        y: 200, 
+        text: "مرحباً بك في الاختبار!", // نص ثابت للاختبار
+        x: 0, // في منتصف الأفق (مع gravity: 'center')
+        y: 200, // بالقرب من أعلى الشهادة
         fontSize: 60,
-        color: WHITE_COLOR_HEX, // تم تغيير اللون إلى الأبيض
-        gravity: 'center'
+        color: RED_COLOR_HEX, // تم تغيير اللون إلى الأحمر
+        gravity: 'center' // للتوسيط الأفقي
     },
     SERIAL_NUMBER: {
         label: "الرقم التسلسلي:",
         field: "serial_number",
-        x: 150, 
-        y: 800, 
+        x: 150, // نفس موضع X لرقم الإقامة للمحاذاة
+        y: 800, // موضع أعلى من رقم الإقامة
         fontSize: 40,
-        color: WHITE_COLOR_HEX, // تم تغيير اللون إلى الأبيض
-        gravity: 'west'
+        color: RED_COLOR_HEX, // تم تغيير اللون إلى الأحمر
+        gravity: 'west' // المحاذاة لليسار
     },
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
         field: "residency_number",
-        x: 150, 
-        y: 860, 
+        x: 150, // نُبقيه في مكانه الحالي (الذي يعمل)
+        y: 860, // نُبقيه في مكانه الحالي (الذي يعمل)
         fontSize: 40,
-        color: WHITE_COLOR_HEX, // تم تغيير اللون إلى الأبيض
-        gravity: 'west'
+        color: RED_COLOR_HEX, // تم تغيير اللون إلى الأحمر
+        gravity: 'west' // المحاذاة لليسار
     }
 };
 
@@ -60,6 +61,7 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
     }
 
     let estimatedLineHeight = fontSize * 1.5;
+    // التأكد من أن الارتفاع عدد صحيح موجب، وهو ما تم إصلاحه سابقًا
     estimatedLineHeight = Math.ceil(estimatedLineHeight); 
 
     return sharp({
@@ -159,6 +161,7 @@ export default async function handler(req, res) {
         }
 
         console.log('جارٍ إضافة النصوص إلى الصورة...');
+        // ترتيب إضافة النصوص لضمان ظهورها بشكل صحيح
         const fieldsToDisplay = ['WELCOME_TEXT', 'SERIAL_NUMBER', 'RESIDENCY_NUMBER'];
 
         for (const key of fieldsToDisplay) {
@@ -166,12 +169,15 @@ export default async function handler(req, res) {
             if (pos) {
                 let textToDisplay = '';
 
+                // إذا كان النص ثابتًا (مثل WELCOME_TEXT)
                 if (pos.text) {
                     textToDisplay = pos.text;
-                } else if (pos.field) {
+                } 
+                // إذا كان النص يعتمد على بيانات الطالب (مثل SERIAL_NUMBER)
+                else if (pos.field) {
                     let fieldValue = student?.[pos.field]; 
                     if (fieldValue === undefined || fieldValue === null) {
-                        fieldValue = 'غير متوفر';
+                        fieldValue = 'غير متوفر'; // نص افتراضي إذا كانت البيانات غير موجودة
                     }
                     textToDisplay = `${pos.label || ''} ${fieldValue}`;
                 }
@@ -188,7 +194,7 @@ export default async function handler(req, res) {
                 const textOverlayBuffer = await createSharpTextBuffer(
                     textToDisplay,
                     pos.fontSize || 40,
-                    pos.color || WHITE_COLOR_HEX, // استخدم اللون الأبيض الافتراضي
+                    pos.color || RED_COLOR_HEX, // استخدام اللون الأحمر الافتراضي إذا لم يتم تحديد لون
                     imageWidth,
                     Math.ceil(textRenderHeight),
                     pos.gravity || 'west',
@@ -198,7 +204,7 @@ export default async function handler(req, res) {
 
                 processedImage = await processedImage.composite([{
                     input: textOverlayBuffer,
-                    left: pos.x || 0,
+                    left: pos.x || 0, // استخدام 0 كقيمة افتراضية لـ X
                     top: yPosition,
                 }]);
                 console.log(`تم تركيب النص ${key}`);
