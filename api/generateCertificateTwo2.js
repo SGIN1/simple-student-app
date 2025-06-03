@@ -18,24 +18,24 @@ const FONT_CSS_FAMILY_NAME = 'Arial'; // يجب أن يتطابق هذا مع ا
 
 const BLACK_COLOR_HEX = '#000000';
 
-// تم تعديل إحداثيات Y لرقم الإقامة والرقم التسلسلي
-// لضمان عدم تداخل النصوص وظهورها بشكل واضح تحت بعضها البعض.
-// يجب عليك مراجعة إحداثيات X و Y وأحجام الخطوط يدويًا لتناسب تصميم شهادتك (wwee.jpg) بدقة.
+// تم تعديل هذا الجزء لضبط إحداثيات Y لرقم الإقامة والرقم التسلسلي
+// الرقم التسلسلي الآن في المنتصف الأفقي، ورقم الإقامة في مكانه الحالي.
+// يرجى مراجعة وتعديل هذه الإحداثيات (Y بشكل خاص) لتناسب تصميم شهادتك (wwee.jpg) بدقة.
 const CERTIFICATE_TEXT_POSITIONS = {
     SERIAL_NUMBER: {
         label: "الرقم التسلسلي:",
         field: "serial_number",
-        x: 150, // هذا يجب أن يكون الموضع الأفقي للرقم التسلسلي
-        y: 800, // الموضع العمودي لرقم التسلسلي
-        fontSize: 40,
+        x: 0, // تعيين X إلى 0 واستخدام gravity: 'center' لوضعه في المنتصف أفقيًا
+        y: 650, // موضع عمودي أعلى قليلاً في منتصف الشهادة
+        fontSize: 45, // زيادة حجم الخط ليكون أكثر وضوحًا
         color: BLACK_COLOR_HEX,
-        gravity: 'west'
+        gravity: 'center' // لجعله في المنتصف الأفقي
     },
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
         field: "residency_number",
-        x: 150, // اجعله نفس موضع X للرقم التسلسلي للمحاذاة
-        y: 860, // تم تعديل Y: (موضع الرقم التسلسلي 800 + حجم الخط 40 + مسافة 20 بكسل = 860)
+        x: 150, // نُبقيه في مكانه الحالي (الذي يعمل)
+        y: 860, // نُبقيه في مكانه الحالي (الذي يعمل)
         fontSize: 40,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
@@ -154,9 +154,10 @@ export default async function handler(req, res) {
 
         console.log('جارٍ إضافة النصوص إلى الصورة...');
         // تحديد ترتيب الحقول التي سيتم عرضها لضمان الظهور الصحيح
+        // وضع الرقم التسلسلي أولاً للتأكد من معالجته قبل رقم الإقامة
         const fieldsToDisplay = ['SERIAL_NUMBER', 'RESIDENCY_NUMBER'];
 
-        for (const key of fieldsToDisplay) { // تم تغيير الحلقة لاستخدام ترتيب محدد
+        for (const key of fieldsToDisplay) {
             const pos = CERTIFICATE_TEXT_POSITIONS[key];
             let textToDisplay = '';
 
