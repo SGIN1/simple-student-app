@@ -20,8 +20,10 @@ export const GOOGLE_FONTS_URLS = {
 /**
  * Creates an SVG string with Arabic text.
  * This SVG can then be composited onto another image using Sharp.js.
- * Note: Sharp.js does not fetch external CSS/fonts when processing SVG buffers.
- * It relies on the font being available in the system or the SVG itself.
+ * Note: Sharp.js does not fetch external CSS/fonts from URLs when processing SVG buffers.
+ * It relies on the font being available in the system where Sharp.js runs (Vercel's environment)
+ * or the SVG itself explicitly embedding the font (e.g., as base64), which is more complex.
+ * For this approach, we rely on 'Noto Sans Arabic' or 'Arial Unicode MS' being available on Vercel.
  */
 export function createArabicTextSVG(
   text: string,
@@ -45,9 +47,9 @@ export function createArabicTextSVG(
     textAlign = "center",
   } = options;
 
-  // Adjust text-anchor and x position based on textAlign
+  // Adjust text-anchor and x position based on textAlign for SVG
   const textAnchor = textAlign === "center" ? "middle" : textAlign === "right" ? "end" : "start";
-  // Adjust x position for padding if not centered
+  // For 'start' and 'end', add a small margin/padding
   const x = textAlign === "center" ? width / 2 : textAlign === "right" ? width - 20 : 20;
 
   return `
@@ -67,32 +69,36 @@ export function createArabicTextSVG(
 }
 
 /**
- * Basic function to wrap Arabic text into multiple lines.
- * This is an approximation and might not be perfect for all Arabic text layouts.
- * For precise wrapping, a dedicated text layout engine or more complex logic is needed.
+ * Basic function to wrap Arabic text into multiple lines for SVG.
+ * This function estimates character width and breaks lines.
+ * For more complex and accurate Arabic text layout (ligatures, kashida, etc.),
+ * a dedicated text shaping library might be required.
  */
 export function wrapArabicText(text: string, maxWidth: number, fontSize: number): string[] {
   const words = text.split(" ");
   const lines: string[] = [];
   let currentLine = "";
 
-  // Approximate character width (adjust this value based on your chosen font and visual testing)
-  const estimatedCharWidth = fontSize * 0.6; // A common heuristic
+  // Approximate character width (needs adjustment based on your chosen font and visual testing)
+  // Arabic characters can vary significantly in width, so this is a heuristic.
+  const estimatedCharWidth = fontSize * 0.6; 
 
   for (const word of words) {
     const potentialLine = currentLine ? `${currentLine} ${word}` : word;
     
     // Check if adding the word exceeds the estimated max width
+    // We check `currentLine.length > 0` to ensure a word isn't immediately moved to a new line
+    // if it's the very first word and it's long.
     if ((potentialLine.length * estimatedCharWidth) > maxWidth && currentLine.length > 0) {
       lines.push(currentLine);
-      currentLine = word; // Start new line with current word
+      currentLine = word; // Start a new line with the current word
     } else {
-      currentLine = potentialLine; // Add word to current line
+      currentLine = potentialLine; // Add word to the current line
     }
   }
   
   if (currentLine.length > 0) {
-    lines.push(currentLine);
+    lines.push(currentLine); // Add any remaining text
   }
   return lines;
 }
