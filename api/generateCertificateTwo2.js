@@ -128,7 +128,7 @@ export default async function handler(req, res) {
                     width: imageWidth, // اجعل عرض الـ SVG مساوياً لعرض الصورة الأساسية لسهولة التوسيط
                     height: svgHeight,
                     fontSize: pos.fontSize,
-                    fontFamily: ARABIC_FONTS.noto, // استخدم الخط المفضل من قائمة ARABIC_FONTS
+                    fontFamily: ARABIC_FONTS.noto, // هذا الآن يستخدم كمعرف فقط وليس لجلب الخط
                     color: pos.color,
                     textAlign: pos.textAlign // استخدم textAlign لتحديد المحاذاة داخل الـ SVG
                 }));
@@ -172,10 +172,10 @@ export default async function handler(req, res) {
                 stack: error.stack
             });
         }
-        // يمكن أن يظهر خطأ Fontconfig هنا إذا كان Sharp لا يزال يواجه مشكلة في الخطوط ضمن بيئة Vercel
+        // هذا الجزء قد يظل مهماً إذا كانت هناك مشكلة في Sharp نفسها وليس فقط الخط
         else if (error.message.includes('fontconfig') || error.message.includes('freetype') || error.message.includes('VIPS_WARNING') || error.message.includes('pango')) {
             return res.status(500).json({
-                error: 'حدث خطأ في معالجة الخطوط (Fontconfig/FreeType/VIPS/Pango). يرجى التأكد من أن بيئة Vercel تدعم الخطوط العربية بشكل كامل أو أن الخط Noto Sans Arabic مثبت فيها.',
+                error: 'حدث خطأ في معالجة الخطوط (Fontconfig/FreeType/VIPS/Pango). بالرغم من تضمين الخط، قد تكون هناك مشكلة أخرى في بيئة Sharp.',
                 details: error.message,
                 stack: error.stack
             });
