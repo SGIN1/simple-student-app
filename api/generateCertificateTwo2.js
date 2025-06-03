@@ -11,42 +11,59 @@ const collectionName = 'enrolled_students_tbl';
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
 const FONT_FILENAME = 'arial.ttf';
-// يجب أن يكون ملف الخط داخل مجلد public/fonts في مشروع Next.js
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
+const FONT_CSS_FAMILY_NAME = 'Arial'; 
 
-const FONT_CSS_FAMILY_NAME = 'Arial'; // يجب أن يتطابق هذا مع اسم الخط داخل ملف .ttf
-
-// **التعديل هنا: استخدام اللون الأحمر لجميع النصوص لضمان الرؤية**
 const RED_COLOR_HEX = '#FF0000'; 
 
-// تم تعديل هذا الجزء لإضافة نص ترحيبي للاختبار
+// **تم تعديل المواقع بناءً على الأبعاد الحقيقية للصورة: 978x1280**
+// سنحاول وضع النصوص في المنتصف السفلي من الشهادة حيث يتوقع أن تكون منطقة بيضاء لكتابة البيانات.
 const CERTIFICATE_TEXT_POSITIONS = {
     WELCOME_TEXT: {
         text: "مرحباً بك في الاختبار!", // نص ثابت للاختبار
-        x: 0, // في منتصف الأفق (مع gravity: 'center')
-        y: 200, // بالقرب من أعلى الشهادة
-        fontSize: 60,
-        color: RED_COLOR_HEX, // تم تغيير اللون إلى الأحمر
-        gravity: 'center' // للتوسيط الأفقي
+        x: 0, // توسيط أفقي
+        y: 100, // أعلى قليلاً في الصورة (لتجنب التداخل)
+        fontSize: 40, // حجم أصغر ليتناسب مع الأبعاد الجديدة
+        color: RED_COLOR_HEX, 
+        gravity: 'center' 
     },
     SERIAL_NUMBER: {
         label: "الرقم التسلسلي:",
         field: "serial_number",
-        x: 150, // نفس موضع X لرقم الإقامة للمحاذاة
-        y: 800, // موضع أعلى من رقم الإقامة
-        fontSize: 40,
-        color: RED_COLOR_HEX, // تم تغيير اللون إلى الأحمر
+        x: 100, // موضع ثابت من اليسار
+        y: 600, // منتصف تقريباً، فوق رقم الإقامة
+        fontSize: 30, // حجم أصغر
+        color: RED_COLOR_HEX, 
         gravity: 'west' // المحاذاة لليسار
     },
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
         field: "residency_number",
-        x: 150, // نُبقيه في مكانه الحالي (الذي يعمل)
-        y: 860, // نُبقيه في مكانه الحالي (الذي يعمل)
-        fontSize: 40,
-        color: RED_COLOR_HEX, // تم تغيير اللون إلى الأحمر
+        x: 100, // موضع ثابت من اليسار
+        y: 650, // أسفل الرقم التسلسلي بقليل
+        fontSize: 30, // حجم أصغر
+        color: RED_COLOR_HEX, 
         gravity: 'west' // المحاذاة لليسار
-    }
+    },
+    // يمكن إضافة المزيد من النصوص هنا وتعديل مواقعها
+    // EXAMPLE_FIELD_1: {
+    //     label: "مثال 1:",
+    //     field: "some_field_from_db", // استبدل بهذا اسم الحقل من قاعدة البيانات
+    //     x: 100,
+    //     y: 700,
+    //     fontSize: 30,
+    //     color: RED_COLOR_HEX,
+    //     gravity: 'west'
+    // },
+    // EXAMPLE_FIELD_2: {
+    //     label: "مثال 2:",
+    //     field: "another_field_from_db", // استبدل بهذا اسم الحقل من قاعدة البيانات
+    //     x: 100,
+    //     y: 750,
+    //     fontSize: 30,
+    //     color: RED_COLOR_HEX,
+    //     gravity: 'west'
+    // }
 };
 
 /**
@@ -61,7 +78,6 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
     }
 
     let estimatedLineHeight = fontSize * 1.5;
-    // التأكد من أن الارتفاع عدد صحيح موجب، وهو ما تم إصلاحه سابقًا
     estimatedLineHeight = Math.ceil(estimatedLineHeight); 
 
     return sharp({
@@ -69,7 +85,7 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
             text: `<span foreground="${color}">${text}</span>`,
             font: fontCssFamilyName,
             fontfile: FONT_PATH,
-            width: svgWidth, 
+            width: svgWidth, // استخدام العرض الحقيقي للصورة
             height: estimatedLineHeight, 
             align: align,
             rgba: true
@@ -140,9 +156,10 @@ export default async function handler(req, res) {
         const imageHeight = metadata.height;
         console.log('أبعاد الصورة الفعلية التي تم تحميلها:', imageWidth, 'x', imageHeight);
 
-        if (imageWidth !== 1754 || imageHeight !== 1238) {
-            console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (1754x1238). قد تحتاج لضبط إحداثيات النصوص مرة أخرى.`);
-        }
+        // **إزالة التحذير عن الأبعاد، لأننا الآن نستخدم الأبعاد الحقيقية**
+        // if (imageWidth !== 1754 || imageHeight !== 1238) {
+        //     console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (1754x1238). قد تحتاج لضبط إحداثيات النصوص مرة أخرى.`);
+        // }
 
 
         let processedImage = baseImage;
@@ -161,23 +178,20 @@ export default async function handler(req, res) {
         }
 
         console.log('جارٍ إضافة النصوص إلى الصورة...');
-        // ترتيب إضافة النصوص لضمان ظهورها بشكل صحيح
-        const fieldsToDisplay = ['WELCOME_TEXT', 'SERIAL_NUMBER', 'RESIDENCY_NUMBER'];
+        const fieldsToDisplay = ['WELCOME_TEXT', 'SERIAL_NUMBER', 'RESIDENCY_NUMBER']; // أضف هنا أي حقول أخرى تريد عرضها
 
         for (const key of fieldsToDisplay) {
             const pos = CERTIFICATE_TEXT_POSITIONS?.[key]; 
             if (pos) {
                 let textToDisplay = '';
 
-                // إذا كان النص ثابتًا (مثل WELCOME_TEXT)
                 if (pos.text) {
                     textToDisplay = pos.text;
                 } 
-                // إذا كان النص يعتمد على بيانات الطالب (مثل SERIAL_NUMBER)
                 else if (pos.field) {
                     let fieldValue = student?.[pos.field]; 
                     if (fieldValue === undefined || fieldValue === null) {
-                        fieldValue = 'غير متوفر'; // نص افتراضي إذا كانت البيانات غير موجودة
+                        fieldValue = 'غير متوفر'; 
                     }
                     textToDisplay = `${pos.label || ''} ${fieldValue}`;
                 }
@@ -185,17 +199,18 @@ export default async function handler(req, res) {
                 const textRenderHeight = (pos.fontSize || 40) * 1.5;
                 const yPosition = pos.y || 0;
 
-                if ((yPosition + textRenderHeight) > imageHeight) {
-                    console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) قد يتجاوز ارتفاع الصورة (Y: ${yPosition}, ارتفاع الصورة: ${imageHeight}). قد لا يظهر بالكامل.`);
+                // التحقق من تجاوز النص لحدود الصورة (باستخدام الأبعاد الحقيقية)
+                if ((pos.x + imageWidth) < (pos.x + 1) || (yPosition + textRenderHeight) > imageHeight) { // تحسين التحقق من العرض والارتفاع
+                    console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) قد يتجاوز حدود الصورة (أبعاد الصورة: ${imageWidth}x${imageHeight}). قد لا يظهر بالكامل.`);
                 }
-
+                
                 console.log(`إنشاء نص لـ: ${key} بـ: "${textToDisplay}" عند X: ${pos.x}, Y: ${yPosition}`);
 
                 const textOverlayBuffer = await createSharpTextBuffer(
                     textToDisplay,
                     pos.fontSize || 40,
-                    pos.color || RED_COLOR_HEX, // استخدام اللون الأحمر الافتراضي إذا لم يتم تحديد لون
-                    imageWidth,
+                    pos.color || RED_COLOR_HEX, 
+                    imageWidth, // تمرير العرض الحقيقي
                     Math.ceil(textRenderHeight),
                     pos.gravity || 'west',
                     FONT_CSS_FAMILY_NAME
@@ -204,7 +219,7 @@ export default async function handler(req, res) {
 
                 processedImage = await processedImage.composite([{
                     input: textOverlayBuffer,
-                    left: pos.x || 0, // استخدام 0 كقيمة افتراضية لـ X
+                    left: pos.x || 0, 
                     top: yPosition,
                 }]);
                 console.log(`تم تركيب النص ${key}`);
