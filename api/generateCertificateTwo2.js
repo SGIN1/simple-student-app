@@ -1,80 +1,6 @@
-// generateCertificateTwo2.js (الجزء الأول)
-import { MongoClient, ObjectId } from 'mongodb';
-import sharp from 'sharp';
-import path from 'path';
-import fs from 'fs/promises';
+// generateCertificateTwo2.js
 
-const uri = process.env.MONGODB_URI;
-const dbName = 'Cluster0';
-const collectionName = 'enrolled_students_tbl';
-
-const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
-const FONT_FILENAME = 'arial.ttf';
-const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
-const FONT_CSS_FAMILY_NAME = 'Arial';
-
-const BLACK_COLOR_HEX = '#000000';
-
-const CERTIFICATE_TEXT_POSITIONS = {
-    RESIDENCY_NUMBER: {
-        label: "رقم الإقامة:",
-        field: "residency_number",
-        x: 150,
-        y: 800,
-        fontSize: 40,
-        color: BLACK_COLOR_HEX,
-        gravity: 'west'
-    },
-    CHASSIS_NUMBER: {
-        label: "رقم الهيكل:",
-        field: "chassis_number",
-        x: 900,
-        y: 800,
-        fontSize: 40,
-        color: BLACK_COLOR_HEX,
-        gravity: 'west'
-    },
-    CREATED_AT: {
-        label: "تاريخ الإضافة:",
-        field: "created_at",
-        x: 155,
-        y: 900,
-        fontSize: 40,
-        color: BLACK_COLOR_HEX,
-        gravity: 'west'
-    }
-};
-
-/**
- * دالة مساعدة لإنشاء نص كـ Buffer لـ sharp باستخدام sharp.text().
- */
-async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight, gravity, fontCssFamilyName) {
-    // تم إزالة التحقق من 'غير متوفر' هنا، لأنه سيتم التعامل معه في api/getStudent.js
-    const textToRender = text;
-
-    let align = 'centre';
-    if (gravity === 'west') {
-        align = 'left';
-    } else if (gravity === 'east') {
-        align = 'right';
-    }
-
-    const estimatedTextHeight = fontSize * 1.5;
-    const textSvgHeight = Math.max(svgHeight, estimatedTextHeight + 20);
-
-    return sharp({
-        text: {
-            text: `<span foreground="${color}">${textToRender}</span>`,
-            font: fontCssFamilyName,
-            fontfile: FONT_PATH,
-            width: svgWidth,
-            height: textSvgHeight,
-            align: align,
-            rgba: true
-        }
-    }).png().toBuffer();
-}
-
+// ... (بقية الـ imports والمتغيرات)
 
 export default async function handler(req, res) {
     console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 (نسخة نهائية مع ضبط الإحداثيات) ---');
@@ -91,33 +17,28 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'معرف الطالب (ID) مطلوب.' });
     }
 
-    let client;
+    let client; // لا نحتاج client هنا إذا كنا نعتمد على fetch API
     try {
-        console.log('جارٍ الاتصال بقاعدة البيانات...');
-        client = new MongoClient(uri);
-        await client.connect();
-        console.log('تم الاتصال بقاعدة البيانات بنجاح.');
-
-        const db = client.db(dbName);
-        const collection = db.collection(collectionName);
-
+        console.log('جارٍ جلب بيانات الطالب من API...');
         let student;
         try {
-            const objectId = new ObjectId(id);
-            // جلب بيانات الطالب من API بدلاً من القاعدة مباشرة لضمان تنسيق البيانات
-            // استخدام fetch API لجلب البيانات من نقطة النهاية getStudent.js
-            const studentApiResponse = await fetch(`${req.headers.origin}/api/getStudent?id=${id}`);
+            // *** التعديل الرئيسي هنا: استخدام مسار API النسبي مباشرة ***
+            // يجب أن يكون المسار '/api/getStudent' كافياً لطلب داخلي في Vercel.
+            // إذا كنت تختبر محلياً، قد تحتاج إلى http://localhost:3000/api/getStudent?id=${id}
+            // ولكن في Vercel، المسار النسبي يعمل بشكل أفضل بين وظائف الـ API.
+            const studentApiResponse = await fetch(`/api/getStudent?id=${id}`);
             if (!studentApiResponse.ok) {
                 const errorData = await studentApiResponse.json();
-                console.error('خطأ في جلب بيانات الطالب من API:', errorData.error);
+                console.error('خطأ في جلب بيانات الطالب من API:', studentApiResponse.status, errorData.error);
                 return res.status(studentApiResponse.status).json({ error: errorData.error });
             }
             student = await studentApiResponse.json();
             console.log('تم جلب بيانات الطالب من API بنجاح:', JSON.stringify(student, null, 2));
 
         } catch (e) {
-            console.error('خطأ في جلب بيانات الطالب أو تحويل ID:', e.message);
-            return res.status(400).json({ error: 'مُعرّف الطالب غير صالح أو حدث خطأ في جلب البيانات.' });
+            console.error('خطأ في جلب بيانات الطالب من API أو تحويل المعرف:', e.message);
+            // هذا الخطأ كان "فشل تحليل عنوان URL"
+            return res.status(500).json({ error: 'حدث خطأ أثناء جلب بيانات الطالب للشهادة. الرجاء التأكد من صحة معرف الطالب.' });
         }
 
         if (!student) {
@@ -129,8 +50,8 @@ export default async function handler(req, res) {
         console.log('قيمة chassis_number في الطالب:', student.chassis_number);
         console.log('قيمة created_at في الطالب:', student.created_at);
 
-
         console.log('جارٍ التحقق من صورة الشهادة...');
+        // ... (بقية الكود لم يتغير)
         try {
             await fs.access(CERTIFICATE_IMAGE_PATH);
             console.log('صورة الشهادة موجودة.', CERTIFICATE_IMAGE_PATH);
@@ -174,21 +95,10 @@ export default async function handler(req, res) {
             const pos = CERTIFICATE_TEXT_POSITIONS[key];
             let textToDisplay = '';
 
-            // هنا نعتمد على أن api/getStudent.js قد قام بتنسيق الحقول أو وضع قيم افتراضية
             let fieldValue = student[pos.field];
-            // لا نحتاج للتحقق من undefined/null/empty string هنا لأن api/getStudent.js يعالجها
-            // ولكن سنقوم بتنسيق التاريخ هنا أيضاً لضمان التوافق إذا تم تغيير created_at في getStudent.js مستقبلاً
-            if (pos.field === 'created_at' && fieldValue && fieldValue !== 'غير محدد') {
-                 // تأكد أن created_at يصل كسلسلة نصية منسقة بالفعل،
-                 // إذا كان تاريخاً، سيتم تحويله مرة أخرى وهذا قد لا يكون مرغوباً.
-                 // الأفضل هو أن getStudent.js هو من يحدد التنسيق النهائي.
-                 // إذا كنت متأكدًا أن created_at يأتي من getStudent.js كـ string،
-                 // يمكنك إزالة هذا الشرط هنا والاعتماد عليه مباشرة.
-                 // سنفترض أنه يأتي كسلسلة نصية منسقة بالفعل.
-                 textToDisplay = `${pos.label || ''} ${fieldValue}`;
-            } else {
-                textToDisplay = `${pos.label || ''} ${fieldValue}`;
-            }
+            // الآن نعتمد على أن api/getStudent.js يضمن وجود قيمة نصية (حتى لو كانت "غير محدد")
+            textToDisplay = `${pos.label || ''} ${fieldValue}`;
+
 
             const textRenderHeight = pos.fontSize * 2;
             if ((pos.y + textRenderHeight) > imageHeight) {
@@ -257,9 +167,5 @@ export default async function handler(req, res) {
             details: error.message,
             stack: error.stack
         });
-    } finally {
-        if (client) {
-            await client.close();
-        }
-    }
+    } // لا نحتاج لـ finally هنا، حيث لا يوجد client.close()
 }
