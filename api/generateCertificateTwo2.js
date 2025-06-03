@@ -8,7 +8,9 @@ import fs from 'fs/promises';
 // **هذا هو سطر الاستيراد المصحح والمؤكد بناءً على سجلات Vercel الأخيرة ومسارات ملفاتك:**
 // للوصول من 'api/' (حيث توجد هذه الدالة) إلى 'utils/' (حيث يوجد imageUtils.ts)،
 // نستخدم '../' للرجوع مجلد واحد للخلف، ثم ندخل مجلد 'utils'.
-import { ARABIC_FONTS, createArabicTextSVG } from '../utils/imageUtils';
+// **تمت إضافة '.js' هنا لتجنب خطأ ERR_MODULE_NOT_FOUND على Vercel،
+// وهذا ضروري لأن مشروعك يستخدم 'type": "module" في package.json.**
+import { ARABIC_FONTS, createArabicTextSVG } from '../utils/imageUtils.js';
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
@@ -17,23 +19,23 @@ const collectionName = 'enrolled_students_tbl';
 // تأكد أن هذا هو المسار الصحيح لصورة الشهادة في مجلد public
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
-const RED_COLOR_HEX = '#FF0000'; 
+const RED_COLOR_HEX = '#FF0000';
 
 // المواقع والنصوص المراد إضافتها للشهادة
 const CERTIFICATE_TEXT_POSITIONS = {
     WELCOME_TEXT_TOP: {
-        text: "أهلاً وسهلاً بكم في هذا الاختبار!", 
+        text: "أهلاً وسهلاً بكم في هذا الاختبار!",
         y: 100, // الموضع العمودي للنص (من أعلى الصورة)
-        fontSize: 35, 
-        color: RED_COLOR_HEX, 
+        fontSize: 35,
+        color: RED_COLOR_HEX,
         textAlign: 'center' // المحاذاة الأفقية للنص داخل الـ SVG
     },
     WELCOME_TEXT_BOTTOM: {
-        text: "نأمل أن تظهر النصوص الآن بوضوح.", 
-        y: 150, 
-        fontSize: 30, 
-        color: RED_COLOR_HEX, 
-        textAlign: 'center' 
+        text: "نأمل أن تظهر النصوص الآن بوضوح.",
+        y: 150,
+        fontSize: 30,
+        color: RED_COLOR_HEX,
+        textAlign: 'center'
     }
 };
 
@@ -101,20 +103,20 @@ export default async function handler(req, res) {
 
         // تحذير في حال كانت أبعاد الصورة غير مطابقة للتوقعات
         if (imageWidth !== 978 || imageHeight !== 1280) {
-             console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (978x1280). قد يؤثر هذا على موضع النصوص.`);
+            console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (978x1280). قد يؤثر هذا على موضع النصوص.`);
         }
 
         let processedImage = baseImage;
 
         console.log('جارٍ إضافة النصوص إلى الصورة باستخدام SVG...');
-        const fieldsToDisplay = ['WELCOME_TEXT_TOP', 'WELCOME_TEXT_BOTTOM']; 
+        const fieldsToDisplay = ['WELCOME_TEXT_TOP', 'WELCOME_TEXT_BOTTOM'];
 
         for (const key of fieldsToDisplay) {
-            const pos = CERTIFICATE_TEXT_POSITIONS?.[key]; 
+            const pos = CERTIFICATE_TEXT_POSITIONS?.[key];
             if (pos) {
-                const textToDisplay = pos.text; 
+                const textToDisplay = pos.text;
                 // تحديد ارتفاع الـ SVG بحيث يكون كافياً للنص مع بعض الهامش العلوي والسفلي
-                const svgHeight = (pos.fontSize || 30) * 1.5; 
+                const svgHeight = (pos.fontSize || 30) * 1.5;
                 const yPosition = pos.y || 0; // الموضع الرأسي للنص على الصورة الأساسية
 
                 console.log(`إنشاء SVG للنص: ${key} بـ: "${textToDisplay}" عند Y: ${yPosition}`);
@@ -128,7 +130,7 @@ export default async function handler(req, res) {
                     color: pos.color,
                     textAlign: pos.textAlign // استخدم textAlign لتحديد المحاذاة داخل الـ SVG
                 }));
-                
+
                 console.log(`تم إنشاء Buffer SVG للنص ${key}`);
 
                 // تركيب الـ SVG (الذي يمثل النص) على الصورة الأساسية
