@@ -18,7 +18,7 @@ const FONT_CSS_FAMILY_NAME = 'Arial'; // يجب أن يتطابق هذا مع ا
 
 const BLACK_COLOR_HEX = '#000000';
 
-// تم تعديل هذا الجزء لضبط إحداثيات Y لرقم الإقامة والرقم التسلسلي
+// تم تعديل إحداثيات Y لرقم الإقامة والرقم التسلسلي
 // لضمان عدم تداخل النصوص وظهورها بشكل واضح تحت بعضها البعض.
 // يجب عليك مراجعة إحداثيات X و Y وأحجام الخطوط يدويًا لتناسب تصميم شهادتك (wwee.jpg) بدقة.
 const CERTIFICATE_TEXT_POSITIONS = {
@@ -153,22 +153,23 @@ export default async function handler(req, res) {
         }
 
         console.log('جارٍ إضافة النصوص إلى الصورة...');
-        for (const key in CERTIFICATE_TEXT_POSITIONS) {
+        // تحديد ترتيب الحقول التي سيتم عرضها لضمان الظهور الصحيح
+        const fieldsToDisplay = ['SERIAL_NUMBER', 'RESIDENCY_NUMBER'];
+
+        for (const key of fieldsToDisplay) { // تم تغيير الحلقة لاستخدام ترتيب محدد
             const pos = CERTIFICATE_TEXT_POSITIONS[key];
             let textToDisplay = '';
 
             if (pos.field) {
                 let fieldValue = student[pos.field];
                 if (fieldValue === undefined || fieldValue === null) {
-                    fieldValue = 'غير متوفر';
+                    fieldValue = 'غير متوفر'; // نص افتراضي إذا كانت البيانات غير موجودة
                 }
                 textToDisplay = `${pos.label || ''} ${fieldValue}`;
             }
 
-            const textRenderHeight = pos.fontSize * 1.5; // ارتفاع تقديري محسوب
+            const textRenderHeight = pos.fontSize * 1.5;
 
-            // فحص إحداثي Y للنص قبل إضافته.
-            // هذا الفحص يساعد في التنبيه إذا كان النص سيتجاوز حدود الصورة.
             if ((pos.y + textRenderHeight) > imageHeight) {
                 console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) قد يتجاوز ارتفاع الصورة (Y: ${pos.y}, ارتفاع الصورة: ${imageHeight}). قد لا يظهر بالكامل.`);
             }
