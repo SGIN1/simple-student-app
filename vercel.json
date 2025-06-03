@@ -1,3 +1,4 @@
+// vercel.json
 {
   "rewrites": [
     {
@@ -22,7 +23,7 @@
     },
     {
       "source": "/certificate/:id",
-      "destination": "/api/generateCertificateTwo2"
+      "destination": "/api/generateCertificateTwo2?id=:id"
     },
     {
       "source": "/api/addStudent",
@@ -46,7 +47,7 @@
     },
     {
       "source": "/api/generateCertificateTwo2/:id",
-      "destination": "/api/generateCertificateTwo2"
+      "destination": "/api/generateCertificateTwo2?id=:id"
     }
   ]
 }
