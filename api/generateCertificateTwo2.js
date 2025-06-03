@@ -11,34 +11,35 @@ const collectionName = 'enrolled_students_tbl';
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
 const FONT_FILENAME = 'arial.ttf';
+// يجب أن يكون ملف الخط داخل مجلد public/fonts في مشروع Next.js
 const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
-const FONT_CSS_FAMILY_NAME = 'Arial';
+const FONT_CSS_FAMILY_NAME = 'Arial'; // يجب أن يتطابق هذا مع اسم الخط داخل ملف .ttf
 
 const BLACK_COLOR_HEX = '#000000';
 
-// تم تعديل هذا الجزء ليبقي على رقم الإقامة والرقم التسلسلي فقط.
+// تم تعديل هذا الجزء لضبط إحداثيات Y لرقم الإقامة والرقم التسلسلي
+// لضمان عدم تداخل النصوص وظهورها بشكل واضح تحت بعضها البعض.
 // يجب عليك مراجعة إحداثيات X و Y وأحجام الخطوط يدويًا لتناسب تصميم شهادتك (wwee.jpg) بدقة.
 const CERTIFICATE_TEXT_POSITIONS = {
-    RESIDENCY_NUMBER: {
-        label: "رقم الإقامة:",
-        field: "residency_number", // تأكد أن هذا هو اسم الحقل الصحيح في قاعدة البيانات
-        x: 150, // قم بتعديل هذا الموضع حسب تصميمك
-        y: 862, // قم بتعديل هذا الموضع حسب تصميمك
-        fontSize: 40, // قم بتعديل حجم الخط حسب تصميمك
+    SERIAL_NUMBER: {
+        label: "الرقم التسلسلي:",
+        field: "serial_number",
+        x: 150, // هذا يجب أن يكون الموضع الأفقي للرقم التسلسلي
+        y: 800, // الموضع العمودي لرقم التسلسلي
+        fontSize: 40,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     },
-    SERIAL_NUMBER: {
-        label: "الرقم التسلسلي:",
-        field: "serial_number", // تأكد أن هذا هو اسم الحقل الصحيح في قاعدة البيانات
-        x: 150, // قم بتعديل هذا الموضع حسب تصميمك
-        y: 860, // قم بتعديل هذا الموضع (زيادة Y قليلاً عن السابق)
-        fontSize: 40, // قم بتعديل حجم الخط حسب تصميمك
+    RESIDENCY_NUMBER: {
+        label: "رقم الإقامة:",
+        field: "residency_number",
+        x: 150, // اجعله نفس موضع X للرقم التسلسلي للمحاذاة
+        y: 860, // تم تعديل Y: (موضع الرقم التسلسلي 800 + حجم الخط 40 + مسافة 20 بكسل = 860)
+        fontSize: 40,
         color: BLACK_COLOR_HEX,
         gravity: 'west'
     }
-    // تم إزالة جميع الحقول الأخرى هنا
 };
 
 /**
@@ -52,13 +53,16 @@ async function createSharpTextBuffer(text, fontSize, color, svgWidth, svgHeight,
         align = 'right';
     }
 
+    // استخدم ارتفاعًا تقديريًا أكبر قليلاً للنص لضمان عدم الاقتصاص
+    const estimatedLineHeight = fontSize * 1.5; // مثلاً 1.5 مرة حجم الخط
+
     return sharp({
         text: {
             text: `<span foreground="${color}">${text}</span>`,
             font: fontCssFamilyName,
             fontfile: FONT_PATH,
-            width: svgWidth,
-            height: svgHeight,
+            width: svgWidth, // استخدم العرض الكامل للصورة للسماح بالمحاذاة
+            height: estimatedLineHeight, // استخدم ارتفاعًا كافيًا لسطر واحد
             align: align,
             rgba: true
         }
@@ -105,11 +109,9 @@ export default async function handler(req, res) {
             console.log('لم يتم العثور على طالب بالمعرف:', id);
             return res.status(404).json({ error: 'لم يتم العثور على طالب بهذا المعرف.' });
         }
-        // طباعة بيانات الطالب التي تم جلبها لمساعدتك في التأكد من أسماء الحقول
         console.log('تم جلب بيانات الطالب:', JSON.stringify(student, null, 2));
 
 
-        // 2. التحقق من وجود صورة الشهادة
         console.log('جارٍ التحقق من صورة الشهادة...');
         try {
             await fs.access(CERTIFICATE_IMAGE_PATH);
@@ -130,7 +132,6 @@ export default async function handler(req, res) {
         const imageHeight = metadata.height;
         console.log('أبعاد الصورة الفعلية التي تم تحميلها:', imageWidth, 'x', imageHeight);
 
-        // هنا نقوم بالتحقق من أبعاد الصورة الفعلية
         if (imageWidth !== 1754 || imageHeight !== 1238) {
             console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (1754x1238). قد تحتاج لضبط إحداثيات النصوص مرة أخرى.`);
         }
@@ -156,20 +157,18 @@ export default async function handler(req, res) {
             const pos = CERTIFICATE_TEXT_POSITIONS[key];
             let textToDisplay = '';
 
-            // هذا الجزء سيتعامل فقط مع حقول رقم الإقامة والرقم التسلسلي
             if (pos.field) {
                 let fieldValue = student[pos.field];
                 if (fieldValue === undefined || fieldValue === null) {
-                    fieldValue = 'غير متوفر'; // يمكنك تغيير هذا النص الافتراضي
+                    fieldValue = 'غير متوفر';
                 }
                 textToDisplay = `${pos.label || ''} ${fieldValue}`;
-            } else {
-                // هذا الجزء لن يتم تنفيذه في الكود المحدّث لأنه لا يوجد نصوص ثابتة غير مرتبطة بحقول البيانات
-                textToDisplay = pos.text;
             }
 
-            // فحص إحداثي Y للنص قبل إضافته
-            const textRenderHeight = pos.fontSize * 2;
+            const textRenderHeight = pos.fontSize * 1.5; // ارتفاع تقديري محسوب
+
+            // فحص إحداثي Y للنص قبل إضافته.
+            // هذا الفحص يساعد في التنبيه إذا كان النص سيتجاوز حدود الصورة.
             if ((pos.y + textRenderHeight) > imageHeight) {
                 console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) قد يتجاوز ارتفاع الصورة (Y: ${pos.y}, ارتفاع الصورة: ${imageHeight}). قد لا يظهر بالكامل.`);
             }
