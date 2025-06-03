@@ -16,20 +16,27 @@ const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', FONT_FILENAME);
 
 const FONT_CSS_FAMILY_NAME = 'Arial'; // يجب أن يتطابق هذا مع اسم الخط داخل ملف .ttf
 
-const BLACK_COLOR_HEX = '#000000'; // نستخدم اللون الأسود لضمان الوضوح
+const BLACK_COLOR_HEX = '#000000';
+const RED_COLOR_HEX = '#FF0000'; // لون أحمر ليكون واضحًا
 
-// تم تعديل هذا الجزء لضبط إحداثيات Y لرقم الإقامة والرقم التسلسلي
-// سنضع الرقم التسلسلي فوق رقم الإقامة مباشرة بمسافة كافية.
-// يرجى مراجعة وتعديل هذه الإحداثيات (Y بشكل خاص) لتناسب تصميم شهادتك (wwee.jpg) بدقة.
+// تم تعديل هذا الجزء لإضافة نص ترحيبي للاختبار
 const CERTIFICATE_TEXT_POSITIONS = {
+    WELCOME_TEXT: {
+        text: "مرحباً بك في الاختبار!",
+        x: 0, // في منتصف الأفق
+        y: 200, // بالقرب من أعلى الشهادة
+        fontSize: 60,
+        color: RED_COLOR_HEX,
+        gravity: 'center'
+    },
     SERIAL_NUMBER: {
         label: "الرقم التسلسلي:",
         field: "serial_number",
         x: 150, // نفس موضع X لرقم الإقامة للمحاذاة
-        y: 800, // موضع أعلى من رقم الإقامة (860 - 60 = 800)
-        fontSize: 40, // نُعيدها 40 لتكون متناسقة مع رقم الإقامة حاليًا
+        y: 800, // موضع أعلى من رقم الإقامة
+        fontSize: 40,
         color: BLACK_COLOR_HEX,
-        gravity: 'west' // المحاذاة لليسار
+        gravity: 'west'
     },
     RESIDENCY_NUMBER: {
         label: "رقم الإقامة:",
@@ -154,46 +161,50 @@ export default async function handler(req, res) {
 
         console.log('جارٍ إضافة النصوص إلى الصورة...');
         // تحديد ترتيب الحقول التي سيتم عرضها لضمان الظهور الصحيح
-        // وضع الرقم التسلسلي أولاً للتأكد من معالجته قبل رقم الإقامة
-        const fieldsToDisplay = ['SERIAL_NUMBER', 'RESIDENCY_NUMBER'];
+        const fieldsToDisplay = ['WELCOME_TEXT', 'SERIAL_NUMBER', 'RESIDENCY_NUMBER'];
 
         for (const key of fieldsToDisplay) {
-            const pos = CERTIFICATE_TEXT_POSITIONS[key];
-            let textToDisplay = '';
+            const pos = CERTIFICATE_TEXT_POSITIONS?.[key]; // استخدام optional chaining لتجنب الأخطاء
+            if (pos) {
+                let textToDisplay = '';
 
-            if (pos.field) {
-                let fieldValue = student[pos.field];
-                if (fieldValue === undefined || fieldValue === null) {
-                    fieldValue = 'غير متوفر'; // نص افتراضي إذا كانت البيانات غير موجودة
+                if (pos.text) {
+                    textToDisplay = pos.text;
+                } else if (pos.field) {
+                    let fieldValue = student?.[pos.field]; // استخدام optional chaining
+                    if (fieldValue === undefined || fieldValue === null) {
+                        fieldValue = 'غير متوفر';
+                    }
+                    textToDisplay = `${pos.label || ''} ${fieldValue}`;
                 }
-                textToDisplay = `${pos.label || ''} ${fieldValue}`;
+
+                const textRenderHeight = (pos.fontSize || 40) * 1.5;
+                const yPosition = pos.y || 0;
+
+                if ((yPosition + textRenderHeight) > imageHeight) {
+                    console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) قد يتجاوز ارتفاع الصورة (Y: ${yPosition}, ارتفاع الصورة: ${imageHeight}). قد لا يظهر بالكامل.`);
+                }
+
+                console.log(`إنشاء نص لـ: ${key} بـ: "${textToDisplay}" عند X: ${pos.x}, Y: ${yPosition}`);
+
+                const textOverlayBuffer = await createSharpTextBuffer(
+                    textToDisplay,
+                    pos.fontSize || 40,
+                    pos.color || BLACK_COLOR_HEX,
+                    imageWidth,
+                    Math.ceil(textRenderHeight),
+                    pos.gravity || 'west',
+                    FONT_CSS_FAMILY_NAME
+                );
+                console.log(`تم إنشاء Buffer للنص ${key}`);
+
+                processedImage = await processedImage.composite([{
+                    input: textOverlayBuffer,
+                    left: pos.x || 0,
+                    top: yPosition,
+                }]);
+                console.log(`تم تركيب النص ${key}`);
             }
-
-            const textRenderHeight = pos.fontSize * 1.5;
-
-            if ((pos.y + textRenderHeight) > imageHeight) {
-                console.warn(`النص "${textToDisplay}" (المفتاح: ${key}) قد يتجاوز ارتفاع الصورة (Y: ${pos.y}, ارتفاع الصورة: ${imageHeight}). قد لا يظهر بالكامل.`);
-            }
-
-            console.log(`إنشاء نص لـ: ${key} بـ: "${textToDisplay}" عند X: ${pos.x}, Y: ${pos.y}`);
-
-            const textOverlayBuffer = await createSharpTextBuffer(
-                textToDisplay,
-                pos.fontSize,
-                pos.color,
-                imageWidth,
-                textRenderHeight,
-                pos.gravity,
-                FONT_CSS_FAMILY_NAME
-            );
-            console.log(`تم إنشاء Buffer للنص ${key}`);
-
-            processedImage = await processedImage.composite([{
-                input: textOverlayBuffer,
-                left: pos.x,
-                top: pos.y,
-            }]);
-            console.log(`تم تركيب النص ${key}`);
         }
 
         console.log('جارٍ إنشاء الصورة النهائية...');
