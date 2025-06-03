@@ -1,15 +1,14 @@
 // C:\wamp64\www\simple-student-app\api\generateCertificateTwo2.js
 
 import { MongoClient, ObjectId } from 'mongodb';
-import sharp from 'sharp'; // Sharp لا يزال مطلوبًا لتحميل الصورة الأساسية وتركيب النصوص
+import sharp from 'sharp';
 import path from 'path';
-import fs from 'fs/promises'; // استخدم fs.promises لضمان async/await
+import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
-// استيراد الدوال الجديدة من imageUtils.js
-import { registerArabicFonts, generateCertificateWithArabicText, ARABIC_FONTS } from '../../utils/imageUtils.js';
+// **هنا هو التغيير الحاسم: استخدام المسار النسبي الصحيح**
+import { registerArabicFonts, generateCertificateWithArabicText, ARABIC_FONTS } from '../utils/imageUtils.js';
 
-// تحديد __dirname و __filename بشكل صحيح لـ ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -17,43 +16,46 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
-// تأكد أن هذا هو المسار الصحيح لصورة الشهادة في مجلد public
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
-const RED_COLOR_HEX = '#FF0000'; // مثال للون
+const RED_COLOR_HEX = '#FF0000';
 
-// المواقع والنصوص المراد إضافتها للشهادة
-// ملاحظة: مع استخدام Canvas، الموضع (y) هنا سيكون هو الموضع الكلي لكتلة النص على الصورة الأساسية،
-// وليس موضع كل سطر داخل الـ SVG كما كان سابقًا.
 const CERTIFICATE_TEXT_POSITIONS = {
     STUDENT_NAME: {
-        text: "اسم الطالب: ", // سيتم دمج اسم الطالب هنا
-        y: 400, // مثال لموضع اسم الطالب
+        text: "اسم الطالب: ",
+        y: 400,
         fontSize: 45,
-        color: "#000000", // لون داكن
+        color: "#000000",
     },
     COURSE_NAME: {
-        text: "الدورة: ", // سيتم دمج اسم الدورة هنا
-        y: 500, // مثال لموضع اسم الدورة
+        text: "الدورة: ",
+        y: 500,
         fontSize: 35,
         color: "#000000",
     },
     WELCOME_MESSAGE: {
         text: "بكل فخر نقدم هذه الشهادة للطالب المتميز:",
-        y: 300, // رسالة ترحيب قبل الاسم
+        y: 300,
         fontSize: 30,
-        color: "#34495E", // لون أزرق داكن
+        color: "#34495E",
     },
     DATE_MESSAGE: {
-        text: "بتاريخ: " + new Date().toLocaleDateString('ar-SA'), // تاريخ اليوم
-        y: 600, // موضع التاريخ
+        text: "بتاريخ: " + new Date().toLocaleDateString('ar-SA'),
+        y: 600,
         fontSize: 25,
         color: "#555555",
     }
 };
 
+// **إعداد runtime: "nodejs" مهم لـ Vercel Functions التي تستخدم Canvas/Sharp**
+export const config = {
+  runtime: "nodejs",
+  maxDuration: 30,
+};
+
 export default async function handler(req, res) {
     console.log('--- بدأ تنفيذ دالة generateCertificateTwo2 (باستخدام Canvas لتركيب النصوص) ---');
+    res.setHeader("X-Debug-Info", "Certificate Generation API");
 
     if (req.method !== 'GET') {
         console.log('طلب غير مسموح به:', req.method);
@@ -93,7 +95,6 @@ export default async function handler(req, res) {
         }
         console.log('تم جلب بيانات الطالب:', JSON.stringify(student, null, 2));
 
-        // **هام:** تحقق من وجود صورة الشهادة الأساسية
         console.log('جارٍ التحقق من صورة الشهادة الأساسية...');
         try {
             await fs.access(CERTIFICATE_IMAGE_PATH);
@@ -107,77 +108,96 @@ export default async function handler(req, res) {
             });
         }
 
-        // قراءة الصورة الأساسية مرة واحدة
         const baseImageBuffer = await sharp(CERTIFICATE_IMAGE_PATH).toBuffer();
         const metadata = await sharp(baseImageBuffer).metadata();
         const imageWidth = metadata.width;
         const imageHeight = metadata.height;
         console.log('أبعاد الصورة الأساسية التي تم تحميلها:', imageWidth, 'x', imageHeight);
 
-        // قم بتسجيل الخطوط (يمكن وضعها هنا أو في ملف imageUtils نفسه)
-        // registerArabicFonts(); // هذه الدالة يتم استدعاؤها داخل createArabicTextWithCanvas
-
-
-        let processedImage = sharp(baseImageBuffer);
         const textBuffersToComposite = [];
 
-        // معالجة النصوص وتركيبها
-        // يمكنك تعديل هذه الأمثلة لتناسب تصميم شهادتك
-        const textFields = [
-            { key: 'WELCOME_MESSAGE', text: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.text },
-            { key: 'STUDENT_NAME', text: `${CERTIFICATE_TEXT_POSITIONS.STUDENT_NAME.text}${student.name_arabic || 'غير متوفر'}` },
-            { key: 'COURSE_NAME', text: `${CERTIFICATE_TEXT_POSITIONS.COURSE_NAME.text}${student.course_name || 'غير متوفر'}` },
-            { key: 'DATE_MESSAGE', text: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.text }
-        ];
+        const studentFullName = student.name_arabic || 'غير متوفر';
+        const courseActualName = student.course_name || 'غير متوفر';
 
-        for (const field of textFields) {
-            const pos = CERTIFICATE_TEXT_POSITIONS[field.key];
-            if (pos) {
-                console.log(`🔄 إنشاء نص: "${field.text}" لـ ${field.key}`);
-
-                // عرض منطقة النص الافتراضية
-                const textRenderWidth = imageWidth; // يمكن للنص أن يمتد على عرض الصورة
-                const textRenderHeight = pos.fontSize * 2; // ارتفاع كافٍ للنص
-
-                const textBuffer = await generateCertificateWithArabicText(
-                    // لا تحتاج ل baseImagePath هنا لأننا نستخدم createArabicTextWithCanvas مباشرة
-                    // ولكننا نمرر النص والخيارات
-                    '', // لا تحتاج لمسار الصورة الأساسية هنا
-                    field.text,
-                    {
-                        fontSize: pos.fontSize,
-                        fontFamily: ARABIC_FONTS.arial, // استخدم الخط الذي سجلناه
-                        color: pos.color,
-                        textWidth: textRenderWidth,
-                        textHeight: textRenderHeight,
-                        position: { left: 0, top: pos.y } // الموضع الفعلي سيتم تحديده لاحقًا في composite
-                    }
-                );
-                console.log(`✅ تم إنشاء صورة النص لـ ${field.key}`);
-
-                textBuffersToComposite.push({
-                    input: textBuffer,
-                    // position: { left: 0, top: pos.y } // هذا ليس الموضع النهائي للـ SVG
-                    left: 0, // وضع الـ buffer من أقصى اليسار
-                    top: pos.y, // موضع Y على الصورة الأساسية
-                    // blend: 'overlay' // استخدم blend: 'over' أو لا تحددها
-                });
+        const welcomeMessageTextBuffer = await createArabicTextWithCanvas(
+            CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.text,
+            {
+                fontSize: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.fontSize,
+                fontFamily: ARABIC_FONTS.notoSansArabic,
+                color: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.color,
+                width: 800,
+                height: 50,
+                textAlign: "center"
             }
-        }
+        );
+        textBuffersToComposite.push({
+            input: welcomeMessageTextBuffer,
+            left: (imageWidth / 2) - (800 / 2),
+            top: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.y - (50/2),
+        });
+        console.log(`✅ تم إنشاء صورة نص لرسالة الترحيب`);
 
-        // تركيب جميع صور النصوص على الصورة الأساسية
+        const studentNameTextBuffer = await createArabicTextWithCanvas(
+            studentFullName,
+            {
+                fontSize: CERTIFICATE_TEXT_POSITIONS.STUDENT_NAME.fontSize,
+                fontFamily: ARABIC_FONTS.notoSansArabic,
+                color: CERTIFICATE_TEXT_POSITIONS.STUDENT_NAME.color,
+                width: 700,
+                height: 60,
+                textAlign: "center"
+            }
+        );
+        textBuffersToComposite.push({
+            input: studentNameTextBuffer,
+            left: (imageWidth / 2) - (700 / 2),
+            top: CERTIFICATE_TEXT_POSITIONS.STUDENT_NAME.y - (60/2),
+        });
+        console.log(`✅ تم إنشاء صورة نص لاسم الطالب: "${studentFullName}"`);
+
+        const courseNameTextBuffer = await createArabicTextWithCanvas(
+            courseActualName,
+            {
+                fontSize: CERTIFICATE_TEXT_POSITIONS.COURSE_NAME.fontSize,
+                fontFamily: ARABIC_FONTS.notoSansArabic,
+                color: CERTIFICATE_TEXT_POSITIONS.COURSE_NAME.color,
+                width: 600,
+                height: 50,
+                textAlign: "center"
+            }
+        );
+        textBuffersToComposite.push({
+            input: courseNameTextBuffer,
+            left: (imageWidth / 2) - (600 / 2),
+            top: CERTIFICATE_TEXT_POSITIONS.COURSE_NAME.y - (50/2),
+        });
+        console.log(`✅ تم إنشاء صورة نص لاسم الدورة: "${courseActualName}"`);
+
+        const dateMessageTextBuffer = await createArabicTextWithCanvas(
+            CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.text,
+            {
+                fontSize: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.fontSize,
+                fontFamily: ARABIC_FONTS.notoSansArabic,
+                color: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.color,
+                width: 300,
+                height: 40,
+                textAlign: "right"
+            }
+        );
+        textBuffersToComposite.push({
+            input: dateMessageTextBuffer,
+            left: imageWidth - 300 - 50,
+            top: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.y - (40/2),
+        });
+        console.log(`✅ تم إنشاء صورة نص للتاريخ`);
+
         console.log('🔄 جارٍ تركيب جميع النصوص على الصورة الأساسية...');
-        processedImage = await sharp(baseImageBuffer).composite(textBuffersToComposite);
-        console.log('✅ تم تركيب جميع النصوص.');
-
-        console.log('جارٍ إنشاء الصورة النهائية...');
-        const finalImageBuffer = await processedImage
-            .flatten({ background: { r: 255, g: 255, b: 255, alpha: 1 } }) // للتأكد من عدم وجود شفافية
+        const finalImageBuffer = await sharp(baseImageBuffer)
+            .composite(textBuffersToComposite)
             .jpeg({ quality: 85, progressive: true })
             .toBuffer();
-        console.log('تم إنشاء الصورة النهائية.');
+        console.log('✅ تم تركيب جميع النصوص وإنشاء الصورة النهائية.');
 
-        // إرسال الصورة النهائية كاستجابة
         res.setHeader('Content-Type', 'image/jpeg');
         res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate');
         console.log('تم إرسال الصورة بنجاح.');
