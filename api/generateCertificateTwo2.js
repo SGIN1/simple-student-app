@@ -4,13 +4,15 @@ import { MongoClient, ObjectId } from 'mongodb';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
+import { fileURLToPath } from 'url'; // استيراد fileURLToPath
 
-// **هذا هو سطر الاستيراد المصحح والمؤكد بناءً على سجلات Vercel الأخيرة ومسارات ملفاتك:**
-// للوصول من 'api/' (حيث توجد هذه الدالة) إلى 'utils/' (حيث يوجد imageUtils.ts)،
-// نستخدم '../' للرجوع مجلد واحد للخلف، ثم ندخل مجلد 'utils'.
-// **تمت إضافة '.js' هنا لتجنب خطأ ERR_MODULE_NOT_FOUND على Vercel،
-// وهذا ضروري لأن مشروعك يستخدم 'type": "module" في package.json.**
-import { ARABIC_FONTS, createArabicTextSVG } from '../utils/imageUtils.js';
+// تحديد __dirname و __filename بشكل صحيح لـ ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// **هذا هو سطر الاستيراد المصحح باستخدام المسار المطلق:**
+// نستخدم path.join لإنشاء مسار موثوق به من الدليل الحالي (api) للوصول إلى utils
+import { ARABIC_FONTS, createArabicTextSVG } from path.join(__dirname, '../utils/imageUtils.js');
 
 const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
