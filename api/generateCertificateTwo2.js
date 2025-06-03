@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
+// **هنا هو التغيير الحاسم: تصحيح أسماء الدوال المستوردة**
 import { registerArabicFonts, generateCertificateWithArabicText, ARABIC_FONTS } from '../utils/imageUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -46,7 +47,6 @@ const CERTIFICATE_TEXT_POSITIONS = {
     }
 };
 
-// **الجزء الوحيد الذي تم تعديله: إزالة runtime: "nodejs"**
 export const config = {
   maxDuration: 30, // 30 seconds timeout
 };
