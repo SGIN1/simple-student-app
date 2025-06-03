@@ -16,34 +16,23 @@ const FONT_CSS_FAMILY_NAME = 'Arial';
 
 const RED_COLOR_HEX = '#FF0000'; // لون أحمر لضمان الوضوح
 
-// **تم تعديل المواقع بناءً على الأبعاد الحقيقية للصورة: 978x1280**
-// سنحاول وضع النصوص في مناطق واضحة.
+// **المواقع الجديدة للنصين الترحيبيين فقط، بناءً على أبعاد الصورة 978x1280**
 const CERTIFICATE_TEXT_POSITIONS = {
-    WELCOME_TEXT: {
-        text: "مرحباً بك في الاختبار!", 
-        x: 0, // لتوسيط النص أفقياً مع gravity: 'center'
+    WELCOME_TEXT_TOP: {
+        text: "أهلاً وسهلاً بكم في هذا الاختبار!", 
+        x: 0, // لتوسيط النص أفقياً
         y: 100, // موضع في الجزء العلوي من الشهادة
-        fontSize: 40, // حجم أصغر ليتناسب مع الأبعاد الجديدة
+        fontSize: 35, // حجم مناسب للأبعاد الجديدة
         color: RED_COLOR_HEX, 
-        gravity: 'center' 
+        gravity: 'center' // توسيط النص أفقياً
     },
-    SERIAL_NUMBER: {
-        label: "الرقم التسلسلي:",
-        field: "serial_number",
-        x: 100, // موضع من اليسار
-        y: 600, // موضع تقريبي في منتصف الشهادة عمودياً
-        fontSize: 30, // حجم أصغر
+    WELCOME_TEXT_BOTTOM: {
+        text: "نأمل أن تظهر النصوص الآن بوضوح.", 
+        x: 0, // لتوسيط النص أفقياً
+        y: 150, // أسفل النص الأول بقليل
+        fontSize: 30, // حجم أصغر قليلاً
         color: RED_COLOR_HEX, 
-        gravity: 'west' // المحاذاة لليسار
-    },
-    RESIDENCY_NUMBER: {
-        label: "رقم الإقامة:",
-        field: "residency_number",
-        x: 100, // موضع من اليسار
-        y: 650, // أسفل الرقم التسلسلي بقليل
-        fontSize: 30, // حجم أصغر
-        color: RED_COLOR_HEX, 
-        gravity: 'west' // المحاذاة لليسار
+        gravity: 'center' // توسيط النص أفقياً
     }
 };
 
@@ -137,11 +126,10 @@ export default async function handler(req, res) {
         const imageHeight = metadata.height;
         console.log('أبعاد الصورة الفعلية التي تم تحميلها:', imageWidth, 'x', imageHeight);
 
-        // **إزالة التحذير عن الأبعاد الآن، لأننا نستخدم الأبعاد الحقيقية 978x1280**
-        // هذا التحقق كان مفيدًا ولكن الآن عرفنا السبب
-        // if (imageWidth !== 1754 || imageHeight !== 1238) {
-        //     console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (1754x1238). قد تحتاج لضبط إحداثيات النصوص مرة أخرى.`);
-        // }
+        // هنا نؤكد على أننا نستخدم الأبعاد الفعلية 978x1280
+        if (imageWidth !== 978 || imageHeight !== 1280) {
+             console.warn(`تحذير: أبعاد الصورة الفعلية (${imageWidth}x${imageHeight}) لا تتطابق مع الأبعاد المتوقعة (978x1280). يرجى التأكد من أن الصورة هي wwee.jpg بالأبعاد الصحيحة.`);
+        }
 
 
         let processedImage = baseImage;
@@ -160,25 +148,15 @@ export default async function handler(req, res) {
         }
 
         console.log('جارٍ إضافة النصوص إلى الصورة...');
-        const fieldsToDisplay = ['WELCOME_TEXT', 'SERIAL_NUMBER', 'RESIDENCY_NUMBER']; 
+        // الآن سنضيف فقط النصين الترحيبيين
+        const fieldsToDisplay = ['WELCOME_TEXT_TOP', 'WELCOME_TEXT_BOTTOM']; 
 
         for (const key of fieldsToDisplay) {
             const pos = CERTIFICATE_TEXT_POSITIONS?.[key]; 
             if (pos) {
-                let textToDisplay = '';
+                let textToDisplay = pos.text; // هنا لا يوجد حقول من DB، فقط نصوص ثابتة
 
-                if (pos.text) {
-                    textToDisplay = pos.text;
-                } 
-                else if (pos.field) {
-                    let fieldValue = student?.[pos.field]; 
-                    if (fieldValue === undefined || fieldValue === null) {
-                        fieldValue = 'غير متوفر'; 
-                    }
-                    textToDisplay = `${pos.label || ''} ${fieldValue}`;
-                }
-
-                const textRenderHeight = (pos.fontSize || 40) * 1.5;
+                const textRenderHeight = (pos.fontSize || 30) * 1.5;
                 const yPosition = pos.y || 0;
 
                 // تحسين التحقق من تجاوز النص لحدود الصورة بناءً على الأبعاد الفعلية
@@ -190,11 +168,11 @@ export default async function handler(req, res) {
 
                 const textOverlayBuffer = await createSharpTextBuffer(
                     textToDisplay,
-                    pos.fontSize || 40,
+                    pos.fontSize || 30, // استخدام حجم الخط الافتراضي الجديد
                     pos.color || RED_COLOR_HEX, 
                     imageWidth, 
                     Math.ceil(textRenderHeight),
-                    pos.gravity || 'west',
+                    pos.gravity || 'center', // استخدام التوسيط الافتراضي
                     FONT_CSS_FAMILY_NAME
                 );
                 console.log(`تم إنشاء Buffer للنص ${key}`);
