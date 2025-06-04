@@ -6,8 +6,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
-// هذا هو سطر الاستيراد الصحيح. تم تغيير 'registerEnglishFonts' إلى 'registerArabicFonts'
-// وتأكد من أن createArabicTextWithCanvas هي الدالة المستخدمة لإنشاء النصوص.
+// *** هذا هو السطر الذي يحتاج إلى التعديل: لاحظ 'createArabicTextWithCanvas' بحرف 'A' كبير ***
 import { registerArabicFonts, createArabicTextWithCanvas, ARABIC_FONTS } from '../utils/imageUtils.js'; // تأكد من الامتداد .js هنا
 
 const __filename = fileURLToPath(import.meta.url);
