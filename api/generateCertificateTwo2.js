@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
-// **هنا هو التغيير الحاسم: تصحيح أسماء الدوال المستوردة**
+// هذا هو السطر الحاسم الذي يجب أن يكون صحيحاً تماماً
 import { registerArabicFonts, generateCertificateWithArabicText, ARABIC_FONTS } from '../utils/imageUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
