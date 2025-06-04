@@ -6,8 +6,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
-// *** هذا هو السطر الحاسم الذي يجب أن يكون صحيحًا تمامًا ***
-import { registerArabicFonts, createArabicTextWithCanvas, ARABIC_FONTS } from '../utils/imageUtils.js';
+// *** الاستيراد الصحيح بمسار مطلق (@) وأسماء دوال صحيحة (حرف A كبير) ***
+import { registerArabicFonts, createArabicTextWithCanvas, ARABIC_FONTS } from '@/utils/imageUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,8 +19,7 @@ const collectionName = 'enrolled_students_tbl';
 // تأكد من أن المسار صحيح لصورتك
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
-const RED_COLOR_HEX = '#FF0000'; // مثال على استخدام ثابت لون
-
+// Constants for text positions and colors (من الكود الأصلي الذي كان يعمل لديك)
 const CERTIFICATE_TEXT_POSITIONS = {
     STUDENT_NAME: {
         text: "اسم الطالب: ",
@@ -49,7 +48,7 @@ const CERTIFICATE_TEXT_POSITIONS = {
 };
 
 export const config = {
-    maxDuration: 30, // 30 seconds timeout
+    maxDuration: 30, // 30 seconds timeout for Vercel
 };
 
 export default async function handler(req, res) {
@@ -70,11 +69,12 @@ export default async function handler(req, res) {
 
     let client;
     try {
-        // تأكد من تسجيل الخطوط قبل استخدامها
-        registerArabicFonts();
+        // تسجيل الخطوط في بداية الدالة
+        await registerArabicFonts(); // تم تغيير هذه الدالة لتصبح async في imageUtils
         console.log('تم تسجيل الخطوط العربية.');
 
         console.log('جارٍ الاتصال بقاعدة البيانات...');
+        // الخيارات useNewUrlParser و useUnifiedTopology لم تعد ضرورية في الإصدارات الحديثة
         client = new MongoClient(uri);
         await client.connect();
         console.log('تم الاتصال بقاعدة البيانات بنجاح.');
@@ -120,80 +120,73 @@ export default async function handler(req, res) {
         const textBuffersToComposite = [];
 
         // استخدام student.name_arabic و student.course_name مباشرة
-        const studentFullName = student.name_arabic || 'غير متوفر';
+        const studentFullName = student.name_arabic || 'غير متوفر'; // أو student.name حسب حقل قاعدة البيانات الفعلي
         const courseActualName = student.course_name || 'غير متوفر';
 
-        // استخدام createArabicTextWithCanvas
-        const welcomeMessageTextBuffer = await createArabicTextWithCanvas(
-            CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.text,
-            {
-                fontSize: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.fontSize,
-                fontFamily: ARABIC_FONTS.notoSansArabic, // استخدام ARABIC_FONTS مباشرة
-                color: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.color,
-                width: 800,
-                height: 50,
-                textAlign: "center"
-            }
-        );
-        // حساب الموضع لمركز النص
+        // استخدام createArabicTextWithCanvas مع الأسلوب الجديد الذي يستخدم الكائن options
+        // وتغيير الخط هنا حسب ما هو معرف في ARABIC_FONTS الجديد.
+        // يمكن استخدام Noto Sans Arabic إذا كان الخط لا يزال مفضلاً.
+        const welcomeMessageTextBuffer = await createArabicTextWithCanvas({
+            text: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.text,
+            fontSize: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.fontSize,
+            font: ARABIC_FONTS.ARABIC_REGULAR, // استخدام الخط الجديد، تأكد من تسميته في imageUtils
+            color: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.color,
+            width: 800,
+            height: 50,
+            textAlign: "center"
+        });
         textBuffersToComposite.push({
             input: welcomeMessageTextBuffer,
             left: (imageWidth / 2) - (800 / 2),
-            top: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.y - (50/2),
+            top: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.y - (50 / 2),
         });
         console.log(`✅ تم إنشاء صورة نص لرسالة الترحيب`);
 
-        const studentNameTextBuffer = await createArabicTextWithCanvas(
-            studentFullName,
-            {
-                fontSize: CERTIFICATE_TEXT_POSITIONS.STUDENT_NAME.fontSize,
-                fontFamily: ARABIC_FONTS.notoSansArabic,
-                color: CERTIFICATE_TEXT_POSITIONS.STUDENT_NAME.color,
-                width: 700,
-                height: 60,
-                textAlign: "center"
-            }
-        );
+        const studentNameTextBuffer = await createArabicTextWithCanvas({
+            text: studentFullName,
+            fontSize: CERTIFICATE_TEXT_POSITIONS.STUDENT_NAME.fontSize,
+            font: ARABIC_FONTS.ARABIC_BOLD, // استخدام الخط الجديد
+            color: CERTIFICATE_TEXT_POSITIONS.STUDENT_NAME.color,
+            width: 700,
+            height: 60,
+            textAlign: "center"
+        });
         textBuffersToComposite.push({
             input: studentNameTextBuffer,
             left: (imageWidth / 2) - (700 / 2),
-            top: CERTIFICATE_TEXT_POSITIONS.STUDENT_NAME.y - (60/2),
+            top: CERTIFICATE_TEXT_POSITIONS.STUDENT_NAME.y - (60 / 2),
         });
         console.log(`✅ تم إنشاء صورة نص لاسم الطالب: "${studentFullName}"`);
 
-        const courseNameTextBuffer = await createArabicTextWithCanvas(
-            courseActualName,
-            {
-                fontSize: CERTIFICATE_TEXT_POSITIONS.COURSE_NAME.fontSize,
-                fontFamily: ARABIC_FONTS.notoSansArabic,
-                color: CERTIFICATE_TEXT_POSITIONS.COURSE_NAME.color,
-                width: 600,
-                height: 50,
-                textAlign: "center"
-            }
-        );
+        const courseNameTextBuffer = await createArabicTextWithCanvas({
+            text: courseActualName,
+            fontSize: CERTIFICATE_TEXT_POSITIONS.COURSE_NAME.fontSize,
+            font: ARABIC_FONTS.ARABIC_REGULAR, // استخدام الخط الجديد
+            color: CERTIFICATE_TEXT_POSITIONS.COURSE_NAME.color,
+            width: 600,
+            height: 50,
+            textAlign: "center"
+        });
         textBuffersToComposite.push({
             input: courseNameTextBuffer,
             left: (imageWidth / 2) - (600 / 2),
-            top: CERTIFICATE_TEXT_POSITIONS.COURSE_NAME.y - (50/2),
+            top: CERTIFICATE_TEXT_POSITIONS.COURSE_NAME.y - (50 / 2),
         });
         console.log(`✅ تم إنشاء صورة نص لاسم الدورة: "${courseActualName}"`);
 
-        const dateMessageTextBuffer = await createArabicTextWithCanvas(
-            CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.text,
-            {
-                fontSize: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.fontSize,
-                fontFamily: ARABIC_FONTS.notoSansArabic,
-                color: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.color,
-                width: 300,
-                height: 40,
-                textAlign: "right"
-            }
-        );
+        const dateMessageTextBuffer = await createArabicTextWithCanvas({
+            text: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.text,
+            fontSize: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.fontSize,
+            font: ARABIC_FONTS.ARABIC_REGULAR, // استخدام الخط الجديد
+            color: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.color,
+            width: 300,
+            height: 40,
+            textAlign: "right"
+        });
         textBuffersToComposite.push({
             input: dateMessageTextBuffer,
             left: imageWidth - 300 - 50, // 50 بكسل من الحافة اليمنى
-            top: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.y - (40/2),
+            top: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.y - (40 / 2),
         });
         console.log(`✅ تم إنشاء صورة نص للتاريخ`);
 
