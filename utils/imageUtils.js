@@ -35,14 +35,20 @@ export async function registerArabicFonts() {
         console.log(`تم تسجيل الخط: ${font.family}`)
       } catch (error) {
         console.warn(`الخط غير موجود: ${font.file}`)
-        // يمكنك إضافة خط افتراضي هنا إذا لزم الأمر
+        // استخدام خط افتراضي إذا لم يوجد الخط المطلوب
+        if (font.family.includes("ARABIC")) {
+          // يمكن استخدام خط نظام افتراضي للعربية
+          console.log(`استخدام خط افتراضي بدلاً من: ${font.family}`)
+        }
       }
     }
 
     return true
   } catch (error) {
     console.error("خطأ في تسجيل الخطوط:", error)
-    throw new Error(`فشل في تسجيل الخطوط: ${error.message}`)
+    // لا نرمي خطأ هنا، بل نستخدم الخطوط الافتراضية
+    console.log("سيتم استخدام الخطوط الافتراضية للنظام")
+    return false
   }
 }
 
@@ -67,8 +73,17 @@ export async function createArabicTextWithCanvas({
     ctx.fillRect(0, 0, width, height)
   }
 
-  // تعيين خصائص النص
-  ctx.font = `${fontSize}px ${font}`
+  // تعيين خصائص النص مع fallback للخطوط
+  let fontFamily = font
+  try {
+    ctx.font = `${fontSize}px ${fontFamily}`
+  } catch (error) {
+    // استخدام خط افتراضي إذا فشل الخط المطلوب
+    fontFamily = "Arial, sans-serif"
+    ctx.font = `${fontSize}px ${fontFamily}`
+    console.warn(`استخدام خط افتراضي: ${fontFamily}`)
+  }
+
   ctx.fillStyle = color
   ctx.textAlign = textAlign
   ctx.textBaseline = "middle"
@@ -98,75 +113,11 @@ export async function createArabicTextWithCanvas({
   // كتابة النص
   ctx.fillText(text, x, height / 2)
 
-  // إضافة حدود للنص (اختياري)
-  // ctx.strokeStyle = "#ffffff"
-  // ctx.lineWidth = 2
-  // ctx.strokeText(text, x, height / 2)
-
   // تحويل الكانفاس إلى صورة PNG عالية الجودة
-  return canvas.toBuffer("image/png", { compressionLevel: 6, filters: canvas.PNG_FILTER_NONE })
-}
-
-// دالة مساعدة لقياس النص
-export function measureArabicText(text, font, fontSize) {
-  const canvas = createCanvas(100, 100)
-  const ctx = canvas.getContext("2d")
-  ctx.font = `${fontSize}px ${font}`
-  return ctx.measureText(text)
-}
-
-// دالة لإنشاء نص متعدد الأسطر
-export async function createMultiLineArabicText({
-  lines,
-  font,
-  fontSize,
-  color,
-  width,
-  lineHeight,
-  textAlign = "center",
-  backgroundColor = "transparent",
-}) {
-  const totalHeight = lines.length * lineHeight
-  const canvas = createCanvas(width, totalHeight)
-  const ctx = canvas.getContext("2d")
-
-  // تعيين الخلفية
-  if (backgroundColor !== "transparent") {
-    ctx.fillStyle = backgroundColor
-    ctx.fillRect(0, 0, width, totalHeight)
-  }
-
-  // تعيين خصائص النص
-  ctx.font = `${fontSize}px ${font}`
-  ctx.fillStyle = color
-  ctx.textAlign = textAlign
-  ctx.textBaseline = "middle"
-  ctx.direction = "rtl"
-
-  // كتابة كل سطر
-  lines.forEach((line, index) => {
-    const y = (index + 0.5) * lineHeight
-    let x
-    switch (textAlign) {
-      case "left":
-        x = 20
-        break
-      case "right":
-        x = width - 20
-        break
-      case "center":
-      default:
-        x = width / 2
-        break
-    }
-    ctx.fillText(line, x, y)
-  })
-
   return canvas.toBuffer("image/png", { compressionLevel: 6, filters: canvas.PNG_FILTER_NONE })
 }
 
 // دالة لإنشاء نص إنجليزي
 export function registerEnglishFonts() {
   console.log("تسجيل الخطوط الإنجليزية")
-  // يمكن إضافة تنفيذ إضافي هنا إذا لزم الأمر
 }

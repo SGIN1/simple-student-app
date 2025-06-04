@@ -3,8 +3,8 @@ import sharp from "sharp"
 import path from "path"
 import fs from "fs/promises"
 import { fileURLToPath } from "url"
-// هذا هو السطر المهم الذي يؤكد الاستيراد بـ .js
-import { registerArabicFonts, createArabicTextWithCanvas, ARABIC_FONTS } from "../utils/imageUtils.js"
+// تصحيح مسار الاستيراد للـ Pages Router
+import { registerArabicFonts, createArabicTextWithCanvas, ARABIC_FONTS } from "../../utils/imageUtils.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
 
     // إرسال الصورة كاستجابة
     res.setHeader("Content-Type", "image/jpeg")
-    res.setHeader("Cache-Control", "public, max-age=3600") // تخزين مؤقت لساعة واحدة
+    res.setHeader("Cache-Control", "public, max-age=3600")
     res.send(finalImage)
   } catch (error) {
     console.error("خطأ في إنشاء الشهادة:", error)

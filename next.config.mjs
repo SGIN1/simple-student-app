@@ -24,12 +24,6 @@ const nextConfig = {
   },
   
   webpack: (config, { isServer }) => {
-    // إعداد alias للمسار المطلق '@'
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': path.resolve(process.cwd()),
-    }
-    
     // التعامل مع المكتبات الأصلية فقط في بيئة الخادم
     if (isServer) {
       config.externals = [
