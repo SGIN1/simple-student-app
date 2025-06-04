@@ -6,8 +6,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
-// السطر رقم 10: تأكد من أن 'registerArabicFonts' تبدأ بحرف 'A' كبير
-// وتأكد من أن 'createArabicTextWithCanvas' تبدأ بحرف 'A' كبير
+// *** هذا هو السطر الحاسم الذي يجب أن يكون صحيحًا تمامًا ***
 import { registerArabicFonts, createArabicTextWithCanvas, ARABIC_FONTS } from '../utils/imageUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
