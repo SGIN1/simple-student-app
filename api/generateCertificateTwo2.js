@@ -6,8 +6,9 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
-// *** هذا هو السطر الذي يحتاج إلى التعديل: لاحظ 'createArabicTextWithCanvas' بحرف 'A' كبير ***
-import { registerArabicFonts, createArabicTextWithCanvas, ARABIC_FONTS } from '../utils/imageUtils.js'; // تأكد من الامتداد .js هنا
+// السطر رقم 10: تأكد من أن 'registerArabicFonts' تبدأ بحرف 'A' كبير
+// وتأكد من أن 'createArabicTextWithCanvas' تبدأ بحرف 'A' كبير
+import { registerArabicFonts, createArabicTextWithCanvas, ARABIC_FONTS } from '../utils/imageUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -123,7 +124,7 @@ export default async function handler(req, res) {
         const studentFullName = student.name_arabic || 'غير متوفر';
         const courseActualName = student.course_name || 'غير متوفر';
 
-        // استخدام createArabicTextWithCanvas (تم تصحيح الاسم)
+        // استخدام createArabicTextWithCanvas
         const welcomeMessageTextBuffer = await createArabicTextWithCanvas(
             CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.text,
             {
