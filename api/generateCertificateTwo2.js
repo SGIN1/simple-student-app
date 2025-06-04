@@ -6,9 +6,9 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
-// هذا هو سطر الاستيراد الذي يجب أن يكون صحيحًا تمامًا
-// تأكد من تطابق الأحرف الكبيرة والصغيرة (Capitalization)
-import { registerArabicFonts, generateCertificateWithArabicText, ARABIC_FONTS } from '../utils/imageUtils.js';
+// هذا هو سطر الاستيراد الصحيح. تم تغيير 'registerEnglishFonts' إلى 'registerArabicFonts'
+// وتأكد من أن createArabicTextWithCanvas هي الدالة المستخدمة لإنشاء النصوص.
+import { registerArabicFonts, createArabicTextWithCanvas, ARABIC_FONTS } from '../utils/imageUtils.js'; // تأكد من الامتداد .js هنا
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,9 +49,8 @@ const CERTIFICATE_TEXT_POSITIONS = {
     }
 };
 
-// إزالة 'runtime: "nodejs"' بناءً على تحذير Vercel
 export const config = {
-  maxDuration: 30, // 30 seconds timeout
+    maxDuration: 30, // 30 seconds timeout
 };
 
 export default async function handler(req, res) {
@@ -72,6 +71,10 @@ export default async function handler(req, res) {
 
     let client;
     try {
+        // تأكد من تسجيل الخطوط قبل استخدامها
+        registerArabicFonts();
+        console.log('تم تسجيل الخطوط العربية.');
+
         console.log('جارٍ الاتصال بقاعدة البيانات...');
         client = new MongoClient(uri);
         await client.connect();

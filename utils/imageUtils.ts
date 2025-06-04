@@ -2,147 +2,158 @@
 
 import { createCanvas, registerFont } from "canvas";
 import path from "path";
-import fs from "fs"; // استخدام fs وليس fs/promises هنا إذا كانت الدوال متزامنة
+import fs from "fs";
 import sharp from "sharp";
 
 // تصدير الثابت ARABIC_FONTS
 export const ARABIC_FONTS = {
-  arial: "Arial",
-  notoSansArabic: "Noto Sans Arabic",
-  amiri: "Amiri",
-  cairo: "Cairo",
+    arial: "Arial",
+    notoSansArabic: "Noto Sans Arabic",
+    amiri: "Amiri",
+    cairo: "Cairo",
 };
+
+// متغير لتتبع ما إذا كانت الخطوط قد تم تسجيلها بالفعل
+let fontsRegistered = false;
 
 // تصدير الدالة registerArabicFonts
 export function registerArabicFonts() {
-  try {
-    // استخدم process.cwd() للحصول على المسار الأساسي للمشروع على Vercel
-    const fontsDir = path.join(process.cwd(), "public", "fonts");
-
-    const arialPath = path.join(fontsDir, "arial.ttf");
-    if (fs.existsSync(arialPath)) {
-      registerFont(arialPath, { family: "Arial" });
-      console.log("✅ Arial font registered successfully from:", arialPath);
-    } else {
-      console.warn(`⚠️ Arial font file not found at: ${arialPath}. Please ensure it's in public/fonts.`);
+    if (fontsRegistered) {
+        console.log("الخطوط العربية مسجلة بالفعل.");
+        return;
     }
 
-    const notoPath = path.join(fontsDir, "NotoSansArabic-Regular.ttf");
-    if (fs.existsSync(notoPath)) {
-      registerFont(notoPath, { family: "Noto Sans Arabic" });
-      console.log("✅ Noto Sans Arabic font registered successfully from:", notoPath);
-    } else {
-      console.warn(`⚠️ Noto Sans Arabic font file not found at: ${notoPath}. Please ensure it's in public/fonts.`);
+    try {
+        const fontsDir = path.join(process.cwd(), "public", "fonts");
+
+        // تحقق من وجود ملفات الخطوط وسجلها
+        const fontFiles = [
+            { name: "Arial", path: path.join(fontsDir, "arial.ttf") },
+            { name: "Noto Sans Arabic", path: path.join(fontsDir, "NotoSansArabic-Regular.ttf") },
+            // أضف أي خطوط أخرى تستخدمها هنا
+        ];
+
+        fontFiles.forEach(font => {
+            if (fs.existsSync(font.path)) {
+                registerFont(font.path, { family: font.name });
+                console.log(`✅ تم تسجيل خط ${font.name} بنجاح من: ${font.path}`);
+            } else {
+                console.warn(`⚠️ لم يتم العثور على ملف خط ${font.name} في: ${font.path}. يرجى التأكد من وجوده في public/fonts.`);
+            }
+        });
+
+        fontsRegistered = true; // تعيين العلامة بعد التسجيل الناجح
+    } catch (error) {
+        console.error("❌ خطأ أثناء تسجيل الخطوط:", error);
     }
-  } catch (error) {
-    console.error("❌ Error registering fonts:", error);
-  }
 }
 
 // تصدير الدالة createArabicTextWithCanvas
 export async function createArabicTextWithCanvas(
-  text: string,
-  options: {
-    fontSize?: number;
-    fontFamily?: string;
-    color?: string;
-    width?: number;
-    height?: number;
-    textAlign?: "left" | "center" | "right";
-    backgroundColor?: string;
-    lineHeight?: number;
-  } = {},
+    text: string,
+    options: {
+        fontSize?: number;
+        fontFamily?: string;
+        color?: string;
+        width?: number;
+        height?: number;
+        textAlign?: "left" | "center" | "right";
+        backgroundColor?: string;
+        lineHeight?: number;
+    } = {},
 ): Promise<Buffer> {
-  const {
-    fontSize = 24,
-    fontFamily = ARABIC_FONTS.arial,
-    color = "#000000",
-    width = 800,
-    height = 100,
-    textAlign = "center",
-    backgroundColor = "transparent",
-    lineHeight = fontSize * 1.2,
-  } = options;
+    const {
+        fontSize = 24,
+        fontFamily = ARABIC_FONTS.arial,
+        color = "#000000",
+        width = 800,
+        height = 100,
+        textAlign = "center",
+        backgroundColor = "transparent",
+        lineHeight = fontSize * 1.2,
+    } = options;
 
-  try {
-    registerArabicFonts(); // Register fonts every time (safe)
+    try {
+        // لا تستدعي registerArabicFonts هنا داخل هذه الدالة.
+        // يجب أن يتم استدعاؤها مرة واحدة في بداية التطبيق أو في الدالة الأم.
+        // registerArabicFonts(); // تم إزالة هذا السطر
 
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext("2d");
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext("2d");
 
-    if (backgroundColor !== "transparent") {
-      ctx.fillStyle = backgroundColor;
-      ctx.fillRect(0, 0, width, height);
+        if (backgroundColor !== "transparent") {
+            ctx.fillStyle = backgroundColor;
+            ctx.fillRect(0, 0, width, height);
+        }
+
+        ctx.font = `${fontSize}px "${fontFamily}", "Noto Sans Arabic", Arial, sans-serif`;
+        ctx.fillStyle = color;
+        ctx.textBaseline = "middle";
+
+        let x: number;
+        switch (textAlign) {
+            case "left":
+                ctx.textAlign = "left";
+                x = 20;
+                break;
+            case "right":
+                ctx.textAlign = "right";
+                x = width - 20;
+                break;
+            default:
+                ctx.textAlign = "center";
+                x = width / 2;
+        }
+
+        const lines = text.split("\n");
+        const startY = (height - (lines.length - 1) * lineHeight) / 2;
+
+        lines.forEach((line, index) => {
+            ctx.fillText(line, x, startY + index * lineHeight);
+        });
+
+        return canvas.toBuffer("image/png");
+    } catch (error) {
+        console.error("❌ خطأ أثناء إنشاء النص العربي باستخدام Canvas:", error);
+        throw new Error(`فشل إنشاء النص العربي: ${error.message}`);
     }
-
-    ctx.font = `${fontSize}px "${fontFamily}", "Noto Sans Arabic", Arial, sans-serif`;
-    ctx.fillStyle = color;
-    ctx.textBaseline = "middle";
-
-    let x: number;
-    switch (textAlign) {
-      case "left":
-        ctx.textAlign = "left";
-        x = 20;
-        break;
-      case "right":
-        ctx.textAlign = "right";
-        x = width - 20;
-        break;
-      default:
-        ctx.textAlign = "center";
-        x = width / 2;
-    }
-
-    const lines = text.split("\n");
-    const startY = (height - (lines.length - 1) * lineHeight) / 2;
-
-    lines.forEach((line, index) => {
-      ctx.fillText(line, x, startY + index * lineHeight);
-    });
-
-    return canvas.toBuffer("image/png");
-  } catch (error) {
-    console.error("❌ Error creating Arabic text with Canvas:", error);
-    throw new Error(`Failed to create Arabic text: ${error.message}`);
-  }
 }
 
-// تصدير الدالة createArabicTextSVG
+// الدالة createArabicTextSVG هي نفسها، لا تحتاج إلى تغيير
 export function createArabicTextSVG(
-  text: string,
-  options: {
-    fontSize?: number;
-    fontFamily?: string;
-    color?: string;
-    x?: number;
-    y?: number;
-    textAnchor?: "start" | "middle" | "end";
-    direction?: "rtl" | "ltr";
-  } = {},
+    text: string,
+    options: {
+        fontSize?: number;
+        fontFamily?: string;
+        color?: string;
+        x?: number;
+        y?: number;
+        textAnchor?: "start" | "middle" | "end";
+        direction?: "rtl" | "ltr";
+    } = {},
 ): string {
-  const {
-    fontSize = 24,
-    fontFamily = ARABIC_FONTS.arial,
-    color = "#000000",
-    x = 0,
-    y = 0,
-    textAnchor = "middle",
-    direction = "rtl",
-  } = options;
+    const {
+        fontSize = 24,
+        fontFamily = ARABIC_FONTS.arial,
+        color = "#000000",
+        x = 0,
+        y = 0,
+        textAnchor = "middle",
+        direction = "rtl",
+    } = options;
 
-  const cleanText = text.replace(/[<>&"']/g, (match) => {
-    const entities: { [key: string]: string } = {
-      "<": "&lt;",
-      ">": "&gt;",
-      "&": "&amp;",
-      '"': "&quot;",
-      "'": "&#39;",
-    };
-    return entities[match];
-  });
+    const cleanText = text.replace(/[<>&"']/g, (match) => {
+        const entities: { [key: string]: string } = {
+            "<": "&lt;",
+            ">": "&gt;",
+            "&": "&amp;",
+            '"': "&quot;",
+            "'": "&#39;",
+        };
+        return entities[match];
+    });
 
-  return `
+    return `
     <svg xmlns="http://www.w3.org/2000/svg" width="400" height="100">
       <defs>
         <style>
@@ -164,79 +175,79 @@ export function createArabicTextSVG(
   `.trim();
 }
 
-// تصدير الدالة compositeTextOnImage
+// الدالة compositeTextOnImage هي نفسها، لا تحتاج إلى تغيير
 export async function compositeTextOnImage(
-  baseImageBuffer: Buffer,
-  textBuffer: Buffer,
-  position: { left: number; top: number },
+    baseImageBuffer: Buffer,
+    textBuffer: Buffer,
+    position: { left: number; top: number },
 ): Promise<Buffer> {
-  try {
-    console.log("🔄 Starting image composition...");
+    try {
+        console.log("🔄 جارٍ بدء دمج الصورة...");
 
-    const result = await sharp(baseImageBuffer)
-      .composite([
-        {
-          input: textBuffer,
-          left: position.left,
-          top: position.top,
-          blend: "over",
-        },
-      ])
-      .jpeg({ quality: 90 })
-      .toBuffer();
+        const result = await sharp(baseImageBuffer)
+            .composite([
+                {
+                    input: textBuffer,
+                    left: position.left,
+                    top: position.top,
+                    blend: "over",
+                },
+            ])
+            .jpeg({ quality: 90 })
+            .toBuffer();
 
-    console.log("✅ Image composition completed successfully");
-    return result;
-  } catch (error) {
-    console.error("❌ Error in image composition:", error);
-    throw new Error(`Image composition failed: ${error.message}`);
-  }
+        console.log("✅ تم دمج الصورة بنجاح.");
+        return result;
+    } catch (error) {
+        console.error("❌ خطأ في دمج الصورة:", error);
+        throw new Error(`فشل دمج الصورة: ${error.message}`);
+    }
 }
 
-// تصدير الدالة generateCertificateWithArabicText
+// الدالة generateCertificateWithArabicText هي نفسها، لا تحتاج إلى تغيير
 export async function generateCertificateWithArabicText(
-  baseImagePath: string,
-  arabicText: string,
-  options: {
-    fontSize?: number;
-    fontFamily?: string;
-    color?: string;
-    position?: { left: number; top: number };
-    textWidth?: number;
-    textHeight?: number;
-  } = {},
+    baseImagePath: string,
+    arabicText: string,
+    options: {
+        fontSize?: number;
+        fontFamily?: string;
+        color?: string;
+        position?: { left: number; top: number };
+        textWidth?: number;
+        textHeight?: number;
+    } = {},
 ): Promise<Buffer> {
-  const {
-    fontSize = 32,
-    fontFamily = ARABIC_FONTS.arial,
-    color = "#000000",
-    position = { left: 100, top: 200 },
-    textWidth = 600,
-    textHeight = 80,
-  } = options;
+    const {
+        fontSize = 32,
+        fontFamily = ARABIC_FONTS.arial,
+        color = "#000000",
+        position = { left: 100, top: 200 },
+        textWidth = 600,
+        textHeight = 80,
+    } = options;
 
-  try {
-    console.log("🔄 Generating certificate with Arabic text...");
+    try {
+        console.log("🔄 جارٍ إنشاء الشهادة بالنص العربي...");
 
-    const baseImageBuffer = await sharp(baseImagePath).toBuffer();
-    console.log("✅ Base image loaded successfully");
+        const baseImageBuffer = await sharp(baseImagePath).toBuffer();
+        console.log("✅ تم تحميل الصورة الأساسية بنجاح.");
 
-    const textBuffer = await createArabicTextWithCanvas(arabicText, {
-      fontSize,
-      fontFamily,
-      color,
-      width: textWidth,
-      height: textHeight,
-      textAlign: "center",
-    });
-    console.log("✅ Arabic text created successfully");
+        const textBuffer = await createArabicTextWithCanvas(arabicText, {
+            fontSize,
+            fontFamily,
+            color,
+            width: textWidth,
+            height: textHeight,
+            textAlign: "center",
+        });
+        console.log("✅ تم إنشاء النص العربي بنجاح.");
 
-    const finalImage = await compositeTextOnImage(baseImageBuffer, textBuffer, position);
-    console.log("✅ Certificate generated successfully");
+        const finalImage = await compositeTextOnImage(baseImageBuffer, textBuffer, position);
+        console.log("✅ تم إنشاء الشهادة بنجاح.");
 
-    return finalImage;
-  } catch (error) {
-    console.error("❌ Error generating certificate:", error);
-    throw new Error(`Certificate generation failed: ${error.message}`);
-  }
+        return finalImage;
+    } catch (error) {
+        console.error("❌ خطأ أثناء إنشاء الشهادة:", error);
+        throw new Error(`فشل إنشاء الشهادة: ${error.message}`);
+    }
 }
