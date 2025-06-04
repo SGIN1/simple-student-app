@@ -1,23 +1,31 @@
 {
   "name": "simple-student-app",
-  "version": "1.0.1",
-  "description": "",
+  "version": "1.0.2",
+  "description": "نظام إدارة الطلاب مع إنشاء الشهادات",
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "npm rebuild sharp --arch=x64 --platform=linux --libc=glibc"
   },
-  "keywords": [],
+  "keywords": ["students", "certificates", "arabic", "mongodb"],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@vercel/og": "^0.6.2",
     "canvas": "^3.1.0",
     "mongodb": "^6.6.0",
+    "next": "^14.0.0",
     "node-html-to-image": "^4.0.0",
     "qrcode": "^1.5.3",
     "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "sharp": "^0.33.4"
+  },
+  "devDependencies": {
+    "node-loader": "^2.0.0"
   }
 }
