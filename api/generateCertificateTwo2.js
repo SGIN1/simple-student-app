@@ -6,7 +6,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
-// هذا هو السطر الحاسم الذي يجب أن يكون صحيحاً تماماً
+// هذا هو سطر الاستيراد الذي يجب أن يكون صحيحًا تمامًا
+// تأكد من تطابق الأحرف الكبيرة والصغيرة (Capitalization)
 import { registerArabicFonts, generateCertificateWithArabicText, ARABIC_FONTS } from '../utils/imageUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,14 +17,15 @@ const uri = process.env.MONGODB_URI;
 const dbName = 'Cluster0';
 const collectionName = 'enrolled_students_tbl';
 
+// تأكد من أن المسار صحيح لصورتك
 const CERTIFICATE_IMAGE_PATH = path.join(process.cwd(), 'public', 'images', 'full', 'wwee.jpg');
 
-const RED_COLOR_HEX = '#FF0000';
+const RED_COLOR_HEX = '#FF0000'; // مثال على استخدام ثابت لون
 
 const CERTIFICATE_TEXT_POSITIONS = {
     STUDENT_NAME: {
         text: "اسم الطالب: ",
-        y: 400,
+        y: 400, // الموضع العمودي للنص
         fontSize: 45,
         color: "#000000",
     },
@@ -47,6 +49,7 @@ const CERTIFICATE_TEXT_POSITIONS = {
     }
 };
 
+// إزالة 'runtime: "nodejs"' بناءً على تحذير Vercel
 export const config = {
   maxDuration: 30, // 30 seconds timeout
 };
@@ -114,20 +117,23 @@ export default async function handler(req, res) {
 
         const textBuffersToComposite = [];
 
+        // استخدام student.name_arabic و student.course_name مباشرة
         const studentFullName = student.name_arabic || 'غير متوفر';
         const courseActualName = student.course_name || 'غير متوفر';
 
+        // استخدام createArabicTextWithCanvas (تم تصحيح الاسم)
         const welcomeMessageTextBuffer = await createArabicTextWithCanvas(
             CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.text,
             {
                 fontSize: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.fontSize,
-                fontFamily: ARABIC_FONTS.notoSansArabic,
+                fontFamily: ARABIC_FONTS.notoSansArabic, // استخدام ARABIC_FONTS مباشرة
                 color: CERTIFICATE_TEXT_POSITIONS.WELCOME_MESSAGE.color,
                 width: 800,
                 height: 50,
                 textAlign: "center"
             }
         );
+        // حساب الموضع لمركز النص
         textBuffersToComposite.push({
             input: welcomeMessageTextBuffer,
             left: (imageWidth / 2) - (800 / 2),
@@ -184,7 +190,7 @@ export default async function handler(req, res) {
         );
         textBuffersToComposite.push({
             input: dateMessageTextBuffer,
-            left: imageWidth - 300 - 50,
+            left: imageWidth - 300 - 50, // 50 بكسل من الحافة اليمنى
             top: CERTIFICATE_TEXT_POSITIONS.DATE_MESSAGE.y - (40/2),
         });
         console.log(`✅ تم إنشاء صورة نص للتاريخ`);

@@ -2,9 +2,10 @@
 
 import { createCanvas, registerFont } from "canvas";
 import path from "path";
-import fs from "fs";
+import fs from "fs"; // استخدام fs وليس fs/promises هنا إذا كانت الدوال متزامنة
 import sharp from "sharp";
 
+// تصدير الثابت ARABIC_FONTS
 export const ARABIC_FONTS = {
   arial: "Arial",
   notoSansArabic: "Noto Sans Arabic",
@@ -12,8 +13,10 @@ export const ARABIC_FONTS = {
   cairo: "Cairo",
 };
 
+// تصدير الدالة registerArabicFonts
 export function registerArabicFonts() {
   try {
+    // استخدم process.cwd() للحصول على المسار الأساسي للمشروع على Vercel
     const fontsDir = path.join(process.cwd(), "public", "fonts");
 
     const arialPath = path.join(fontsDir, "arial.ttf");
@@ -36,6 +39,7 @@ export function registerArabicFonts() {
   }
 }
 
+// تصدير الدالة createArabicTextWithCanvas
 export async function createArabicTextWithCanvas(
   text: string,
   options: {
@@ -104,6 +108,7 @@ export async function createArabicTextWithCanvas(
   }
 }
 
+// تصدير الدالة createArabicTextSVG
 export function createArabicTextSVG(
   text: string,
   options: {
@@ -159,6 +164,7 @@ export function createArabicTextSVG(
   `.trim();
 }
 
+// تصدير الدالة compositeTextOnImage
 export async function compositeTextOnImage(
   baseImageBuffer: Buffer,
   textBuffer: Buffer,
@@ -187,6 +193,7 @@ export async function compositeTextOnImage(
   }
 }
 
+// تصدير الدالة generateCertificateWithArabicText
 export async function generateCertificateWithArabicText(
   baseImagePath: string,
   arabicText: string,
