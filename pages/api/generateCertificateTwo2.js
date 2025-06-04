@@ -3,6 +3,7 @@ import sharp from "sharp"
 import path from "path"
 import fs from "fs/promises"
 import { fileURLToPath } from "url"
+// هذا هو السطر المهم الذي يؤكد الاستيراد بـ .js
 import { registerArabicFonts, createArabicTextWithCanvas, ARABIC_FONTS } from "../utils/imageUtils.js"
 
 const __filename = fileURLToPath(import.meta.url)
