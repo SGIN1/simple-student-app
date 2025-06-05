@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -9,20 +8,9 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // تحسين الأداء
-  experimental: {
-    optimizeCss: true,
-  },
-
   // إعدادات الصور
   images: {
-    domains: ["localhost"],
     unoptimized: true,
-  },
-
-  // إعدادات البيئة
-  env: {
-    MONGODB_URI: process.env.MONGODB_URI,
   },
 
   // إعادة التوجيه للأسماء العربية
@@ -33,21 +21,6 @@ const nextConfig = {
         destination: "/بيانات-الطلاب",
       },
     ]
-  },
-
-  // إعدادات webpack
-  webpack: (config, { isServer }) => {
-    // تحسين حجم الحزمة
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-      }
-    }
-
-    return config
   },
 
   // إعدادات الأمان
