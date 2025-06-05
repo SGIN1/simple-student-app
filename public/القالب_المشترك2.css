@@ -1,383 +1,367 @@
-/* القالب_المشترك2.css */
+/* القالب المشترك لصفحة البيانات */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-/* ==========================================================================
-    تنسيقات عامة للصفحة
-    ========================================================================= */
 body {
-    font-family: Arial, sans-serif;
-    direction: rtl;
-    text-align: right;
-    background-color: #f4f6f8;
-    padding: 0;
-    align-items: stretch;
+  font-family: "Arial", sans-serif;
+  direction: rtl;
+  text-align: right;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  line-height: 1.6;
+  color: #333;
+  min-height: 100vh;
 }
 
-/* ==========================================================================
-    تنسيقات الحاوية الرئيسية مع تدرج ألوان جمالي
-    ========================================================================= */
 .container {
-    width: 95%;
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 20px;
-
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    align-items: stretch;
-    color: #495057; /* لون النص داخل الحاوية */
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
-.container h1 {
-    font-size: 28px; /* حجم أكبر لعنوان الصفحة */
-    color: #fff; /* لون أبيض للعنوان عشان يبرز على الخلفية المتدرجة */
-    text-align: center; /* توسيط العنوان */
-    padding: 20px; /* مساحة حول العنوان */
-    background-color: rgba(52, 152, 219, 0.8); /* خلفية شفافة للعنوان بنفس درجة الأزرق */
-    border-radius: 8px 8px 0 0; /* نفس انحناء الحاوية من الأعلى */
-    margin-bottom: 20px; /* مسافة أسفل العنوان */
+/* Header */
+h1 {
+  color: #2c3e50;
+  margin-bottom: 30px;
+  font-size: 2.5em;
+  text-align: center;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-/* ==========================================================================
-    تنسيقات منطقة التحكم (الأزرار وشريط البحث)
-    ========================================================================= */
-.controls-container {
-    background-color: rgba(236, 240, 241, 0.7); /* خلفية شفافة لمنطقة التحكم */
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 5px;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-}
-
-.buttons-container {
-    display: flex;
-    gap: 10px;
-}
-
-/* تنسيق زر إاصدار جديد ليكون مثل الزر الأخضر في الصورة مع مسافة سفلية */
+/* Add New Button */
 .add-new {
-    margin-bottom: 20px; /* إضافة هامش سفلي بمقدار 10 بكسل */
+  text-align: center;
+  margin-bottom: 30px;
 }
 
 .add-new a {
-    background-color: #28a745; /* لون أخضر مشابه */
-    color: white;
-    padding: 10px 20px; /* حجم مشابه */
-    border: none;
-    border-radius: 5px;
-    font-size: 16px; /* نفس حجم الخط تقريبًا */
-    text-decoration: none;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  padding: 15px 30px;
+  text-decoration: none;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 1.1em;
+  box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+  transition: all 0.3s ease;
+  display: inline-block;
 }
 
 .add-new a:hover {
-    background-color: #218838; /* لون أغمق عند الـ hover */
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
 }
 
-.btn-primary-new {
-    background-color: blue;
-    color: white;
-    padding: 10px 15px;
-    border: 1px solid #27ae60;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    text-decoration: none;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+/* Search Form */
+.search-form {
+  background: white;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+  text-align: center;
 }
 
-.btn-secondary-new {
-    background-color: red;
-    color: yellow;
-    padding: 10px 15px;
-    border: 1px solid #c0392b;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    text-decoration: none;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+.search-form input {
+  width: 100%;
+  max-width: 400px;
+  padding: 15px 20px;
+  border: 2px solid #e1e8ed;
+  border-radius: 25px;
+  font-size: 16px;
+  text-align: center;
+  transition: all 0.3s ease;
 }
 
-.btn-test-one {
-    background-color: green;
-    color: white;
-    padding: 10px 15px;
-    border: 1px solid darkgreen;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+.search-form input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  transform: scale(1.02);
 }
 
-.btn-test-two {
-    background-color: orange;
-    color: black;
-    padding: 10px 15px;
-    border: 1px solid darkorange;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+/* Table Styles */
+#students_table {
+  width: 100%;
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
 }
 
-.search-form { /* هذا هو الكلاس الخاص بحقل البحث */
-    /* ... التنسيقات الخاصة بحقل البحث موجودة هنا ... */
+#students_table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
 
-.search-form input[type="text"] {
-    padding: 10px;
-    border: 1px solid #bdc3c7;
-    border-radius: 5px;
-    width: 300px;
-    max-width: 100%;
-    box-sizing: border-box;
-    font-size: 16px;
-    background-color: white;
+#students_table th {
+  padding: 20px 15px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9em;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
-/* ==========================================================================
-    تنسيقات جدول البيانات
-    ========================================================================= */
-table {
-    border-collapse: collapse;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    background-color: rgba(255, 255, 255, 0.8); /* خلفية شفافة للجدول */
-    border: 1px solid #e0e0e0;
-    width: 100%;
-    table-layout: fixed;
+#students_table tbody tr {
+  transition: all 0.3s ease;
+  border-bottom: 1px solid #f1f3f4;
 }
 
-th, td {
-    padding: 12px 15px;
-    text-align: center;
-    font-weight: normal;
-    font-size: 16px;
-    border-bottom: 1px solid #e0e0e0;
-    word-break: break-word;
+#students_table tbody tr:hover {
+  background-color: #f8f9fa;
+  transform: scale(1.01);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-thead th {
-    background-color: rgba(248, 249, 250, 0.8); /* خلفية شفافة لرأس الجدول */
-    color: #495057;
-    font-weight: bold;
-    text-align: center;
+#students_table td {
+  padding: 15px 10px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 0.9em;
+  border-right: 1px solid #f1f3f4;
 }
 
-th:first-child, td:first-child {
-    border-right: none;
+#students_table td:first-child {
+  font-weight: 600;
+  color: #3498db;
 }
 
-th:last-child, td:last-child {
-    border-left: none;
+/* Action Buttons */
+.actions {
+  white-space: nowrap;
 }
 
-th, td {
-    border-left: 1px solid #e0e0e0;
-    border-right: 1px solid #e0e0e0;
-}
-
-th:first-child, td:first-child {
-    border-right: none;
-}
-
-/* تحديد عرض الأعمدة - يمكنك تعديل هذه القيم حسب الحاجة */
-th:nth-child(1), td:nth-child(1) { /* المعرف */
-    width: 60px;
-}
-
-th:nth-child(2), td:nth-child(2) { /* الرقم التسلسلي */
-    width: 100px;
-}
-
-th:nth-child(3), td:nth-child(3) { /* رقم الإقامة */
-    width: 100px;
-}
-
-th:nth-child(4), td:nth-child(4) { /* الرقم التسلسلي للوثيقة */
-    width: 120px;
-}
-
-th:nth-child(5), td:nth-child(5) { /* رقم اللوحة */
-    width: 90px;
-}
-
-th:nth-child(6), td:nth-child(6) { /* تاريخ الفحص */
-    width: 100px;
-}
-
-th:nth-child(7), td:nth-child(7) { /* الشركة الصانعة */
-    width: 120px;
-}
-
-th:nth-child(8), td:nth-child(8) { /* تاريخ انتهاء الفحص */
-    width: 120px;
-}
-
-th:nth-child(9), td:nth-child(9) { /* نوع السيارة */
-    width: 100px;
-}
-
-th:nth-child(10), td:nth-child(10) { /* قراءة العداد */
-    width: 90px;
-}
-
-th:nth-child(11), td:nth-child(11) { /* رقم الهيكل */
-    width: 120px;
-}
-
-th:nth-child(12), td:nth-child(12) { /* طراز المركبة */
-    width: 100px;
-}
-
-th:nth-child(13), td:nth-child(13) { /* اللون */
-    width: 80px;
-}
-
-th:nth-child(14), td:nth-child(14) { /* الرقم التسلسلي (مكرر) */
-    width: 120px;
-}
-
-th:nth-child(15), td:nth-child(15) { /* تاريخ الإضافة */
-    width: 120px;
-}
-
-th:nth-child(16), td:nth-child(16), /* الإجراءات (تعديل) */
-th:nth-child(17), td:nth-child(17), /* الإجراءات1 (حذف) */
-th:nth-child(18), td:nth-child(18), /* عرض الشهادة الأولى */
-th:nth-child(19), td:nth-child(19)   /* عرض الشهادة الثانية */
-{
-    width: 100px; /* عرض ثابت لأعمدة الإجراءات */
+.edit-btn,
+.delete-btn,
+.print-btn {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  margin: 2px;
+  transition: all 0.3s ease;
+  min-width: 70px;
 }
 
 .edit-btn {
-    display: block;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 12px;
-    cursor: pointer;
-    text-decoration: none;
-    background-color: #ffc107;
-    color: black;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    margin: 5px auto;
+  background: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%);
+  color: white;
+  box-shadow: 0 3px 10px rgba(255, 193, 7, 0.3);
+}
+
+.edit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
 }
 
 .delete-btn {
-    display: block;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 12px;
-    cursor: pointer;
-    text-decoration: none;
-    background-color: #dc3545;
-    color: white;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    margin: 5px auto;
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  color: white;
+  box-shadow: 0 3px 10px rgba(220, 53, 69, 0.3);
+}
+
+.delete-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
 }
 
 .print-btn {
-    display: block;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 12px;
-    cursor: pointer;
-    text-decoration: none;
-    background-color: #007bff;
-    color: white;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    margin: 5px auto;
+  background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+  color: white;
+  box-shadow: 0 3px 10px rgba(111, 66, 193, 0.3);
 }
 
-/* ==========================================================================
-    تنسيقات رسالة لا يوجد نتائج
-    ========================================================================= */
+.print-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(111, 66, 193, 0.4);
+}
+
+/* No Results Message */
 .no-results {
-    text-align: center;
-    color: gray;
-    margin-top: 20px;
-    font-size: 18px;
+  text-align: center;
+  padding: 50px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  color: #6c757d;
+  font-size: 1.2em;
+  margin: 30px 0;
 }
 
-/* ==========================================================================
-    تنسيقات حاوية الشهادة (مخفية افتراضيًا)
-    ========================================================================= */
-#certificateContainer {
-    margin-top: 20px;
-    text-align: center;
-    display: none;
+/* Loading States */
+.loading-row {
+  text-align: center;
+  padding: 50px;
+  color: #6c757d;
 }
 
-/* ==========================================================================
-    استعلامات إعلامية للتجاوب
-    ========================================================================= */
+.loading-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  #students_table {
+    font-size: 0.8em;
+  }
+
+  #students_table th,
+  #students_table td {
+    padding: 10px 8px;
+  }
+}
+
 @media (max-width: 768px) {
-    .controls-container {
-        flex-direction: column;
-        align-items: stretch;
-    }
+  .container {
+    padding: 10px;
+  }
 
-    .buttons-container {
-        flex-direction: column;
-        width: 100%;
-    }
+  h1 {
+    font-size: 1.8em;
+  }
 
-    .buttons-container button, .buttons-container a {
-        width: 100%;
-        margin-left: 0;
-        margin-bottom: 10px;
-    }
+  #students_table {
+    font-size: 0.7em;
+    overflow-x: auto;
+    display: block;
+    white-space: nowrap;
+  }
 
-    .search-form input[type="text"] {
-        width: 100%;
-    }
+  #students_table thead,
+  #students_table tbody,
+  #students_table th,
+  #students_table td,
+  #students_table tr {
+    display: block;
+  }
 
-    .container {
-        width: 98%;
-        margin: 10px auto;
-        padding: 15px;
-    }
+  #students_table thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
 
-    h1 {
-        font-size: 22px;
-    }
+  #students_table tr {
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    background: white;
+  }
 
-    th, td {
-        font-size: 14px;
-        padding: 8px 5px;
-    }
+  #students_table td {
+    border: none;
+    position: relative;
+    padding-right: 50%;
+    text-align: right;
+    white-space: normal;
+  }
 
-    /* جعل الجدول يتدفق أفقيًا على الشاشات الصغيرة */
-    table {
-        display: block;
-        overflow-x: auto;
-    }
+  #students_table td:before {
+    content: attr(data-label) ": ";
+    position: absolute;
+    right: 6px;
+    width: 45%;
+    padding-left: 10px;
+    white-space: nowrap;
+    font-weight: bold;
+    color: #3498db;
+  }
 
-    thead th {
-        white-space: nowrap;
-    }
+  .actions {
+    text-align: center;
+    padding-right: 0 !important;
+  }
 
-    tbody td {
-        white-space: nowrap;
-    }
+  .actions:before {
+    display: none;
+  }
+}
 
-    /* إعادة تعيين عرض الأعمدة ليناسب المحتوى في الوضع الأفقي */
-    th:nth-child(n),
-    td:nth-child(n) {
-        width: auto;
-    }
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-    /* تنسيقات إضافية لأزرار الإجراءات في الوضع الرأسي */
-    .edit-btn, .delete-btn, .print-btn {
-        display: inline-block;
-        margin: 5px;
-        width: auto;
-    }
+.fade-in-up {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: white;
+  }
+
+  .add-new,
+  .search-form,
+  .actions {
+    display: none;
+  }
+
+  #students_table {
+    box-shadow: none;
+    border: 1px solid #333;
+  }
+
+  #students_table th {
+    background: #f8f9fa !important;
+    color: #333 !important;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
 }
