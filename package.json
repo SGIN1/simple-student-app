@@ -1,31 +1,32 @@
 {
-  "name": "simple-student-app",
-  "version": "1.0.2",
-  "description": "نظام إدارة الطلاب مع إنشاء الشهادات",
-  "main": "index.js",
-  "type": "module",
+  "name": "student-management-system",
+  "version": "2.0.0",
+  "description": "نظام إدارة الطلاب مع إنشاء الشهادات - محسن ومطور",
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "npm rebuild sharp --arch=x64 --platform=linux --libc=glibc"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
-  "keywords": ["students", "certificates", "arabic", "mongodb"],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@vercel/og": "^0.6.2",
-    "canvas": "^3.1.0",
-    "mongodb": "^6.6.0",
-    "next": "^14.0.0",
-    "node-html-to-image": "^4.0.0",
+    "mongodb": "^6.3.0",
+    "next": "^14.0.4",
     "qrcode": "^1.5.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "sharp": "^0.33.4"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "node-loader": "^2.0.0"
-  }
+    "@types/node": "^20.10.5",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "^14.0.4",
+    "typescript": "^5.3.3"
+  },
+  "keywords": ["student-management", "certificates", "arabic", "mongodb", "nextjs", "vercel"],
+  "author": "Student Management System",
+  "license": "MIT"
 }
