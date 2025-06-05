@@ -7,23 +7,11 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-
-  // إعدادات الصور
+  // أعدنا unoptimized: true للصور لضمان عدم وجود مشاكل مع الصور
   images: {
     unoptimized: true,
   },
-
-  // لا يوجد هنا قسم rewrites، تم حذفه
-  // async rewrites() {
-  //   return [
-  //     {
-  //       source: "/",
-  //       destination: "/بيانات-الطلاب",
-  //     },
-  //   ]
-  // },
-
-  // إعدادات الأمان
+  // هذا الجزء يحل مشكلة الـ CORS مع الـ API
   async headers() {
     return [
       {
@@ -45,6 +33,7 @@ const nextConfig = {
       },
     ];
   },
+  // لا يوجد هنا قسم rewrites، لأننا سنستخدم vercel.json أو pages/index.tsx
 };
 
 module.exports = nextConfig;
