@@ -13,15 +13,15 @@ const nextConfig = {
     unoptimized: true,
   },
 
-  // إعادة التوجيه للأسماء العربية
-  async rewrites() {
-    return [
-      {
-        source: "/",
-        destination: "/بيانات-الطلاب",
-      },
-    ]
-  },
+  // لا يوجد هنا قسم rewrites، تم حذفه
+  // async rewrites() {
+  //   return [
+  //     {
+  //       source: "/",
+  //       destination: "/بيانات-الطلاب",
+  //     },
+  //   ]
+  // },
 
   // إعدادات الأمان
   async headers() {
@@ -43,8 +43,8 @@ const nextConfig = {
           },
         ],
       },
-    ]
+    ];
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
