@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/بيانات-الطلاب"
+    }
+  ]
+}
