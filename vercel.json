@@ -1,8 +1,9 @@
 {
-  "rewrites": [
+  "redirects": [
     {
       "source": "/",
-      "destination": "/بيانات-الطلاب"
+      "destination": "/بيانات-الطلاب",
+      "permanent": true
     }
   ]
 }
